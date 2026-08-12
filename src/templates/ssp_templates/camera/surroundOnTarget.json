@@ -1,0 +1,62 @@
+{
+  "id": "surroundOnTarget",
+  "category": "camera",
+  "subcategory": "root",
+  "intent": [
+    "环绕目标旋转",
+    "360 展示",
+    "环绕拍电影",
+    "surround",
+    "orbit"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.cameraController.surroundOnTarget",
+  "signature": "surroundOnTarget(target: Object3D, opts?: { speed?: number; radius?: number; heightOffset?: number }): () => void",
+  "params": [
+    {
+      "name": "target",
+      "type": "THREE.Object3D",
+      "required": true,
+      "desc": "环绕的目标对象, 用 getWorldPosition 取世界坐标作为圆心"
+    },
+    {
+      "name": "opts.speed",
+      "type": "number",
+      "required": false,
+      "default": "0.2",
+      "desc": "角速度 (弧度/秒), 默认 0.2 (约 31 秒一周)"
+    },
+    {
+      "name": "opts.radius",
+      "type": "number",
+      "required": false,
+      "default": "current",
+      "desc": "距 target 的水平距离 (米), 不传用当前相机距离"
+    },
+    {
+      "name": "opts.heightOffset",
+      "type": "number",
+      "required": false,
+      "default": "5",
+      "desc": "高度偏移 (米), 在 target.y 基础上加"
+    }
+  ],
+  "returns": "() => void (stop 函数)",
+  "code": "const a6f = ssp.objectsTool.getByUserDataProperty('floorName', 'A_6F')[0]; if (!a6f) throw new Error('A_6F not found'); const stop = ssp.cameraController.surroundOnTarget(a6f, { speed: 0.3 }); setTimeout(stop, 1000); console.log('surrounding A_6F for 1 second');",
+  "example": "const obj = ssp.objectsTool.getById('A_6F_mesh_0'); const stop = ssp.cameraController.surroundOnTarget(obj, { speed: 0.5, radius: 80, heightOffset: 10 }); setTimeout(stop, 10000);",
+  "guard": [
+    "调用返回的 stop 函数停止环绕 (推荐)",
+    "新环绕会自动停掉旧环绕 (单例)",
+    "target 移动时圆心跟随 (getWorldPosition)"
+  ],
+  "seeAlso": [
+    "flyToObject"
+  ],
+  "tags": [
+    "camera",
+    "surround",
+    "orbit",
+    "cinematic"
+  ]
+}

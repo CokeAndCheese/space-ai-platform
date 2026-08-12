@@ -1,0 +1,31 @@
+{
+  "id": "getObjectByName",
+  "category": "objects",
+  "subcategory": "root",
+  "intent": ["按名称查对象", "查找模型节点", "get object by name"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.getByName",
+  "signature": "getByName(name: string, opts?: { fuzzy?: boolean }): Object3D | null",
+  "params": [
+    {
+      "name": "name",
+      "type": "string",
+      "required": true,
+      "desc": "Object3D.name 搜索文本"
+    },
+    {
+      "name": "fuzzy",
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "desc": "是否忽略大小写并模糊匹配"
+    }
+  ],
+  "returns": "首个匹配对象或 null",
+  "code": "const obj = ssp.objectsTool.getByName('WINDOW', { fuzzy: true }); console.log('object by name', obj?.name ?? 'not found');",
+  "example": "const obj = ssp.objectsTool.getByName('WINDOW', { fuzzy: true });\nconsole.log(obj);",
+  "guard": ["业务唯一标识应优先使用 getObjectById"],
+  "seeAlso": ["getObjectById", "getObjectByUserDataProperty"],
+  "tags": ["objects", "query", "name"]
+}

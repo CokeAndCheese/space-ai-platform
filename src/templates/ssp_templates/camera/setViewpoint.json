@@ -1,0 +1,42 @@
+{
+  "id": "setViewpoint",
+  "category": "camera",
+  "subcategory": "root",
+  "intent": [
+    "瞬移视角",
+    "无动画切换视角",
+    "set camera state",
+    "还原视角",
+    "instant teleport"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.cameraController.setViewpoint",
+  "signature": "setViewpoint(data: ViewpointData): void",
+  "params": [
+    {
+      "name": "data",
+      "type": "{ position: Vec3, target: Vec3, rotation?: Euler }",
+      "required": true,
+      "desc": "目标视角 — position + target 必须, rotation 可选"
+    }
+  ],
+  "returns": "void",
+  "code": "ssp.cameraController.setViewpoint({ position: { x: 0, y: 10, z: 30 }, target: { x: 0, y: 0, z: 0 } });",
+  "example": "/* 1) 还原视角 (跟 getViewpoint 配对) */\nconst saved = ssp.cameraController.getViewpoint();\nssp.cameraController.flyTo({ position: { x: 100, y: 50, z: 100 }, target: { x: 0, y: 0, z: 0 } });\n/* 1 秒后瞬移回来 */\nsetTimeout(() => ssp.cameraController.setViewpoint(saved), 1000);\n\n/* 2) 直接设视角 */\nssp.cameraController.setViewpoint({\n  position: { x: 5, y: 3, z: 8 },\n  target: { x: 0, y: 0, z: 0 },\n});\n\n/* 3) 带旋转 */\nssp.cameraController.setViewpoint({\n  position: { x: 0, y: 5, z: 10 },\n  target: { x: 0, y: 0, z: 0 },\n  rotation: { x: 0, y: Math.PI / 2, z: 0 },\n});",
+  "guard": [
+    "target 不能为空, 否则视角朝向不确定",
+    "瞬移无动画, 跟 flyTo 相反",
+    "rotation 是相机本体 rotation (欧拉角), 不是 target 方向"
+  ],
+  "seeAlso": [
+    "getViewpoint",
+    "flyTo"
+  ],
+  "tags": [
+    "camera",
+    "instant",
+    "teleport"
+  ],
+  "_renamedFrom": "core-api.setCameraViewpoint"
+}

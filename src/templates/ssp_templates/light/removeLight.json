@@ -1,0 +1,24 @@
+{
+  "id": "removeLight",
+  "category": "light",
+  "subcategory": "root",
+  "intent": ["移除灯光", "删除指定光源", "remove light"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.lightTool.removeLight",
+  "signature": "removeLight(id?: string): number",
+  "params": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true,
+      "desc": "要移除的灯光 id；省略会移除所有受 lightTool 管理的灯"
+    }
+  ],
+  "returns": "移除的灯光数量",
+  "code": "const id = 'main'; ssp.lightTool.createAmbientLight({ id, color: '#ffffff', intensity: 0.5 }); const removed = ssp.lightTool.removeLight(id); if (removed < 1) throw new Error('light not found: ' + id); console.log('removed light', id, removed);",
+  "example": "const removed = ssp.lightTool.removeLight('main');\nconsole.log('removed', removed);",
+  "guard": ["模板会先创建测试灯 main 再删除,确保可独立执行；业务调用应显式传 id，避免误删全部灯光"],
+  "seeAlso": ["createAmbientLight", "createDirectionalLight"],
+  "tags": ["light", "remove", "cleanup"]
+}

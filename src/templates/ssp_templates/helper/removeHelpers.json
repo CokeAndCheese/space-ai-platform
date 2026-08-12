@@ -1,0 +1,17 @@
+{
+  "id": "removeHelpers",
+  "category": "helper",
+  "subcategory": "root",
+  "intent": ["移除辅助线", "清除坐标轴和网格", "remove helpers"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.helperTool.removeAll",
+  "signature": "removeAll(): void",
+  "params": [],
+  "returns": "void",
+  "code": "ssp.helperTool.removeAll(); console.log('removed all helpers');",
+  "example": "ssp.helperTool.removeAll();",
+  "guard": ["只移除 helperTool 创建的辅助对象，不影响模型"],
+  "seeAlso": ["addAxes", "addGrid"],
+  "tags": ["helper", "remove", "cleanup"]
+}

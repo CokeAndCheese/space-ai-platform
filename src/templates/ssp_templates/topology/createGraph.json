@@ -1,0 +1,21 @@
+{
+  "id": "createGraph",
+  "category": "topology",
+  "subcategory": "graph",
+  "intent": ["创建可寻路拓扑图", "注册双层空间路网", "create routable topology graph"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.createGraph",
+  "signature": "createGraph(input: TopologyGraphInput): TopologyGraphSnapshot",
+  "params": [
+    { "name": "input", "type": "TopologyGraphInput", "required": false, "desc": "完整纯数据路网；省略时创建内置 A_1F/A_2F 演示图" }
+  ],
+  "returns": "可序列化图摘要：{ id, routingRevision, visualRevision, layerCount, nodeCount, edgeCount, nodeKinds }",
+  "code": "const demo = { layers: [{ id: 'A_1F', label: 'A楼1层', order: 1, elevation: 0 }, { id: 'A_2F', label: 'A楼2层', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR', label: '入口门' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT', label: '一层消火栓' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR', label: '一层楼梯' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR', label: '二层楼梯' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE', label: '着火点' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }; const graph = ssp.topologyTool.createGraph(params.input === undefined ? demo : params.input); return { id: graph.id, routingRevision: graph.routingRevision, visualRevision: graph.visualRevision, layerCount: graph.layers.length, nodeCount: graph.nodes.length, edgeCount: graph.edges.length, nodeKinds: graph.nodes.map((node) => ({ id: node.id, kind: node.kind || null, subtype: node.subtype || null, layerId: node.layerId })) };",
+  "example": "const graph = ssp.topologyTool.createGraph({ layers, nodes, edges }); console.log(graph.id);",
+  "guard": ["节点和边 ID 在图内必须唯一", "跨层边必须使用 CONNECTOR，且两端拥有相同非空 connectorId", "kind、subtype、tags、data 只透传给业务层，寻路器不解释"],
+  "seeAlso": ["getGraph", "setEdgeRoutingState", "findPath", "renderRoute"],
+  "tags": ["topology", "graph", "routing", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

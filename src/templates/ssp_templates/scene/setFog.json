@@ -1,0 +1,34 @@
+{
+  "id": "setFog",
+  "category": "scene",
+  "subcategory": "root",
+  "intent": [
+    "设置雾效",
+    "雾化",
+    "fog"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.sceneTool.setFog",
+  "signature": "setFog(options?: { color?, near?, far?, visible? }): void",
+  "params": [
+    {
+      "name": "options",
+      "type": "{ color?: IColor, near?: number, far?: number, visible?: boolean }",
+      "required": false
+    }
+  ],
+  "returns": "void",
+  "code": "ssp.sceneTool.setFog({ color: '#aaccff', near: 100, far: 800, visible: true });",
+  "example": "ssp.sceneTool.setFog({ color: 0xcce0ff, near: 200, far: 1200, visible: true });",
+  "guard": [
+    "不传则使用 SceneMetadata.json 中的 fog 配置"
+  ],
+  "seeAlso": [
+    "setBackgroundColor"
+  ],
+  "tags": [
+    "fog",
+    "atmosphere"
+  ]
+}

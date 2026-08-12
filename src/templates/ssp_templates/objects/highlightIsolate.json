@@ -1,0 +1,62 @@
+{
+  "id": "highlightIsolate",
+  "category": "objects",
+  "subcategory": "isolate",
+  "intent": [
+    "高亮选中一组",
+    "隔离显示一组",
+    "全部烟感高亮",
+    "按属性过滤高亮",
+    "highlight by property",
+    "pulse 一组"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.getByUserDataProperty + ssp.objectsTool.setVisible + ssp.objectsTool.setHighlight + ssp.cameraController.flyToObject",
+  "signature": "highlightIsolate(key: string, value: unknown, color?: string): number",
+  "params": [
+    {
+      "name": "key",
+      "type": "string",
+      "required": true,
+      "desc": "userData 字段名 — 常用 'renderType' / 'spaceType' / 'floorName' / 'building' / 'sid'"
+    },
+    {
+      "name": "value",
+      "type": "unknown",
+      "required": true,
+      "desc": "字段值 — 如 'CEILING' / 'TOILET' / 'A_6F' / 'SMOKE_DETECTOR' (v3.1 fireType)"
+    },
+    {
+      "name": "color",
+      "type": "string",
+      "required": false,
+      "default": "'#ff0000'",
+      "desc": "高亮颜色 (pulse=true 时闪烁)"
+    }
+  ],
+  "returns": "高亮的对象数量 (0 表示没找到)",
+  "code": "const list = ssp.objectsTool.getByUserDataProperty('renderType', 'CEILING'); if (list.length === 0) throw new Error('未找到 CEILING'); const targets = new Set(list); ssp.getContext().scene.traverse((obj) => { if (obj.isMesh) ssp.objectsTool.setVisible(obj, targets.has(obj)); }); list.forEach((obj) => ssp.objectsTool.setHighlight(obj, '#ff0000', true)); await ssp.cameraController.flyToObject(list[0]); console.log('isolated and highlighted', list.length, 'CEILING');",
+  "example": "/* 1) 高亮所有天花板 (pulse 闪烁) */\nconst list = ssp.objectsTool.getByUserDataProperty('renderType', 'CEILING');\nlist.forEach(o => ssp.objectsTool.setHighlight(o, '#ff0000', true));\nconsole.log(`highlighted ${list.length} CEILING`);\n\n/* 2) 高亮 + 飞到第一个对象 */\nconst list2 = ssp.objectsTool.getByUserDataProperty('renderType', 'CEILING');\nlist2.forEach(o => ssp.objectsTool.setHighlight(o, '#ff0000', true));\nif (list2.length > 0) await ssp.cameraController.flyToObject(list2[0]);\n\n/* 3) 高亮所有窗户 (静态, 不闪烁) */\nconst windows = ssp.objectsTool.getByUserDataProperty('renderType', 'WINDOW');\nwindows.forEach(o => ssp.objectsTool.setHighlight(o, '#29ccff'));\n\n/* 4) 限定 scope (只搜 hospital 子目录) */\nconst toilets = ssp.objectsTool.getByUserDataProperty('spaceType', 'TOILET', { scope: 'hospital' });\ntoilets.forEach(o => ssp.objectsTool.setHighlight(o, '#00ff00', true));\n\n/* 取消: clearAllHighlights 清掉所有 */\n// ssp.objectsTool.clearAllHighlights();",
+  "guard": [
+    "list 为空时应停止执行，避免把整个场景隐藏",
+    "pulse=true 会启动 setInterval(500ms) 闪烁, 调 clearAllHighlights 或 unHighlight 停止",
+    "对象数组上千时高亮会影响渲染性能 (每帧重算 emissive)",
+    "flyToObject 不支持 viewpoint 选项, 只支持 enableTransition / done",
+    "执行后可用 resetVisibility + clearAllHighlights 恢复场景",
+    "GLB userData 字段取决于实际 GLB metadata, 常见: renderType / spaceType / floorName / building / sid / level"
+  ],
+  "seeAlso": [
+    "getObjectByUserDataProperty",
+    "highlight-objects",
+    "flash-alarm",
+    "floor",
+    "fly-to-floor"
+  ],
+  "tags": [
+    "combo",
+    "highlight",
+    "isolate",
+    "pulse"
+  ]
+}

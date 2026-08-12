@@ -1,0 +1,17 @@
+{
+  "id": "removeAllPoi",
+  "category": "poi",
+  "subcategory": "cleanup",
+  "intent": ["删除全部 POI", "清空标记点", "remove all poi"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.poiManager.removeAll",
+  "signature": "removeAll(): number",
+  "params": [],
+  "returns": "删除的 POI 数量",
+  "code": "const removed = ssp.poiManager.removeAll(); console.log('removed all poi', removed);",
+  "example": "ssp.poiManager.removeAll();",
+  "guard": ["会销毁当前页面中的全部 POI"],
+  "seeAlso": ["createPoi", "removePoi"],
+  "tags": ["poi", "remove", "all", "cleanup"]
+}

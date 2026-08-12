@@ -1,0 +1,25 @@
+{
+  "id": "listTopologies",
+  "category": "topology",
+  "subcategory": "query",
+  "intent": [
+    "列出所有拓扑图",
+    "查看已创建的拓扑图",
+    "list topology graphs"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.list",
+  "signature": "list(): TopologyHandle[]",
+  "params": [],
+  "returns": "当前页面拓扑图摘要数组：Array<{ id, visible }>",
+  "code": "const graphs = ssp.topologyTool.list(); const items = graphs.map((graph) => ({ id: graph.id, visible: graph.root.visible })); console.log('topology count:', items.length); return items;",
+  "example": "console.log(ssp.topologyTool.list().map((graph) => graph.id));",
+  "guard": [
+    "基于当前页面生命周期中的拓扑图句柄生成只含 id/visible 的安全摘要",
+    "空状态返回空数组且不产生场景副作用"
+  ],
+  "seeAlso": ["createTopology", "getTopologyById"],
+  "tags": ["topology", "query", "list"],
+  "aiEnabled": false
+}

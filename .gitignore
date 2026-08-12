@@ -1,0 +1,27 @@
+node_modules/
+dist/
+dist-ssr/
+
+# 环境变量
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# 模型迁移 / 加工中间产物
+.migration-backup/
+glb_cleaned/
+
+# 大型 GLB 模型暂不进入普通 Git
+public/models/**/*.glb
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log

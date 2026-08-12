@@ -1,0 +1,20 @@
+{
+  "id": "setVisibleByFloor",
+  "category": "objects",
+  "subcategory": "visibility",
+  "intent": ["隔离楼层", "按楼层切换可见性", "set visible by floor"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.setVisibleByFloor",
+  "signature": "setVisibleByFloor(floorName: string, visible?: boolean): void",
+  "params": [
+    { "name": "floorName", "type": "string", "required": true, "desc": "目标楼层名" },
+    { "name": "visible", "type": "boolean", "required": true, "desc": "true 只显示该层；false 隐藏该层并显示其他层" }
+  ],
+  "returns": "void",
+  "code": "const name = ssp.modelTool.getLoadedFloors()[0]; if (!name) console.warn('no loaded floor'); else { ssp.objectsTool.setVisibleByFloor(name, true); console.log('isolated floor', name); }",
+  "example": "ssp.objectsTool.setVisibleByFloor('A_10F', true);\n// 恢复全部：ssp.objectsTool.resetVisibility();",
+  "guard": ["该 API 会批量改变其他楼层可见性", "恢复全部使用 resetVisibility"],
+  "seeAlso": ["setObjectVisible", "resetVisibility", "floor"],
+  "tags": ["objects", "visibility", "floor", "isolate"]
+}

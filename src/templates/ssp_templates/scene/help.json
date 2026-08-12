@@ -1,0 +1,15 @@
+{
+  "id": "help",
+  "category": "scene",
+  "subcategory": "help",
+  "intent": ["帮助", "你能做什么", "怎么使用 AI 场景助手"],
+  "method": "template.help",
+  "signature": "help(): TemplateResult",
+  "aiEnabled": true,
+  "params": [],
+  "returns": "{ message }",
+  "code": "return { message: '可查询、统计、高亮、聚焦、隐藏或隔离场景对象，也可控制主视角和楼层炸开。' };",
+  "example": "return { message: '显示帮助' };",
+  "guard": ["该模板不访问 SSP，只返回能力说明"],
+  "tags": ["ai", "help"]
+}

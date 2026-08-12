@@ -1,0 +1,24 @@
+{
+  "id": "setEdgeRoutingState",
+  "category": "topology",
+  "subcategory": "routing",
+  "intent": ["设置边的通行状态", "阻断或调整路段权重", "set topology edge routing state"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.setEdgeRoutingState",
+  "signature": "setEdgeRoutingState(graphId, selector, patch, guard?): TopologyRoutingMutationResult",
+  "params": [
+    { "name": "graphId", "type": "string", "required": false, "desc": "图 ID；省略时自建演示图" },
+    { "name": "selector", "type": "TopologyEdgeSelector", "required": false, "desc": "{ edgeIds } 或 { all: true }" },
+    { "name": "patch", "type": "TopologyEdgeRoutingStatePatch", "required": false, "desc": "enabled、weightOverride 或 blockerIds 增删" },
+    { "name": "guard", "type": "TopologyRevisionGuard", "required": false, "desc": "可选 expectedRevision 乐观锁" }
+  ],
+  "returns": "可序列化 mutation 摘要；失败保留 GRAPH_NOT_FOUND/EDGE_NOT_FOUND/REVISION_CONFLICT",
+  "code": "const demoId = 'topology_demo_edge_routing'; if (params.graphId === undefined && !ssp.topologyTool.getGraph(demoId)) ssp.topologyTool.createGraph({ id: demoId, layers: [{ id: 'A_1F', order: 1, elevation: 0 }, { id: 'A_2F', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }); const graphId = params.graphId === undefined ? demoId : params.graphId; const selector = params.selector === undefined ? { edgeIds: ['edge-entry-hydrant'] } : params.selector; const patch = params.patch === undefined ? { addBlockerIds: ['demo:closed-segment'] } : params.patch; const result = ssp.topologyTool.setEdgeRoutingState(graphId, selector, patch, params.guard); if (!result.ok) return result; return { ok: true, changed: result.changed, routingRevision: result.routingRevision, invalidatedRouteIds: result.invalidatedRouteIds, edges: result.edges.map((edge) => ({ id: edge.id, enabled: edge.routingState.enabled, blockerIds: edge.routingState.blockerIds, traversable: edge.routingState.traversable, effectiveWeight: edge.routingState.effectiveWeight })) };",
+  "example": "return ssp.topologyTool.setEdgeRoutingState(graphId, { edgeIds: ['edge-1'] }, { addBlockerIds: ['wall:101'] });",
+  "guard": ["blockerIds 非空时边不可通行，但视觉状态不自动隐藏", "路由状态变化会增加 routingRevision 并使已渲染路线过期", "显式 graphId 不存在时不创建替代图"],
+  "seeAlso": ["setEdgeVisualState", "findPath"],
+  "tags": ["topology", "edge", "routing", "blocker", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

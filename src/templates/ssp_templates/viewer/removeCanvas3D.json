@@ -1,0 +1,19 @@
+{
+  "id": "removeCanvas3D",
+  "category": "viewer",
+  "subcategory": "root",
+  "intent": ["删除子画布", "关闭一个监控视角", "remove sub canvas"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.viewerTool.remove",
+  "signature": "remove(id: string): boolean",
+  "params": [
+    { "name": "id", "type": "string", "required": true, "desc": "createCanvas 返回的子画布 id" }
+  ],
+  "returns": "是否找到并删除子画布",
+  "code": "const canvas = ssp.viewerTool.list()[0]; if (!canvas) console.warn('no sub-canvas'); else console.log('remove canvas', canvas.id, ssp.viewerTool.remove(canvas.id));",
+  "example": "ssp.viewerTool.remove('viewer_1');",
+  "guard": ["会同时释放子 renderer、controls 和 DOM"],
+  "seeAlso": ["createCanvas3D", "removeAllCanvases"],
+  "tags": ["viewer", "canvas", "remove", "cleanup"]
+}

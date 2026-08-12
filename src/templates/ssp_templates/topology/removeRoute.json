@@ -1,0 +1,21 @@
+{
+  "id": "removeRoute",
+  "category": "topology",
+  "subcategory": "cleanup",
+  "intent": ["删除一条渲染路线", "释放指定路径资源", "remove rendered topology route"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.removeRoute",
+  "signature": "removeRoute(id: string): boolean",
+  "params": [
+    { "name": "routeId", "type": "string", "required": false, "desc": "路线 ID；省略时自建并删除演示路线" }
+  ],
+  "returns": "{ id, removed }",
+  "code": "const demoId = 'topology_demo_remove_route'; let routeId = params.routeId; if (routeId === undefined) { if (!ssp.topologyTool.getGraph(demoId)) ssp.topologyTool.createGraph({ id: demoId, layers: [{ id: 'A_1F', order: 1, elevation: 0 }, { id: 'A_2F', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }); const path = ssp.topologyTool.findPath({ graphId: demoId, startNodeId: 'entry-door', goalNodeId: 'fire-a2', requirements: [{ anyOfNodeIds: ['hydrant-a1'] }] }); if (!path.ok) return path; const rendered = ssp.topologyTool.renderRoute({ route: path.route }); if (!rendered.rendered) return rendered; routeId = rendered.handle.id; } return { id: routeId, removed: ssp.topologyTool.removeRoute(routeId) };",
+  "example": "return ssp.topologyTool.removeRoute(routeId);",
+  "guard": ["删除会释放路线的几何、材质和流动动画资源", "不删除路线所属纯数据图", "显式不存在 routeId 返回 false，不删除其他路线"],
+  "seeAlso": ["removeAllRoutes", "removeGraph"],
+  "tags": ["topology", "route", "cleanup", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

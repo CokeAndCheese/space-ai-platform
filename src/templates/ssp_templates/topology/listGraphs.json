@@ -1,0 +1,19 @@
+{
+  "id": "listGraphs",
+  "category": "topology",
+  "subcategory": "graph",
+  "intent": ["列出全部路网", "查询拓扑图集合", "list topology graphs"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.listGraphs",
+  "signature": "listGraphs(): TopologyGraphSnapshot[]",
+  "params": [],
+  "returns": "{ count, graphs: Array<{ id, routingRevision, visualRevision, layerCount, nodeCount, edgeCount }> }",
+  "code": "const demoId = 'topology_demo_list_graphs'; if (!ssp.topologyTool.getGraph(demoId)) ssp.topologyTool.createGraph({ id: demoId, layers: [{ id: 'A_1F', order: 1, elevation: 0 }, { id: 'A_2F', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }); const graphs = ssp.topologyTool.listGraphs(); return { count: graphs.length, graphs: graphs.map((graph) => ({ id: graph.id, routingRevision: graph.routingRevision, visualRevision: graph.visualRevision, layerCount: graph.layers.length, nodeCount: graph.nodes.length, edgeCount: graph.edges.length })) };",
+  "example": "return ssp.topologyTool.listGraphs().map((graph) => graph.id);",
+  "guard": ["只列出当前 topology manager 持有的纯数据图", "返回快照，不返回 THREE 对象"],
+  "seeAlso": ["getGraph", "removeAllGraphs"],
+  "tags": ["topology", "graph", "list", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

@@ -1,0 +1,57 @@
+{
+  "id": "explode-floor",
+  "category": "objects",
+  "subcategory": "root",
+  "intent": [
+    "楼层炸开",
+    "分层展示",
+    "explode",
+    "层间间距"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.explodeFloor",
+  "signature": "explodeFloor(opts?: { gap?: number; axis?: 'x' | 'y' | 'z'; durationMs?: number }): void",
+  "aiEnabled": true,
+  "params": [
+    {
+      "name": "gap",
+      "type": "number",
+      "required": false,
+      "default": 20,
+      "desc": "每层间距 (米), 默认 20"
+    },
+    {
+      "name": "axis",
+      "type": "string",
+      "required": false,
+      "default": "y",
+      "enum": ["x", "y", "z"],
+      "desc": "炸开方向 'y' (垂直) / 'x' / 'z', 默认 'y'"
+    },
+    {
+      "name": "durationMs",
+      "type": "number",
+      "required": false,
+      "default": 600,
+      "desc": "动画过渡毫秒数, 0 = 立刻"
+    }
+  ],
+  "returns": "{ message, exploded, gap, axis, durationMs }",
+  "code": "const gap = params.gap ?? 20; const axis = params.axis ?? 'y'; const durationMs = params.durationMs ?? 600; ssp.objectsTool.explodeFloor({ gap, axis, durationMs }); return { message: '楼层已炸开', exploded: ssp.objectsTool.isExploded(), gap, axis, durationMs };",
+  "example": "ssp.objectsTool.explodeFloor({ gap: 30, axis: 'y' }); setTimeout(() => ssp.objectsTool.collapseFloor(), 5000);",
+  "guard": [
+    "需所有楼层 root 都有 userData.level 数字 (我们的 GLB 已注入)",
+    "收起时调 ssp.objectsTool.collapseFloor()",
+    "isExploded() 可查当前状态"
+  ],
+  "seeAlso": [
+    "floor",
+    "fly-to-floor"
+  ],
+  "tags": [
+    "combo",
+    "explode",
+    "floor"
+  ]
+}

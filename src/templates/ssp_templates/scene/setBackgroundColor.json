@@ -1,0 +1,42 @@
+{
+  "id": "setBackgroundColor",
+  "category": "scene",
+  "subcategory": "root",
+  "intent": [
+    "设置背景颜色",
+    "改背景",
+    "换底色",
+    "天空背景",
+    "change bg",
+    "bg color"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.sceneTool.setBackgroundColor",
+  "signature": "setBackgroundColor(color: string | number): void",
+  "params": [
+    {
+      "name": "color",
+      "type": "string | number",
+      "required": true,
+      "desc": "颜色 — hex 字符串 ('#000033') / CSS 名 ('black') / 0xRRGGBB 数字",
+      "examples": ["'#0a0a1a'", "'#87ceeb' (sky blue)", "0x101218"]
+    }
+  ],
+  "returns": "void",
+  "code": "ssp.sceneTool.setBackgroundColor('#0a0a1a');",
+  "example": "/* 几种常见背景 */\n\n/* 深色 (默认风格) */\nssp.sceneTool.setBackgroundColor('#0a0a1a');\n\n/* 蓝天 (白天建筑可视化) */\nssp.sceneTool.setBackgroundColor('#87ceeb');\n\n/* 黑色 (拍电影感) */\nssp.sceneTool.setBackgroundColor(0x000000);\n\n/* 配合雾化看深度 */\nssp.sceneTool.setBackgroundColor('#0a0a1a');\nssp.sceneTool.setFog({ color: '#0a0a1a', near: 100, far: 500 });",
+  "guard": [
+    "颜色立即生效, 不带 transition",
+    "要淡入淡出请自己用 tween 工具 (ssp.animationTool.addTween 暂未实现)",
+    "深色背景建议同时设雾色一致, 避免边缘突兀"
+  ],
+  "seeAlso": [
+    "setFog"
+  ],
+  "tags": [
+    "background",
+    "color",
+    "sky"
+  ]
+}

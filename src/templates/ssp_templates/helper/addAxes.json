@@ -1,0 +1,35 @@
+{
+  "id": "addAxes",
+  "category": "helper",
+  "subcategory": "root",
+  "intent": [
+    "加坐标轴",
+    "调试辅助",
+    "axes"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.helperTool.addAxes",
+  "signature": "addAxesHelper(options?: { size?: number, position?: Vector3 }): AxesHelper",
+  "params": [
+    {
+      "name": "options",
+      "type": "{ size?: number, position?: {x,y,z} }",
+      "required": false
+    }
+  ],
+  "returns": "AxesHelper",
+  "code": "ssp.helperTool.addAxes({ size: 50 });",
+  "example": "ssp.helperTool.addAxes({ size: 100, position: { x: 0, y: 0, z: 0 } });",
+  "guard": [
+    "size 默认 10"
+  ],
+  "seeAlso": [
+    "addGrid"
+  ],
+  "tags": [
+    "helper",
+    "debug"
+  ],
+  "_renamedFrom": "addAxesHelper"
+}

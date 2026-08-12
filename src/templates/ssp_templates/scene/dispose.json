@@ -1,0 +1,35 @@
+{
+  "id": "dispose",
+  "category": "scene",
+  "subcategory": "root",
+  "intent": [
+    "销毁 GPU 资源",
+    "dispose",
+    "释放 GPU 资源",
+    "释放 mesh",
+    "释放材质",
+    "释放几何"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.sceneTool.dispose",
+  "signature": "dispose(): void",
+  "params": [],
+  "returns": "void",
+  "code": "ssp.sceneTool.dispose();",
+  "example": "/* 释放场景中所有 mesh 的 GPU 资源 (geometry / material) */\nssp.sceneTool.dispose();\nconsole.log('all geometries and materials disposed');\n\n/* 通常和 clear 配合: */\n// ssp.sceneTool.clear();   // 清掉场景对象\n// ssp.sceneTool.dispose(); // 释放 GPU 资源 (清完后 dispose 是必须的, 否则泄漏)\n\n/* 不要在 clear 前 dispose, 否则对象还在 scene 但 GPU 资源已释放 */",
+  "guard": [
+    "只释放 GPU 资源 (geometry/material), 不清空场景对象, 不影响 window.ssp",
+    "不可逆: 调完后 mesh 无法渲染, 必须清掉 scene",
+    "切场景: dispose → clear → loadSubcategory",
+    "多次调用安全 (重复 dispose 已经被 dispose 的资源会 warning)"
+  ],
+  "seeAlso": [
+    "clear"
+  ],
+  "tags": [
+    "destroy",
+    "lifecycle",
+    "gpu"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "setObjectHighlight",
+  "category": "objects",
+  "subcategory": "highlight",
+  "intent": ["高亮单个对象", "设置对象高亮", "highlight one object"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.setHighlight",
+  "signature": "setHighlight(obj: Object3D, color?: SceneColor, pulse?: boolean): void",
+  "params": [
+    { "name": "sid", "type": "string", "required": true, "desc": "目标业务 sid" },
+    { "name": "color", "type": "string", "required": false, "default": "#29ccff", "desc": "高亮颜色" },
+    { "name": "pulse", "type": "boolean", "required": false, "default": false, "desc": "是否闪烁" }
+  ],
+  "returns": "void",
+  "code": "const obj = ssp.objectsTool.getByUserDataProperty('renderType', 'WINDOW')[0]; if (!obj) console.warn('no target'); else { ssp.objectsTool.setHighlight(obj, '#29ccff', false); console.log('highlighted', obj.userData.sid ?? obj.name); }",
+  "example": "const obj = ssp.objectsTool.getById('WINDOW_A_10F_1');\nif (obj) ssp.objectsTool.setHighlight(obj, '#29ccff', false);",
+  "guard": ["对象必须来自当前场景", "pulse 高亮需用 unHighlight 或 clearAllHighlights 停止"],
+  "seeAlso": ["unHighlightObject", "clearAllHighlights", "highlight-objects"],
+  "tags": ["objects", "highlight", "atomic"]
+}

@@ -1,0 +1,32 @@
+{
+  "id": "flyToMainViewpoint",
+  "category": "camera",
+  "subcategory": "viewpoint",
+  "intent": [
+    "主视角",
+    "回到主视角",
+    "飞回主视角",
+    "reset view"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.cameraController.setViewpoint",
+  "signature": "flyToMainViewpoint(viewpoint?: Viewpoint): Promise<void>",
+  "aiEnabled": true,
+  "params": [
+    {
+      "name": "viewpoint",
+      "type": "Viewpoint",
+      "required": false,
+      "desc": "目标视角,省略时使用应用层 store.mainViewpoint"
+    }
+  ],
+  "returns": "{ message, data? }",
+  "code": "const vp = params.viewpoint || window.__chatStore?.mainViewpoint; if (vp) { await ssp.cameraController.setViewpoint(vp); return { message: '已回到主视角', data: vp }; } const roots = ssp.modelTool.getLoadedFloors().map((name) => ssp.modelTool.getFloorInfo(name)?.root).filter(Boolean); if (roots.length === 0) throw new Error('没有主视角或已加载模型'); const data = await ssp.cameraController.fitScene(roots, { view: 'iso', maxSafeDistance: 700 }); return { message: '未记录主视角，已显示场景全貌', data };",
+  "example": "const vp = window.__chatStore?.mainViewpoint;\nif (vp) {\n  ssp.cameraController.setViewpoint(vp);\n} else {\n  const roots = ssp.modelTool.getLoadedFloors().map((name) => ssp.modelTool.getFloorInfo(name)?.root).filter(Boolean);\n  if (!roots.length) throw new Error('没有主视角或已加载模型');\n  await ssp.cameraController.fitScene(roots, { view: 'iso' });\n}",
+  "guard": [
+    "没有 viewpoint 又没有存的主视角,fallback 到 fitScene",
+    "setViewpoint 内部用 setLookAt (CR001 修复后,position + target 都同步)"
+  ],
+  "tags": ["camera", "viewpoint", "fly"]
+}

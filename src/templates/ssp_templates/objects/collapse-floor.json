@@ -1,0 +1,20 @@
+{
+  "id": "collapse-floor",
+  "category": "objects",
+  "subcategory": "root",
+  "intent": ["收回楼层炸开", "合拢楼层", "collapse floors"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.collapseFloor",
+  "signature": "collapseFloor(durationMs?: number): void",
+  "aiEnabled": true,
+  "params": [
+    { "name": "durationMs", "type": "number", "required": false, "default": 600, "desc": "收回动画时长，建议 0..5000 ms" }
+  ],
+  "returns": "{ message, exploded, durationMs }",
+  "code": "const durationMs = params.durationMs ?? 600; ssp.objectsTool.collapseFloor(durationMs); return { message: '楼层已收回', exploded: ssp.objectsTool.isExploded(), durationMs };",
+  "example": "ssp.objectsTool.collapseFloor(600);",
+  "guard": ["未炸开时调用是安全的 no-op"],
+  "seeAlso": ["explode-floor"],
+  "tags": ["objects", "floor", "collapse", "animation"]
+}

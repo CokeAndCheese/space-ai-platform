@@ -1,0 +1,25 @@
+{
+  "id": "clearAllHighlights",
+  "category": "objects",
+  "subcategory": "highlight",
+  "intent": [
+    "清高亮",
+    "取消全部高亮",
+    "全部恢复",
+    "clear highlights"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.clearAllHighlights",
+  "signature": "clearAllHighlights(): void",
+  "aiEnabled": true,
+  "params": [],
+  "returns": "{ message, cleared }",
+  "code": "ssp.objectsTool.clearAllHighlights(); return { message: '已清除全部高亮', cleared: true };",
+  "example": "/* 清全部高亮 */\nssp.objectsTool.clearAllHighlights();",
+  "guard": [
+    "不影响 visible (只清 emissive)",
+    "多次调用安全 (没有高亮也无害)"
+  ],
+  "tags": ["objects", "highlight", "clear"]
+}

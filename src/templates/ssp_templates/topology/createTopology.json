@@ -1,0 +1,76 @@
+{
+  "id": "createTopology",
+  "category": "topology",
+  "subcategory": "create",
+  "intent": [
+    "创建拓扑图",
+    "绘制节点连线图",
+    "create topology graph"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.create",
+  "signature": "create(opts: TopologyOptions): TopologyHandle",
+  "params": [
+    {
+      "name": "opts",
+      "type": "TopologyOptions",
+      "required": false,
+      "default": {
+        "nodes": [
+          { "id": "gateway", "label": "网关", "color": "#29ccff" },
+          { "id": "sensor-a", "label": "传感器 A", "color": "#66bb6a" },
+          { "id": "sensor-b", "label": "传感器 B", "color": "#ffa726" },
+          { "id": "alarm", "label": "告警器", "color": "#ef5350" }
+        ],
+        "edges": [
+          { "source": "gateway", "target": "sensor-a" },
+          { "source": "gateway", "target": "sensor-b" },
+          { "source": "sensor-b", "target": "alarm" }
+        ],
+        "layout": { "type": "grid", "columns": 2, "gap": 6 },
+        "position": { "x": 0, "y": 0, "z": 0 },
+        "visible": true
+      },
+      "desc": "创建配置；包含 nodes、edges，可选 layout、position、visible"
+    }
+  ],
+  "returns": "可安全显示的创建摘要：{ id, visible, nodeCount, edgeCount }",
+  "code": "const graph = ssp.topologyTool.create(params.opts); console.log('topology created:', graph.id); return { id: graph.id, visible: graph.root.visible, nodeCount: params.opts.nodes.length, edgeCount: params.opts.edges.length };",
+  "example": "const graph = ssp.topologyTool.create({ nodes: [{ id: 'source', label: '电源' }, { id: 'load', label: '负载' }], edges: [{ source: 'source', target: 'load' }], layout: { type: 'hierarchical', direction: 'top-down' }, position: { x: 0, y: 10, z: 0 } }); console.log(graph.id);",
+  "guard": [
+    "node.id 在同一张图内必须唯一",
+    "edge.source 和 edge.target 必须引用已声明节点",
+    "layout.type 仅支持 manual、grid、hierarchical",
+    "单图最多 200 节点 / 500 边；同一 manager 同时最多 400 个活动节点",
+    "node.id 最长 128 字符，label 最长 256 字符"
+  ],
+  "seeAlso": [
+    "showTopology",
+    "hideTopology",
+    "getTopologyById",
+    "listTopologies",
+    "removeTopology",
+    "removeAllTopologies"
+  ],
+  "tags": ["topology", "graph", "create", "grid"],
+  "aiEnabled": false,
+  "testParams": {
+    "opts": {
+      "nodes": [
+        { "id": "gateway", "label": "网关", "color": "#29ccff" },
+        { "id": "sensor-a", "label": "传感器 A", "color": "#66bb6a" },
+        { "id": "sensor-b", "label": "传感器 B", "color": "#ffa726" },
+        { "id": "alarm", "label": "告警器", "color": "#ef5350" }
+      ],
+      "edges": [
+        { "source": "gateway", "target": "sensor-a" },
+        { "source": "gateway", "target": "sensor-b" },
+        { "source": "sensor-b", "target": "alarm" }
+      ],
+      "layout": { "type": "grid", "columns": 2, "gap": 6 },
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "visible": true
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "removeGraph",
+  "category": "topology",
+  "subcategory": "cleanup",
+  "intent": ["删除一张路网", "释放指定拓扑图", "remove topology graph"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.removeGraph",
+  "signature": "removeGraph(id: string): boolean",
+  "params": [
+    { "name": "graphId", "type": "string", "required": false, "desc": "图 ID；省略时创建并删除演示图，显式不存在时返回 false" }
+  ],
+  "returns": "{ id, removed }",
+  "code": "const demoId = 'topology_demo_remove_graph'; if (params.graphId === undefined && !ssp.topologyTool.getGraph(demoId)) ssp.topologyTool.createGraph({ id: demoId, layers: [{ id: 'A_1F', order: 1, elevation: 0 }, { id: 'A_2F', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }); const graphId = params.graphId === undefined ? demoId : params.graphId; return { id: graphId, removed: ssp.topologyTool.removeGraph(graphId) };",
+  "example": "return ssp.topologyTool.removeGraph('topology_graph_1');",
+  "guard": ["删除图会同步释放其边可视化和已渲染路线", "显式不存在 ID 返回 false，不改删其他图"],
+  "seeAlso": ["removeAllGraphs", "createGraph"],
+  "tags": ["topology", "graph", "cleanup", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

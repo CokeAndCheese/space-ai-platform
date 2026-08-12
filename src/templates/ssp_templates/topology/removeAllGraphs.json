@@ -1,0 +1,19 @@
+{
+  "id": "removeAllGraphs",
+  "category": "topology",
+  "subcategory": "cleanup",
+  "intent": ["删除全部路网", "清空拓扑图数据", "remove all topology graphs"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.removeAllGraphs",
+  "signature": "removeAllGraphs(): number",
+  "params": [],
+  "returns": "{ removedCount, remainingCount }",
+  "code": "if (ssp.topologyTool.listGraphs().length === 0) ssp.topologyTool.createGraph({ id: 'topology_demo_remove_all_graphs', layers: [{ id: 'A_1F', order: 1, elevation: 0 }, { id: 'A_2F', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }); const removedCount = ssp.topologyTool.removeAllGraphs(); return { removedCount, remainingCount: ssp.topologyTool.listGraphs().length };",
+  "example": "return { removedCount: ssp.topologyTool.removeAllGraphs() };",
+  "guard": ["该操作会删除 manager 内全部 v2 图，并同步清理相关路线", "不影响 legacy create() 创建的静态拓扑图"],
+  "seeAlso": ["removeGraph", "removeAllRoutes"],
+  "tags": ["topology", "graph", "cleanup", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

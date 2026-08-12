@@ -1,0 +1,19 @@
+{
+  "id": "removePoi",
+  "category": "poi",
+  "subcategory": "cleanup",
+  "intent": ["删除 POI", "销毁标记点", "remove poi"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.poiManager.remove",
+  "signature": "remove(id: string): boolean",
+  "params": [
+    { "name": "id", "type": "string", "required": true, "desc": "已创建 POI 的 id" }
+  ],
+  "returns": "是否找到并删除 POI",
+  "code": "const poi = ssp.poiManager.list()[0]; if (!poi) console.warn('no poi'); else console.log('remove poi', poi.id, ssp.poiManager.remove(poi.id));",
+  "example": "ssp.poiManager.remove('poi_1');",
+  "guard": ["remove 会释放 POI 资源，之后不能再 show"],
+  "seeAlso": ["createPoi", "hidePoi", "removeAllPoi"],
+  "tags": ["poi", "remove", "cleanup"]
+}

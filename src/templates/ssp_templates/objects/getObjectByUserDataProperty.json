@@ -1,0 +1,52 @@
+{
+  "id": "getObjectByUserDataProperty",
+  "category": "objects",
+  "subcategory": "root",
+  "intent": [
+    "按 userData 字段查对象",
+    "按 renderType 查",
+    "按 floorName 查",
+    "按 building 查"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.getByUserDataProperty",
+  "signature": "getObjectByUserDataProperty(key: string, value: any, opts?: { scope?: string }): Object3D[]",
+  "params": [
+    {
+      "name": "key",
+      "type": "string",
+      "required": true,
+      "desc": "userData 字段名。常用: 'renderType' (WINDOW/DOOR/ELEVATOR/STAIR/CEILING/ROOF/SPACE), 'spaceType', 'floorName', 'building', 'level', 'sid', 'findId'"
+    },
+    {
+      "name": "value",
+      "type": "any",
+      "required": true,
+      "desc": "字段目标值"
+    },
+    {
+      "name": "opts.scope",
+      "type": "string",
+      "required": false,
+      "desc": "限定查找范围, 如 'A_6F' (floorName) 或 'A' (building)"
+    }
+  ],
+  "returns": "Object3D[]",
+  "code": "const objs = ssp.objectsTool.getByUserDataProperty('renderType', 'CEILING'); console.log('found', objs.length, 'objects'); objs.slice(0, 3).forEach((o, i) => console.log(i, o.userData.sid, o.userData.renderType));",
+  "example": "const wins = ssp.objectsTool.getByUserDataProperty('renderType', 'WINDOW'); const a6 = ssp.objectsTool.getByUserDataProperty('renderType', 'WINDOW', { scope: 'A_6F' }); const toilets = ssp.objectsTool.getByUserDataProperty('spaceType', 'TOILET');",
+  "guard": [
+    "返回数组, 记得取 [0] 或遍历"
+  ],
+  "seeAlso": [
+    "getObjectById",
+    "highlight-objects",
+    "floor"
+  ],
+  "tags": [
+    "query",
+    "userData",
+    "renderType",
+    "filter"
+  ]
+}

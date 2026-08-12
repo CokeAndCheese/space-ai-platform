@@ -1,0 +1,19 @@
+{
+  "id": "showPoi",
+  "category": "poi",
+  "subcategory": "visibility",
+  "intent": ["显示 POI", "显示标记点", "show poi"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.poiManager.show",
+  "signature": "show(id: string): boolean",
+  "params": [
+    { "name": "id", "type": "string", "required": true, "desc": "已创建 POI 的 id" }
+  ],
+  "returns": "是否找到并显示 POI",
+  "code": "const poi = ssp.poiManager.list()[0]; if (!poi) console.warn('no poi'); else console.log('show poi', poi.id, ssp.poiManager.show(poi.id));",
+  "example": "ssp.poiManager.show('poi_1');",
+  "guard": ["POI 必须已在当前页面生命周期创建"],
+  "seeAlso": ["createPoi", "hidePoi", "removePoi"],
+  "tags": ["poi", "show", "visibility"]
+}

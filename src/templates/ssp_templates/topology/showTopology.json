@@ -1,0 +1,32 @@
+{
+  "id": "showTopology",
+  "category": "topology",
+  "subcategory": "visibility",
+  "intent": [
+    "显示拓扑图",
+    "恢复拓扑图可见",
+    "show topology graph"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.show",
+  "signature": "show(id: string): boolean",
+  "params": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "desc": "拓扑图 id；省略时使用当前第一张图，没有图时自动创建最小测试图"
+    }
+  ],
+  "returns": "执行摘要：{ id, shown }",
+  "code": "let graph = params.id ? ssp.topologyTool.getById(params.id) : ssp.topologyTool.list()[0]; if (!graph && !params.id) graph = ssp.topologyTool.create({ nodes: [{ id: 'node-a', label: '节点 A' }, { id: 'node-b', label: '节点 B' }], edges: [{ source: 'node-a', target: 'node-b' }], layout: { type: 'grid' }, position: { x: 0, y: 0, z: 0 }, visible: false }); const shown = graph ? ssp.topologyTool.show(graph.id) : false; console.log('show topology:', params.id ?? graph?.id ?? null, shown); return { id: params.id ?? graph?.id ?? null, shown };",
+  "example": "ssp.topologyTool.show('topology_1');",
+  "guard": [
+    "显式指定的 id 不存在时返回 false；仅省略 id 且场景无图时创建最小测试图",
+    "show 只改变拓扑图可见性，不修改节点和边"
+  ],
+  "seeAlso": ["createTopology", "hideTopology", "getTopologyById"],
+  "tags": ["topology", "show", "visibility"],
+  "aiEnabled": false
+}

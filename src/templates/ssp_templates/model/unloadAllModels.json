@@ -1,0 +1,17 @@
+{
+  "id": "unloadAllModels",
+  "category": "model",
+  "subcategory": "unload",
+  "intent": ["卸载所有模型", "清空已加载 GLB", "unload all models"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.modelTool.unloadAll",
+  "signature": "unloadAll(): void",
+  "params": [],
+  "returns": "void",
+  "code": "const count = ssp.modelTool.getLoadedFloors().length; ssp.modelTool.unloadAll(); console.log('unloaded all models', count);",
+  "example": "ssp.modelTool.unloadAll();",
+  "guard": ["会卸载并释放全部 modelTool 模型；需要时可重新加载"],
+  "seeAlso": ["loadFloor", "loadSubcategory"],
+  "tags": ["model", "unload", "all", "cleanup"]
+}

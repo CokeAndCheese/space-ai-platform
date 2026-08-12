@@ -1,0 +1,19 @@
+{
+  "id": "unHighlightObject",
+  "category": "objects",
+  "subcategory": "highlight",
+  "intent": ["取消单个高亮", "恢复对象材质", "unhighlight object"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.unHighlight",
+  "signature": "unHighlight(obj: Object3D): void",
+  "params": [
+    { "name": "sid", "type": "string", "required": true, "desc": "目标业务 sid" }
+  ],
+  "returns": "void",
+  "code": "const obj = ssp.objectsTool.getByUserDataProperty('renderType', 'WINDOW')[0]; if (!obj) console.warn('no target'); else { ssp.objectsTool.unHighlight(obj); console.log('unhighlighted', obj.userData.sid ?? obj.name); }",
+  "example": "const obj = ssp.objectsTool.getById('WINDOW_A_10F_1');\nif (obj) ssp.objectsTool.unHighlight(obj);",
+  "guard": ["只恢复目标对象；全部恢复使用 clearAllHighlights"],
+  "seeAlso": ["setObjectHighlight", "clearAllHighlights"],
+  "tags": ["objects", "highlight", "restore"]
+}

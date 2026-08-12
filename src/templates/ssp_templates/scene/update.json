@@ -1,0 +1,30 @@
+{
+  "id": "update",
+  "category": "scene",
+  "subcategory": "root",
+  "intent": [
+    "刷新场景",
+    "强制重渲染",
+    "render update",
+    "触发 camera-controls 重算"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.sceneTool.update",
+  "signature": "update(): void",
+  "params": [],
+  "returns": "void",
+  "code": "ssp.sceneTool.update();",
+  "example": "/* 实际上 Three.js renderer 在每帧 RAF 自动渲染, sceneTool.update() 是 noop 占位 */\n\n/* 大部分情况下你不需要手动调 update */\n\n/* 真正会用到的情况: 调了 camera-controls 的低阶方法后 */\nconst ctx = ssp.sceneTool; // 别名\nctx.update();\nconsole.log('update called (currently noop)');\n\n/* 推荐: 改相机/对象后等下一帧即可, 无需手动 update */",
+  "guard": [
+    "目前实现是 noop (Three.js 自动每帧渲染)",
+    "保留 API 是为了未来给 camera-controls 加 dirty flag",
+    "改 camera 位置/对象 visibility 后, 等下一帧 (16ms) 自然生效, 不必手动调"
+  ],
+  "seeAlso": [],
+  "tags": [
+    "render",
+    "refresh",
+    "noop"
+  ]
+}

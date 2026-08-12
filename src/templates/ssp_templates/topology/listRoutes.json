@@ -1,0 +1,19 @@
+{
+  "id": "listRoutes",
+  "category": "topology",
+  "subcategory": "route",
+  "intent": ["列出已渲染路线", "查询路线句柄集合", "list rendered topology routes"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.listRoutes",
+  "signature": "listRoutes(): TopologyRouteHandle[]",
+  "params": [],
+  "returns": "{ count, routes: Array<{ id, status, graphId, edgeIds, totalLength, totalWeight }> }",
+  "code": "const demoId = 'topology_demo_list_routes'; let routes = ssp.topologyTool.listRoutes(); if (!routes.some((route) => route.route.graphId === demoId)) { if (!ssp.topologyTool.getGraph(demoId)) ssp.topologyTool.createGraph({ id: demoId, layers: [{ id: 'A_1F', order: 1, elevation: 0 }, { id: 'A_2F', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }); const path = ssp.topologyTool.findPath({ graphId: demoId, startNodeId: 'entry-door', goalNodeId: 'fire-a2', requirements: [{ anyOfNodeIds: ['hydrant-a1'] }] }); if (!path.ok) return path; const rendered = ssp.topologyTool.renderRoute({ route: path.route }); if (!rendered.rendered) return rendered; routes = ssp.topologyTool.listRoutes(); } return { count: routes.length, routes: routes.map((handle) => ({ id: handle.id, status: handle.status, graphId: handle.route.graphId, graphRoutingRevision: handle.route.graphRoutingRevision, edgeIds: handle.route.steps.map((step) => step.edgeId), totalLength: handle.route.totalLength, totalWeight: handle.route.totalWeight })) };",
+  "example": "return ssp.topologyTool.listRoutes().map((route) => ({ id: route.id, status: route.status }));",
+  "guard": ["只列出当前 context 中仍挂载的路线", "返回值不包含 root/THREE.Group"],
+  "seeAlso": ["getRouteById", "removeAllRoutes"],
+  "tags": ["topology", "route", "list", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

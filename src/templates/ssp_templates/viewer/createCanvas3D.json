@@ -1,0 +1,69 @@
+{
+  "id": "createCanvas3D",
+  "category": "viewer",
+  "subcategory": "root",
+  "intent": [
+    "创建子画布",
+    "多视角显示",
+    "监控大屏",
+    "Picture-in-Picture"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.viewerTool.createCanvas",
+  "signature": "createCanvas(opts?: { position?, size?, cameraPosition?, cameraTarget?, label? }): SubCanvasHandle",
+  "params": [
+    {
+      "name": "opts.position",
+      "type": "'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'",
+      "required": false,
+      "default": "'top-right'",
+      "desc": "子画布在主视图的角落位置"
+    },
+    {
+      "name": "opts.size",
+      "type": "{ width, height }",
+      "required": false,
+      "default": "{ width: 320, height: 240 }",
+      "desc": "像素大小"
+    },
+    {
+      "name": "opts.cameraPosition",
+      "type": "{ x, y, z }",
+      "required": false,
+      "default": "{ x: 100, y: 100, z: 100 }",
+      "desc": "子相机起始位置"
+    },
+    {
+      "name": "opts.cameraTarget",
+      "type": "{ x, y, z }",
+      "required": false,
+      "default": "{ x: 0, y: 0, z: 0 }",
+      "desc": "子相机看向哪"
+    },
+    {
+      "name": "opts.label",
+      "type": "string",
+      "required": false,
+      "desc": "画布 title 属性 (hover 时显示)"
+    }
+  ],
+  "returns": "SubCanvasHandle (含 id / canvas / camera / controls / destroy())",
+  "code": "const sub = ssp.viewerTool.createCanvas({ position: 'top-right', size: { width: 320, height: 240 }, cameraPosition: { x: 0, y: 100, z: 80 } }); console.log('sub-canvas:', sub.id);",
+  "example": "const sub = ssp.viewerTool.createCanvas({ position: 'bottom-left', label: '1 楼俯瞰', cameraPosition: { x: 0, y: 150, z: 0 }, cameraTarget: { x: 0, y: 0, z: 0 } }); setTimeout(() => ssp.viewerTool.remove(sub.id), 30000);",
+  "guard": [
+    "子画布共享主 GLB 场景 (不重新加载)",
+    "子画布有独立相机 / controls / renderer",
+    "用 ssp.viewerTool.remove(id) 销毁子画布 (DOM + GPU)",
+    "子画布渲染同步主 rAF, 不会拖累主性能"
+  ],
+  "seeAlso": [
+    "clear"
+  ],
+  "tags": [
+    "viewer",
+    "canvas",
+    "subcanvas",
+    "monitor"
+  ]
+}

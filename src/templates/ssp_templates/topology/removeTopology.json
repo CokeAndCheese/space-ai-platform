@@ -1,0 +1,32 @@
+{
+  "id": "removeTopology",
+  "category": "topology",
+  "subcategory": "cleanup",
+  "intent": [
+    "删除拓扑图",
+    "移除指定拓扑图",
+    "remove topology graph"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.remove",
+  "signature": "remove(id: string): boolean",
+  "params": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "desc": "拓扑图 id；省略时删除当前第一张图，没有图时自动创建最小测试图后删除"
+    }
+  ],
+  "returns": "执行摘要：{ id, removed }",
+  "code": "let graph = params.id ? ssp.topologyTool.getById(params.id) : ssp.topologyTool.list()[0]; if (!graph && !params.id) graph = ssp.topologyTool.create({ nodes: [{ id: 'node-a', label: '节点 A' }, { id: 'node-b', label: '节点 B' }], edges: [{ source: 'node-a', target: 'node-b' }], layout: { type: 'grid' }, position: { x: 0, y: 0, z: 0 } }); const id = params.id ?? graph?.id; const removed = id ? ssp.topologyTool.remove(id) : false; console.log('remove topology:', id ?? null, removed); return { id: id ?? null, removed };",
+  "example": "ssp.topologyTool.remove('topology_1');",
+  "guard": [
+    "删除会从场景移除拓扑图并释放其渲染资源",
+    "显式指定的 id 不存在时返回 false；仅省略 id 且场景无图时创建最小测试图"
+  ],
+  "seeAlso": ["createTopology", "removeAllTopologies"],
+  "tags": ["topology", "remove", "cleanup"],
+  "aiEnabled": false
+}

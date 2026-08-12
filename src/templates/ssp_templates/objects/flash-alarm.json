@@ -1,0 +1,63 @@
+{
+  "id": "flash-alarm",
+  "category": "objects",
+  "subcategory": "alarm",
+  "intent": [
+    "告警闪烁",
+    "故障告警",
+    "alert",
+    "红色闪烁",
+    "报警提醒"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.getByUserDataProperty + ssp.objectsTool.setHighlight",
+  "signature": "flashAlarm(renderType: string, color?: string): number",
+  "params": [
+    {
+      "name": "renderType",
+      "type": "string",
+      "required": true,
+      "desc": "如 'CEILING' / 'WINDOW' / 'DOOR' / 'ELEVATOR' / 'STAIR' / 'WALL' / 'SPACE' / 'FACILITY' (v3 8 种之一)"
+    },
+    {
+      "name": "color",
+      "type": "string",
+      "required": false,
+      "default": "#ff0000",
+      "desc": "闪烁颜色 (默认红)"
+    }
+  ],
+  "returns": "高亮的对象数量",
+  "steps": [
+    {
+      "step": 1,
+      "action": "查告警对象",
+      "template": "getObjectByUserDataProperty",
+      "paramKey": "renderType"
+    },
+    {
+      "step": 2,
+      "action": "高亮 (脉冲闪烁)",
+      "api": "ssp.objectsTool.setHighlight",
+      "paramKey": "color"
+    }
+  ],
+  "code": "const list = ssp.objectsTool.getByUserDataProperty('renderType', 'CEILING'); list.forEach(o => ssp.objectsTool.setHighlight(o, '#ff0000', true)); console.log('alarm highlighted', list.length, 'objects (pulse)');",
+  "example": "/* 完整告警流程: 查对象 → 高亮(pulse=true) → 5 秒后取消 */\nconst color = '#ff1744';\nconst list = ssp.objectsTool.getByUserDataProperty('renderType', 'CEILING');\nlist.forEach(o => ssp.objectsTool.setHighlight(o, color, true));\nconsole.log(`alarm triggered: ${list.length} ceilings flashing in ${color}`);\n\n/* 5 秒后清除 */\nsetTimeout(() => ssp.objectsTool.clearAllHighlights(), 5000);",
+  "guard": [
+    "setHighlight 的第三个参数 pulse=true 时每 500ms 切换一次 emissive",
+    "要手动取消闪烁调 ssp.objectsTool.clearAllHighlights() (会清掉所有高亮)",
+    "或用 ssp.objectsTool.unHighlight(obj) 单个清"
+  ],
+  "seeAlso": [
+    "getObjectByUserDataProperty",
+    "highlight-objects"
+  ],
+  "tags": [
+    "combo",
+    "alarm",
+    "highlight",
+    "pulse"
+  ]
+}

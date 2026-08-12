@@ -1,0 +1,24 @@
+{
+  "id": "unloadFloor",
+  "category": "model",
+  "subcategory": "unload",
+  "intent": ["卸载一个楼层", "移除单个 GLB", "unload floor"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.modelTool.unloadFloor",
+  "signature": "unloadFloor(floorName: string): void",
+  "params": [
+    {
+      "name": "floorName",
+      "type": "string",
+      "required": true,
+      "desc": "已加载的楼层名"
+    }
+  ],
+  "returns": "void",
+  "code": "const name = ssp.modelTool.getLoadedFloors()[0]; if (!name) console.warn('no loaded floor'); else { ssp.modelTool.unloadFloor(name); console.log('unloaded floor', name); }",
+  "example": "ssp.modelTool.unloadFloor('A_10F');",
+  "guard": ["会释放该 GLB 的 geometry、material 和 texture"],
+  "seeAlso": ["loadFloor", "unloadAllModels"],
+  "tags": ["model", "unload", "floor", "cleanup"]
+}

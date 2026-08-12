@@ -1,0 +1,65 @@
+{
+  "id": "fly-to-floor",
+  "category": "objects",
+  "subcategory": "fly",
+  "intent": [
+    "飞到指定楼层",
+    "楼层间跳转",
+    "楼层定位",
+    "fly to floor",
+    "floor navigation",
+    "跳层"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.getByUserDataProperty + ssp.cameraController.flyToObject",
+  "signature": "flyToFloor(floorName: string, options?: { scope?, enableTransition?, done? }): Promise<boolean>",
+  "params": [
+    {
+      "name": "floorName",
+      "type": "string",
+      "required": true,
+      "desc": "楼层名 (A_6F / BASEMENT_B1 / LANDSCAPE_TERRAIN 等)"
+    },
+    {
+      "name": "options.scope",
+      "type": "string",
+      "required": false,
+      "desc": "限定查找的 subcategory (如 'hospital') 或 building (如 'A'); 不传搜全部"
+    },
+    {
+      "name": "options.enableTransition",
+      "type": "boolean",
+      "required": false,
+      "default": "true",
+      "desc": "是否带相机飞行动画"
+    },
+    {
+      "name": "options.done",
+      "type": "() => void",
+      "required": false,
+      "desc": "飞行完成回调"
+    }
+  ],
+  "returns": "boolean — 是否找到并飞行成功",
+  "code": "const FLOOR = 'A_6F'; const targets = ssp.objectsTool.getByUserDataProperty('floorName', FLOOR); if (targets.length > 0) { await ssp.cameraController.flyToObject(targets[0]); console.log('flew to', FLOOR); } else console.log('floor not found:', FLOOR);",
+  "example": "/* 1) 基本用法 */\nawait ssp.objectsTool.flyToFloor?.('A_6F');  // API 没这个便捷方法, 用以下:\n\nconst FLOOR = 'A_6F';\nconst targets = ssp.objectsTool.getByUserDataProperty('floorName', FLOOR);\nif (targets.length > 0) {\n  await ssp.cameraController.flyToObject(targets[0]);\n  console.log(`flew to ${FLOOR}`);\n}\n\n/* 2) 限定 subcategory (避免同名 floor 跨子目录冲突) */\nconst targets2 = ssp.objectsTool.getByUserDataProperty('floorName', 'A_6F', { scope: 'hospital' });\nif (targets2.length > 0) await ssp.cameraController.flyToObject(targets2[0]);\n\n/* 3) 无动画瞬移 */\nconst t = ssp.objectsTool.getByUserDataProperty('floorName', 'A_15F')[0];\nif (t) await ssp.cameraController.flyToObject(t, { enableTransition: false });\n\n/* 4) 楼层定位 + 飞行 完成回调 */\nconst fl = ssp.objectsTool.getByUserDataProperty('floorName', 'B_6F')[0];\nif (fl) {\n  await ssp.cameraController.flyToObject(fl, {\n    enableTransition: true,\n    done: () => console.log('arrived at B_6F'),\n  });\n}",
+  "guard": [
+    "floorName 必须跟 GLB 注入的 userData.floorName 一致 (大小写敏感)",
+    "有同名 floor 在多个 subcategory 时, 传 options.scope 消歧",
+    "GLB 必须已加载到 scene 才能找到",
+    "未找到时 (空数组) 不报错, 只 log; 用返回值判断",
+    "flyToObject 自动按对象包围盒算飞行距离; 不支持自定义 offset"
+  ],
+  "seeAlso": [
+    "getObjectByUserDataProperty",
+    "flyToObject",
+    "floor"
+  ],
+  "tags": [
+    "combo",
+    "fly",
+    "floor",
+    "camera"
+  ]
+}

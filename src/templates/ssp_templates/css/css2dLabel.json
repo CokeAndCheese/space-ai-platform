@@ -1,0 +1,76 @@
+{
+  "id": "css2dLabel",
+  "category": "css",
+  "subcategory": "root",
+  "intent": [
+    "CSS2D 标签",
+    "DOM 标签叠加",
+    "HTML 浮窗",
+    "在 3D 场景贴文字标签",
+    "POI 升级版 (自定义颜色 / 字号)"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.cssTool.createCSS2DObject",
+  "signature": "createCSS2DObject(opts?: { text?, position?, color?, bgColor?, fontSize?, size? }): CSS2DObjectHandle",
+  "params": [
+    {
+      "name": "opts.text",
+      "type": "string",
+      "required": false,
+      "default": "'Label'",
+      "desc": "标签文字"
+    },
+    {
+      "name": "opts.position",
+      "type": "{ x, y, z }",
+      "required": false,
+      "default": "{ x:0, y:0, z:0 }",
+      "desc": "世界坐标"
+    },
+    {
+      "name": "opts.color",
+      "type": "string",
+      "required": false,
+      "default": "'#ffffff'",
+      "desc": "文字颜色"
+    },
+    {
+      "name": "opts.bgColor",
+      "type": "string",
+      "required": false,
+      "default": "'rgba(0,0,0,0.6)'",
+      "desc": "背景色 (rgba/hex)"
+    },
+    {
+      "name": "opts.fontSize",
+      "type": "number",
+      "required": false,
+      "default": "14",
+      "desc": "字号 px"
+    },
+    {
+      "name": "opts.size",
+      "type": "{ width, height }",
+      "required": false,
+      "default": "{ width: 2, height: 1 }",
+      "desc": "世界单位大小 (米)"
+    }
+  ],
+  "returns": "CSS2DObjectHandle (含 id / sprite / destroy())",
+  "code": "const label = ssp.cssTool.createCSS2DObject({ text: 'A_6F', position: { x: 0, y: 50, z: 0 }, color: '#29ccff' }); console.log('css label added:', label.id);",
+  "example": "const a6 = ssp.objectsTool.getByUserDataProperty('floorName', 'A_6F')[0]; const pos = a6 ? { x: 0, y: 50, z: 0 } : { x: 0, y: 30, z: 0 }; const label = ssp.cssTool.createCSS2DObject({ text: 'A 楼 6 层', position: pos, bgColor: '#29ccffcc', color: '#fff' }); console.log('created:', label.id);",
+  "guard": [
+    "标签用 canvas fillText 画, 不接外部 HTML (避免 SVG tainted)",
+    "标签始终面向相机 (Sprite 行为)",
+    "不需要手动 scene.add, cssTool 内部已经 add"
+  ],
+  "seeAlso": [
+    "createPoi"
+  ],
+  "tags": [
+    "css",
+    "label",
+    "text"
+  ]
+}

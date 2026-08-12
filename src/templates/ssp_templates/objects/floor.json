@@ -1,0 +1,67 @@
+{
+  "id": "floor",
+  "category": "objects",
+  "subcategory": "isolate",
+  "intent": [
+    "只看一楼层",
+    "隔离楼层",
+    "隐藏其他楼层",
+    "floor isolation",
+    "hide others"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.setVisibleByFloor + ssp.cameraController.flyToObject",
+  "signature": "isolateFloor(floorName: string, options?: { flyTo?: boolean }): void",
+  "params": [
+    {
+      "name": "floorName",
+      "type": "string",
+      "required": true,
+      "desc": "目标楼层名, e.g. 'A_6F' / 'BASEMENT_B1'"
+    },
+    {
+      "name": "options.flyTo",
+      "type": "boolean",
+      "required": false,
+      "default": "true",
+      "desc": "是否飞行到该楼层"
+    }
+  ],
+  "returns": "void",
+  "steps": [
+    {
+      "step": 1,
+      "action": "查询目标楼层",
+      "template": "getObjectByUserDataProperty",
+      "paramKey": "floorName"
+    },
+    {
+      "step": 2,
+      "action": "隔离 (隐藏其它楼层)",
+      "api": "ssp.objectsTool.setVisibleByFloor",
+      "paramKey": "floorName"
+    },
+    {
+      "step": 3,
+      "action": "飞到该楼层",
+      "template": "flyToObject"
+    }
+  ],
+  "code": "const FLOOR = 'A_6F'; ssp.objectsTool.setVisibleByFloor(FLOOR); const target = ssp.objectsTool.getByUserDataProperty('floorName', FLOOR)[0]; if (target) { await ssp.cameraController.flyToObject(target); console.log('isolated to', FLOOR); } else console.log('floor not found:', FLOOR);",
+  "example": "/* 隔离 A_6F 楼层 + 飞过去 */\nconst FLOOR = 'A_6F';\nssp.objectsTool.setVisibleByFloor(FLOOR);\nconst target = ssp.objectsTool.getByUserDataProperty('floorName', FLOOR)[0];\nif (target) {\n  await ssp.cameraController.flyToObject(target);\n  console.log(`isolated to ${FLOOR}`);\n}\n\n/* 恢复: 把所有楼层再设为可见 */\n// 办法1: 重新加载场景 (modelTool.loadSubcategory)\n// 办法2: 遍历全部 floorName 调 setVisibleByFloor(fn, false) 不行\n//       setVisibleByFloor(fn) 只显 fn, 不显其他, 所以要显式反向:\n//       实际上是 toggle, 正确做法见 modelTool.loadSubcategory",
+  "guard": [
+    "setVisibleByFloor 只显目标楼层, 其它楼层被隐藏 (单边开关)",
+    "要恢复其它楼层，调用 ssp.objectsTool.resetVisibility()",
+    "GLB 必须有 userData.floorName, 否则该层不会被识别"
+  ],
+  "seeAlso": [
+    "getObjectByUserDataProperty",
+    "explode-floor"
+  ],
+  "tags": [
+    "combo",
+    "isolate",
+    "floor"
+  ]
+}

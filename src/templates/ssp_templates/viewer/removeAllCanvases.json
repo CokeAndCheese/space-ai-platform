@@ -1,0 +1,17 @@
+{
+  "id": "removeAllCanvases",
+  "category": "viewer",
+  "subcategory": "root",
+  "intent": ["删除全部子画布", "关闭所有监控视角", "remove all sub canvases"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.viewerTool.removeAll",
+  "signature": "removeAll(): number",
+  "params": [],
+  "returns": "删除的子画布数量",
+  "code": "const removed = ssp.viewerTool.removeAll(); console.log('removed all sub-canvases', removed);",
+  "example": "ssp.viewerTool.removeAll();",
+  "guard": ["只删除 viewerTool 创建的子画布，不影响主画布"],
+  "seeAlso": ["createCanvas3D", "removeCanvas3D"],
+  "tags": ["viewer", "canvas", "remove", "all", "cleanup"]
+}

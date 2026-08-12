@@ -1,0 +1,83 @@
+{
+  "id": "query-scene",
+  "category": "objects",
+  "subcategory": "query",
+  "intent": [
+    "查询、列出或统计场景对象",
+    "按建筑、楼层、方向或构件类型筛选",
+    "高亮、闪烁、聚焦、隐藏、显示或隔离对象",
+    "按字段分组对比或统计每栋楼层数"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "template.queryScene",
+  "signature": "queryScene(params: QuerySceneParams): TemplateResult",
+  "aiEnabled": true,
+  "params": [
+    {
+      "name": "entity",
+      "type": "string",
+      "required": false,
+      "default": "object",
+      "enum": ["object", "floor"],
+      "desc": "统计实体；普通构件查询用 object，楼层计数必须显式用 floor"
+    },
+    {
+      "name": "operation",
+      "type": "string",
+      "required": true,
+      "enum": ["list", "count", "locate", "highlight", "flash", "focus", "hide", "show", "isolate", "compare", "summarize"],
+      "desc": "要执行的模板内操作"
+    },
+    {
+      "name": "target",
+      "type": "object",
+      "required": false,
+      "desc": "筛选目标，可含 renderType、fireType、spaceType、sid、meshName"
+    },
+    {
+      "name": "scope",
+      "type": "object",
+      "required": false,
+      "desc": "范围，可含 buildings、levels、floorNames、floorTypes、directions 数组"
+    },
+    {
+      "name": "groupBy",
+      "type": "string",
+      "required": false,
+      "enum": ["renderType", "fireType", "spaceType", "building", "level", "direction", "floorName"],
+      "desc": "分组字段"
+    },
+    {
+      "name": "visual",
+      "type": "object",
+      "required": false,
+      "desc": "可含 color、duration"
+    },
+    {
+      "name": "output",
+      "type": "object",
+      "required": false,
+      "desc": "可含 format、limit"
+    }
+  ],
+  "returns": "{ sids, count, grouped?, message, data: { format, total, unit, matchedFloorNames, matchedBuildings, floorCount, needsClarification?, candidates?, exploded? } }",
+  "testParams": {
+    "operation": "count",
+    "target": { "renderType": "WINDOW" },
+    "output": { "limit": 5 }
+  },
+  "code": "const operation = params.operation; const entity = params.entity || 'object'; const target = params.target || {}; const scope = params.scope || {}; const visual = params.visual || {}; const output = params.output || {}; const tool = ssp.objectsTool; let list = []; if (target.sid) { const obj = tool.getById(target.sid); if (obj) list = [obj]; } else if (target.meshName) { const obj = tool.getByName(target.meshName); if (obj) list = [obj]; } else if (target.renderType) { list = tool.getByUserDataProperty('renderType', target.renderType); } else if (target.fireType) { list = tool.getByUserDataProperty('fireType', target.fireType); } else if (target.spaceType) { list = tool.getByUserDataProperty('spaceType', target.spaceType); } else { ssp.getContext().scene.traverse((obj) => { if (obj.isMesh && obj.userData && obj.userData.sid) list.push(obj); }); } if (target.fireType) list = list.filter((obj) => obj.userData.fireType === target.fireType); if (target.spaceType) list = list.filter((obj) => obj.userData.spaceType === target.spaceType); if (scope.buildings) list = list.filter((obj) => scope.buildings.includes(obj.userData.building)); if (scope.levels) list = list.filter((obj) => scope.levels.includes(obj.userData.level)); if (scope.floorNames) list = list.filter((obj) => scope.floorNames.includes(obj.userData.floorName)); if (scope.floorTypes) list = list.filter((obj) => scope.floorTypes.includes(obj.userData.floorType)); if (scope.directions) list = list.filter((obj) => scope.directions.includes(obj.userData.direction)); list = Array.from(new Set(list)); const matchedFloorNames = Array.from(new Set(list.map((obj) => obj.userData.floorName).filter(Boolean).map(String))).sort(); const matchedBuildings = Array.from(new Set(list.map((obj) => obj.userData.building).filter((value) => value !== undefined && value !== null && value !== '').map(String))).sort(); const floorCount = new Set(list.map((obj) => { const floorName = obj.userData.floorName; if (!floorName) return null; return String(obj.userData.building ?? 'unknown') + '::' + String(floorName); }).filter(Boolean)).size; const isFloorSummary = entity === 'floor'; const guardedOperations = new Set(['show', 'hide', 'isolate', 'focus']); const isBareSingleLevelScope = Array.isArray(scope.levels) && scope.levels.length === 1 && (!Array.isArray(scope.buildings) || scope.buildings.length === 0) && (!Array.isArray(scope.floorNames) || scope.floorNames.length === 0); if (guardedOperations.has(operation) && isBareSingleLevelScope && matchedFloorNames.length > 1) { const levelLabel = String(scope.levels[0]) + 'F'; const candidates = matchedFloorNames; return { sids: [], count: 0, message: levelLabel + ' 同时匹配 ' + candidates.join('、') + '，请明确楼栋', data: { format: output.format || 'list', total: 0, unit: 'mesh', operation, needsClarification: true, candidates, matchedFloorNames, matchedBuildings, floorCount } }; } const sids = list.map((obj) => obj.userData.sid).filter(Boolean); let grouped; let resultCount = sids.length; if (isFloorSummary) { if (params.groupBy === 'building') grouped = {}; const uniqueFloors = new Set(); for (const obj of list) { const floorName = obj.userData.floorName; if (!floorName) continue; const building = String(obj.userData.building ?? 'unknown'); const uniqueKey = building + '::' + floorName; if (uniqueFloors.has(uniqueKey)) continue; uniqueFloors.add(uniqueKey); if (grouped) { if (!grouped[building]) grouped[building] = []; grouped[building].push(floorName); } } resultCount = uniqueFloors.size; } else if (params.groupBy) { grouped = {}; for (const obj of list) { const key = String(obj.userData[params.groupBy] ?? 'unknown'); if (!grouped[key]) grouped[key] = []; grouped[key].push(obj.userData.sid); } } const defaultColors = { WINDOW: '#4FC3F7', DOOR: '#FFD54F', ELEVATOR: '#4DB6AC', STAIR: '#9575CD', CEILING: '#90A4AE', WALL: '#8D6E63', SPACE: '#F48FB1', FACILITY: '#FF5252' }; const color = visual.color || defaultColors[target.renderType] || '#FF5252'; const duration = Number.isFinite(visual.duration) ? visual.duration : (operation === 'locate' ? 5000 : operation === 'flash' ? 3000 : 0); if (operation === 'highlight') list.forEach((obj) => tool.setHighlight(obj, color, false)); if (operation === 'locate' || operation === 'flash') { list.forEach((obj) => tool.setHighlight(obj, color, true)); if (duration > 0) setTimeout(() => list.forEach((obj) => tool.unHighlight(obj)), duration); } if (operation === 'focus' && list[0]) { if (target.sid || target.meshName) { await ssp.cameraController.flyToObject(list[0]); } else { const floorNames = Array.from(new Set(list.map((obj) => obj.userData.floorName).filter(Boolean))); const roots = floorNames.map((name) => ssp.modelTool.getFloorInfo(name)?.root).filter(Boolean); if (roots.length > 0) await ssp.cameraController.fitScene(roots, { view: 'iso', padding: 1.5, maxSafeDistance: 700, animate: true }); else await ssp.cameraController.flyToObject(list[0]); } } if (operation === 'hide' || operation === 'show') list.forEach((obj) => tool.setVisible(obj, operation === 'show')); if (operation === 'isolate') { if (list.length === 0) throw new Error('隔离目标为空'); const targets = new Set(list); ssp.getContext().scene.traverse((obj) => { if (obj.isMesh && !String(obj.name || '').startsWith('ssp_helper_')) tool.setVisible(obj, targets.has(obj)); }); } const exploded = operation === 'show' ? Boolean(tool.isExploded()) : undefined; const limit = Number.isFinite(output.limit) ? output.limit : sids.length; const visibleSids = isFloorSummary ? [] : sids.slice(0, limit); let message = isFloorSummary ? '已完成楼层统计，共 ' + resultCount + ' 层' : operation === 'compare' ? '已完成分组对比，共 ' + resultCount + ' 个对象' : operation === 'summarize' ? '已完成场景汇总，共 ' + resultCount + ' 个对象' : '已执行 ' + operation + '，匹配 ' + resultCount + ' 个对象'; if (operation === 'show' && exploded) message += '；场景仍处于炸开状态，如需合拢请使用“收回楼层”'; const data = { format: output.format || 'list', total: resultCount, unit: isFloorSummary ? 'floor' : 'mesh', matchedFloorNames, matchedBuildings, floorCount }; if (operation === 'show') data.exploded = exploded; return { sids: visibleSids, count: resultCount, grouped, message, data };",
+  "example": "return await templateRuntime.execute('query-scene', { operation: 'highlight', target: { renderType: 'WINDOW' }, visual: { color: '#4FC3F7' } });",
+  "guard": [
+    "hide 在应用层执行前必须二次确认；isolate 可直接执行并由 resetVisibility 恢复",
+    "无 target 时匹配当前场景内所有带 sid 的 mesh",
+    "楼层计数必须显式传 entity=floor，不能通过 groupBy 推断",
+    "show、hide、isolate、focus 仅指定单个 level 且匹配多个 floorName 时不得执行副作用，必须返回楼栋候选",
+    "显式指定 buildings 或 floorNames 的多楼栋操作不受裸 level 歧义保护限制",
+    "show 只恢复可见性；炸开状态下不得自动收回楼层",
+    "只允许使用模板参数声明的 operation"
+  ],
+  "seeAlso": ["clearAllHighlights", "resetVisibility", "focus-on-object"],
+  "tags": ["ai", "query", "composite"]
+}

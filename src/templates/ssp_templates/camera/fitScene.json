@@ -1,0 +1,56 @@
+{
+  "id": "fitScene",
+  "category": "camera",
+  "subcategory": "fit",
+  "intent": [
+    "fit 整个场景",
+    "fit 所有 mesh",
+    "居中查看",
+    "显示全貌"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.cameraController.fitScene",
+  "signature": "fitScene(objects: Object3D[], opts?: FitSceneOptions): Promise<{position, target, distance}>",
+  "aiEnabled": true,
+  "params": [
+    {
+      "name": "view",
+      "type": "string",
+      "required": false,
+      "default": "iso",
+      "enum": ["iso", "front", "top", "side", "current"],
+      "desc": "视角预设"
+    },
+    {
+      "name": "padding",
+      "type": "number",
+      "required": false,
+      "default": 1.5,
+      "desc": "距离倍数"
+    },
+    {
+      "name": "maxSafeDistance",
+      "type": "number",
+      "required": false,
+      "default": 700,
+      "desc": "防止 far plane 裁剪的最大距离"
+    },
+    {
+      "name": "animate",
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "desc": "是否启用相机过渡"
+    }
+  ],
+  "returns": "{ position, target, distance }",
+  "code": "const roots = ssp.modelTool.getLoadedFloors().map((name) => ssp.modelTool.getFloorInfo(name)?.root).filter(Boolean); if (roots.length === 0) throw new Error('当前没有已加载模型'); return await ssp.cameraController.fitScene(roots, { view: params.view ?? 'iso', padding: params.padding ?? 1.5, maxSafeDistance: params.maxSafeDistance ?? 700, animate: params.animate ?? true });",
+  "example": "const roots = ssp.modelTool.getLoadedFloors()\n  .map((name) => ssp.modelTool.getFloorInfo(name)?.root)\n  .filter(Boolean);\nif (roots.length === 0) throw new Error('当前没有已加载模型');\nawait ssp.cameraController.fitScene(roots, { view: 'iso', maxSafeDistance: 700 });",
+  "guard": [
+    "objects 必须是非空数组",
+    "maxSafeDistance 必须 < camera.far / 1.13 (iso 视角实际距离系数)",
+    "fitScene 只调整相机；如需保存主视角，需单独执行 captureMainViewpoint"
+  ],
+  "tags": ["camera", "fit", "scene"]
+}

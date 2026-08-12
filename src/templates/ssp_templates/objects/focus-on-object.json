@@ -1,0 +1,68 @@
+{
+  "id": "focus-on-object",
+  "category": "objects",
+  "subcategory": "focus",
+  "intent": [
+    "聚焦到对象",
+    "选中后高亮+飞行",
+    "locate",
+    "定位对象",
+    "查看细节"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.getById + ssp.cameraController.flyToObject + ssp.objectsTool.setHighlight",
+  "signature": "focusOnObject(id: string, color?: string): boolean",
+  "params": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true,
+      "desc": "对象 node.name (也称 sid), e.g. 'CEILING_A_6F_1'"
+    },
+    {
+      "name": "color",
+      "type": "string",
+      "required": false,
+      "default": "#ff5722",
+      "desc": "高亮颜色 (默认橘红)"
+    }
+  ],
+  "returns": "boolean — 是否找到并定位",
+  "steps": [
+    {
+      "step": 1,
+      "action": "按 id 查对象",
+      "template": "getObjectById",
+      "paramKey": "id"
+    },
+    {
+      "step": 2,
+      "action": "飞向对象",
+      "template": "flyToObject"
+    },
+    {
+      "step": 3,
+      "action": "高亮",
+      "api": "ssp.objectsTool.setHighlight",
+      "paramKey": "color"
+    }
+  ],
+  "code": "const obj = ssp.objectsTool.getById('CEILING_A_6F_1'); if (obj) { await ssp.cameraController.flyToObject(obj); ssp.objectsTool.setHighlight(obj, '#ff5722'); console.log('focused on', obj.name); } else console.log('not found');",
+  "example": "/* 完整聚焦流程 */\nconst SID = 'CEILING_A_6F_1';\nconst obj = ssp.objectsTool.getById(SID);\nif (obj) {\n  await ssp.cameraController.flyToObject(obj);\n  ssp.objectsTool.setHighlight(obj, '#ff5722', true);  // pulse 闪烁更醒目\n  console.log(`focused on ${obj.name} at ${obj.userData.sid}`);\n} else {\n  console.log(`sid not found: ${SID}`);\n  // 列出可用 sid: 可用 ssp.scene.traverse 遍历\n}",
+  "guard": [
+    "对象可能不存在 (id 输错), 必须判空",
+    "flyToObject 用 camera-controls 自动过渡 (默认 1s)",
+    "setHighlight 不传 pulse 时是静态高亮; pulse=true 时闪烁"
+  ],
+  "seeAlso": [
+    "getObjectById",
+    "flyToObject"
+  ],
+  "tags": [
+    "combo",
+    "focus",
+    "highlight",
+    "fly"
+  ]
+}

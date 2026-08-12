@@ -1,0 +1,19 @@
+{
+  "id": "hidePoi",
+  "category": "poi",
+  "subcategory": "visibility",
+  "intent": ["隐藏 POI", "隐藏标记点", "hide poi"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.poiManager.hide",
+  "signature": "hide(id: string): boolean",
+  "params": [
+    { "name": "id", "type": "string", "required": true, "desc": "已创建 POI 的 id" }
+  ],
+  "returns": "是否找到并隐藏 POI",
+  "code": "const poi = ssp.poiManager.list()[0]; if (!poi) console.warn('no poi'); else console.log('hide poi', poi.id, ssp.poiManager.hide(poi.id));",
+  "example": "ssp.poiManager.hide('poi_1');",
+  "guard": ["hide 不销毁 POI，可再次 show"],
+  "seeAlso": ["createPoi", "showPoi", "removePoi"],
+  "tags": ["poi", "hide", "visibility"]
+}

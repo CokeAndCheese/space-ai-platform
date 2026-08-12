@@ -1,0 +1,24 @@
+{
+  "id": "loadFloor",
+  "category": "model",
+  "subcategory": "load",
+  "intent": ["加载单个楼层", "加载一个 GLB", "load floor"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.modelTool.loadFloor",
+  "signature": "loadFloor(floorNameOrUrl: string): Promise<FloorInfo>",
+  "params": [
+    {
+      "name": "floorNameOrUrl",
+      "type": "string",
+      "required": true,
+      "desc": "楼层名、GLB 文件名或完整 URL"
+    }
+  ],
+  "returns": "FloorInfo",
+  "code": "const info = await ssp.modelTool.loadFloor('A_10F'); console.log('loaded floor', info.floorName, info.url);",
+  "example": "const info = await ssp.modelTool.loadFloor('/models/hospital/A_10F.glb');\nconsole.log(info);",
+  "guard": ["应显式传入目标楼层；重复加载同一楼层会复用缓存"],
+  "seeAlso": ["loadSubcategory", "unloadFloor", "fitScene"],
+  "tags": ["model", "load", "floor"]
+}

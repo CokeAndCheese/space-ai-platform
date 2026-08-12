@@ -1,0 +1,90 @@
+{
+  "id": "createPoi",
+  "category": "poi",
+  "subcategory": "root",
+  "intent": [
+    "创建 POI",
+    "兴趣点",
+    "标注点",
+    "在 3D 场景加标签"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.poiManager.add",
+  "signature": "add(opts?: { text?, position?, attachTo?, color?, textColor?, fontSize?, iconSize?, visible? }): PoiHandle",
+  "params": [
+    {
+      "name": "opts.text",
+      "type": "string",
+      "required": false,
+      "default": "'POI'",
+      "desc": "POI 显示文字"
+    },
+    {
+      "name": "opts.position",
+      "type": "{ x, y, z }",
+      "required": false,
+      "default": "{ x:0, y:0, z:0 }",
+      "desc": "世界坐标"
+    },
+    {
+      "name": "opts.attachTo",
+      "type": "Object3D | sid string",
+      "required": false,
+      "desc": "关联对象, POI 跟随该对象移动"
+    },
+    {
+      "name": "opts.color",
+      "type": "string",
+      "required": false,
+      "default": "'#29ccff'",
+      "desc": "气泡背景色"
+    },
+    {
+      "name": "opts.textColor",
+      "type": "string",
+      "required": false,
+      "default": "'#ffffff'",
+      "desc": "文字颜色"
+    },
+    {
+      "name": "opts.fontSize",
+      "type": "number",
+      "required": false,
+      "default": "14",
+      "desc": "字号 px"
+    },
+    {
+      "name": "opts.iconSize",
+      "type": "number",
+      "required": false,
+      "default": "64",
+      "desc": "图标尺寸 px (canvas 渲染分辨率)"
+    },
+    {
+      "name": "opts.visible",
+      "type": "boolean",
+      "required": false,
+      "default": "true",
+      "desc": "默认是否可见"
+    }
+  ],
+  "returns": "PoiHandle (含 id / sprite / destroy())",
+  "code": "const poi = ssp.poiManager.add({ text: '设备 305', position: { x: 0, y: 50, z: 0 }, color: '#29ccff' }); console.log('poi created:', poi.id);",
+  "example": "const a6 = ssp.objectsTool.getByUserDataProperty('floorName', 'A_6F')[0]; const pos = a6.getWorldPosition(new (window.THREE || {}).Vector3 ? new window.THREE.Vector3() : null) || { x: 0, y: 30, z: 0 }; ssp.poiManager.add({ text: 'A 楼 6 层', position: pos, color: '#ff5722' });",
+  "guard": [
+    "POI 用 SpriteMaterial + CanvasTexture (WebGL 渲染), 文字清晰度高",
+    "attachTo 时 POI 会跟随该对象 (无需手动更新 position)",
+    "不传 attachTo 时 POI 是世界坐标 (不会随对象移动)"
+  ],
+  "seeAlso": [
+    "showHidePoi",
+    "createPoiNode"
+  ],
+  "tags": [
+    "poi",
+    "create",
+    "label",
+    "marker"
+  ]
+}

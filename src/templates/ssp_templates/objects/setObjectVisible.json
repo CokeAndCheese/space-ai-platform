@@ -1,0 +1,20 @@
+{
+  "id": "setObjectVisible",
+  "category": "objects",
+  "subcategory": "visibility",
+  "intent": ["显示或隐藏对象", "设置对象可见性", "set object visible"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.setVisible",
+  "signature": "setVisible(obj: Object3D, visible: boolean): void",
+  "params": [
+    { "name": "sid", "type": "string", "required": true, "desc": "目标业务 sid" },
+    { "name": "visible", "type": "boolean", "required": false, "default": true, "desc": "true 显示，false 隐藏" }
+  ],
+  "returns": "void",
+  "code": "const obj = ssp.objectsTool.getByUserDataProperty('renderType', 'WINDOW')[0]; if (!obj) console.warn('no target'); else { ssp.objectsTool.setVisible(obj, true); console.log('visible', obj.userData.sid ?? obj.name); }",
+  "example": "const obj = ssp.objectsTool.getById('WINDOW_A_10F_1');\nif (obj) ssp.objectsTool.setVisible(obj, false);",
+  "guard": ["默认示例使用 visible=true，避免执行模板后误隐藏对象"],
+  "seeAlso": ["setVisibleByFloor", "resetVisibility"],
+  "tags": ["objects", "visibility", "show", "hide"]
+}

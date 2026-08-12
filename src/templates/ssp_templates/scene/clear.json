@@ -1,0 +1,37 @@
+{
+  "id": "clear",
+  "category": "scene",
+  "subcategory": "root",
+  "intent": [
+    "清空场景",
+    "清掉所有对象",
+    "reset scene",
+    "重置场景"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.sceneTool.clear",
+  "signature": "clear(keepCameraLight?: boolean): void",
+  "params": [
+    {
+      "name": "keepCameraLight",
+      "type": "boolean",
+      "required": false,
+      "default": "true",
+      "desc": "是否保留相机和光源 (默认保留,避免黑屏)"
+    }
+  ],
+  "returns": "void",
+  "code": "ssp.sceneTool.clear(true);",
+  "example": "/* 场景化清空, 推荐配合重载 */\n\n/* 1) 软清空: 保留相机/光源, 只清模型 */\nssp.sceneTool.clear(true);\n\n/* 2) 硬清空: 连相机/光源也清 (场景会变黑) */\nssp.sceneTool.clear(false);\n\n/* 3) 切换场景: clear + loadSubcategory */\nssp.sceneTool.clear();\nconst infos = await ssp.modelTool.loadSubcategory('hospital');\nconsole.log('loaded', infos.length, 'GLB');",
+  "guard": [
+    "默认 keepCameraLight=true, 避免黑屏",
+    "清完后对象仍可访问, 但已 dispose, 不能 add 回场景",
+    "切场景: clear + loadSubcategory, 不要只 clear 不加载"
+  ],
+  "tags": [
+    "scene",
+    "clear",
+    "reset"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "setRouteVisualState",
+  "category": "topology",
+  "subcategory": "route",
+  "intent": ["修改路线样式", "控制路线颜色宽度和流动", "set route visual state"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.setRouteVisualState",
+  "signature": "setRouteVisualState(id: string, patch: TopologyRouteVisualStatePatch): boolean",
+  "params": [
+    { "name": "routeId", "type": "string", "required": false, "desc": "路线 ID；省略时自建演示路线" },
+    { "name": "patch", "type": "TopologyRouteVisualStatePatch", "required": false, "desc": "visible、color、width、opacity、depthTest、flow" }
+  ],
+  "returns": "{ id, updated, found, status, graphId }",
+  "code": "const demoId = 'topology_demo_set_route_visual'; let routeId = params.routeId; if (routeId === undefined) { if (!ssp.topologyTool.getGraph(demoId)) ssp.topologyTool.createGraph({ id: demoId, layers: [{ id: 'A_1F', order: 1, elevation: 0 }, { id: 'A_2F', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }); const path = ssp.topologyTool.findPath({ graphId: demoId, startNodeId: 'entry-door', goalNodeId: 'fire-a2', requirements: [{ anyOfNodeIds: ['hydrant-a1'] }] }); if (!path.ok) return path; const rendered = ssp.topologyTool.renderRoute({ route: path.route }); if (!rendered.rendered) return rendered; routeId = rendered.handle.id; } const patch = params.patch === undefined ? { color: '#00E5FF', width: 0.2, opacity: 0.9, depthTest: true, flow: { active: true, speed: 2.5, spacing: 1.2, color: '#FFFFFF', size: 0.12 } } : params.patch; const updated = ssp.topologyTool.setRouteVisualState(routeId, patch); const handle = ssp.topologyTool.getRouteById(routeId); return { id: routeId, updated, found: Boolean(handle), status: handle ? handle.status : null, graphId: handle ? handle.route.graphId : null };",
+  "example": "return ssp.topologyTool.setRouteVisualState(routeId, { color: '#00E5FF', flow: { active: true } });",
+  "guard": ["只修改路线视觉，不改变图的 routingRevision", "显式不存在 routeId 返回 updated=false，不创建替代路线"],
+  "seeAlso": ["renderRoute", "showRoute", "hideRoute"],
+  "tags": ["topology", "route", "visual", "flow", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

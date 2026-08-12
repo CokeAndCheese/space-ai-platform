@@ -1,0 +1,62 @@
+{
+  "id": "addGrid",
+  "category": "helper",
+  "subcategory": "root",
+  "intent": [
+    "加网格地面",
+    "grid floor",
+    "画网格",
+    "参考线",
+    "辅助视图"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.helperTool.addGrid",
+  "signature": "addGrid(options?: { size?, divisions?, color?, position? }): GridHelper",
+  "params": [
+    {
+      "name": "options.size",
+      "type": "number",
+      "required": false,
+      "default": "100",
+      "desc": "网格边长 (世界单位)"
+    },
+    {
+      "name": "options.divisions",
+      "type": "number",
+      "required": false,
+      "default": "50",
+      "desc": "每边分段数"
+    },
+    {
+      "name": "options.color",
+      "type": "string",
+      "required": false,
+      "default": "'#888888'",
+      "desc": "网格线颜色"
+    },
+    {
+      "name": "options.position",
+      "type": "Vec3",
+      "required": false,
+      "default": "{ x: 0, y: 0, z: 0 }",
+      "desc": "网格位置"
+    }
+  ],
+  "returns": "GridHelper (Three.js 原生对象, 可以 scene.remove 掉)",
+  "code": "ssp.helperTool.addGrid({ size: 100, divisions: 50 });",
+  "example": "/* 1) 默认网格 (100x100, 50 分段) */\nssp.helperTool.addGrid();\n\n/* 2) 大范围, 细分 */\nssp.helperTool.addGrid({ size: 200, divisions: 100, color: '#666' });\n\n/* 3) 抬高到楼层位置 */\nssp.helperTool.addGrid({ size: 150, divisions: 30, position: { x: 0, y: 50, z: 0 } });",
+  "guard": [
+    "返回的 GridHelper 已经 add 到 scene, 可以 remove",
+    "removeAll() 一键清掉所有 helper"
+  ],
+  "seeAlso": [
+    "addAxes"
+  ],
+  "tags": [
+    "helper",
+    "grid",
+    "floor"
+  ],
+  "_renamedFrom": "addGridHelper"
+}

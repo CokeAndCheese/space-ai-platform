@@ -1,0 +1,588 @@
+{
+  "generatedAt": "2026-08-07T01:29:51.685Z",
+  "modelsDir": "public/models",
+  "count": 58,
+  "models": [
+    {
+      "kind": "scene",
+      "subcategory": "",
+      "filename": "hospital",
+      "url": "/models/hospital",
+      "displayName": "Hospital (55 GLB · 整个场景)",
+      "sizeBytes": 211689724,
+      "sizeMB": 201.88,
+      "mtime": 1785307400626.7673
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_10F.glb",
+      "url": "/models/hospital/A_10F.glb",
+      "displayName": "A 10F",
+      "sizeBytes": 2720832,
+      "sizeMB": 2.59,
+      "mtime": 1785307352496.1821
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_11F.glb",
+      "url": "/models/hospital/A_11F.glb",
+      "displayName": "A 11F",
+      "sizeBytes": 2727596,
+      "sizeMB": 2.6,
+      "mtime": 1785307352500.0886
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_12F.glb",
+      "url": "/models/hospital/A_12F.glb",
+      "displayName": "A 12F",
+      "sizeBytes": 2531156,
+      "sizeMB": 2.41,
+      "mtime": 1785307352503.505
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_13F.glb",
+      "url": "/models/hospital/A_13F.glb",
+      "displayName": "A 13F",
+      "sizeBytes": 2368568,
+      "sizeMB": 2.26,
+      "mtime": 1785307352506.617
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_14F.glb",
+      "url": "/models/hospital/A_14F.glb",
+      "displayName": "A 14F",
+      "sizeBytes": 2485008,
+      "sizeMB": 2.37,
+      "mtime": 1785307352509.7224
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_15F.glb",
+      "url": "/models/hospital/A_15F.glb",
+      "displayName": "A 15F",
+      "sizeBytes": 3025512,
+      "sizeMB": 2.89,
+      "mtime": 1785307352513.6846
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_1F.glb",
+      "url": "/models/hospital/A_1F.glb",
+      "displayName": "A 1F",
+      "sizeBytes": 2915436,
+      "sizeMB": 2.78,
+      "mtime": 1785294852497.9436
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_2F.glb",
+      "url": "/models/hospital/A_2F.glb",
+      "displayName": "A 2F",
+      "sizeBytes": 3349236,
+      "sizeMB": 3.19,
+      "mtime": 1785307352519.2893
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_3F.glb",
+      "url": "/models/hospital/A_3F.glb",
+      "displayName": "A 3F",
+      "sizeBytes": 3117316,
+      "sizeMB": 2.97,
+      "mtime": 1785307352522.8306
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_4F.glb",
+      "url": "/models/hospital/A_4F.glb",
+      "displayName": "A 4F",
+      "sizeBytes": 3120156,
+      "sizeMB": 2.98,
+      "mtime": 1785307352526.2603
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_5F.glb",
+      "url": "/models/hospital/A_5F.glb",
+      "displayName": "A 5F",
+      "sizeBytes": 2434644,
+      "sizeMB": 2.32,
+      "mtime": 1785307352529.0632
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_6F.glb",
+      "url": "/models/hospital/A_6F.glb",
+      "displayName": "A 6F",
+      "sizeBytes": 2530820,
+      "sizeMB": 2.41,
+      "mtime": 1785307352531.185
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_7F.glb",
+      "url": "/models/hospital/A_7F.glb",
+      "displayName": "A 7F",
+      "sizeBytes": 2360924,
+      "sizeMB": 2.25,
+      "mtime": 1785307352533.6394
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_8F.glb",
+      "url": "/models/hospital/A_8F.glb",
+      "displayName": "A 8F",
+      "sizeBytes": 2667940,
+      "sizeMB": 2.54,
+      "mtime": 1785307352536.8052
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_9F.glb",
+      "url": "/models/hospital/A_9F.glb",
+      "displayName": "A 9F",
+      "sizeBytes": 2737644,
+      "sizeMB": 2.61,
+      "mtime": 1785307352540.861
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_DING.glb",
+      "url": "/models/hospital/A_DING.glb",
+      "displayName": "A DING",
+      "sizeBytes": 1905064,
+      "sizeMB": 1.82,
+      "mtime": 1785307400623.5625
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "A_T.glb",
+      "url": "/models/hospital/A_T.glb",
+      "displayName": "A T",
+      "sizeBytes": 2145376,
+      "sizeMB": 2.05,
+      "mtime": 1785307352544.1477
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_10F.glb",
+      "url": "/models/hospital/B_10F.glb",
+      "displayName": "B 10F",
+      "sizeBytes": 2521472,
+      "sizeMB": 2.4,
+      "mtime": 1785307352568.4312
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_11F.glb",
+      "url": "/models/hospital/B_11F.glb",
+      "displayName": "B 11F",
+      "sizeBytes": 5019048,
+      "sizeMB": 4.79,
+      "mtime": 1785307352573.2002
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_12F.glb",
+      "url": "/models/hospital/B_12F.glb",
+      "displayName": "B 12F",
+      "sizeBytes": 2859904,
+      "sizeMB": 2.73,
+      "mtime": 1785307352577.6665
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_13F.glb",
+      "url": "/models/hospital/B_13F.glb",
+      "displayName": "B 13F",
+      "sizeBytes": 2864736,
+      "sizeMB": 2.73,
+      "mtime": 1785307352582.3281
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_14F.glb",
+      "url": "/models/hospital/B_14F.glb",
+      "displayName": "B 14F",
+      "sizeBytes": 2861840,
+      "sizeMB": 2.73,
+      "mtime": 1785307352584.7478
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_15F.glb",
+      "url": "/models/hospital/B_15F.glb",
+      "displayName": "B 15F",
+      "sizeBytes": 2860740,
+      "sizeMB": 2.73,
+      "mtime": 1785307352588.916
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_16F.glb",
+      "url": "/models/hospital/B_16F.glb",
+      "displayName": "B 16F",
+      "sizeBytes": 2659188,
+      "sizeMB": 2.54,
+      "mtime": 1785307352591.6292
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_17F.glb",
+      "url": "/models/hospital/B_17F.glb",
+      "displayName": "B 17F",
+      "sizeBytes": 2722096,
+      "sizeMB": 2.6,
+      "mtime": 1785307352595.0625
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_18F.glb",
+      "url": "/models/hospital/B_18F.glb",
+      "displayName": "B 18F",
+      "sizeBytes": 2716744,
+      "sizeMB": 2.59,
+      "mtime": 1785307352598.3079
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_19F.glb",
+      "url": "/models/hospital/B_19F.glb",
+      "displayName": "B 19F",
+      "sizeBytes": 2723092,
+      "sizeMB": 2.6,
+      "mtime": 1785307352601.6335
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_1F.glb",
+      "url": "/models/hospital/B_1F.glb",
+      "displayName": "B 1F",
+      "sizeBytes": 9303476,
+      "sizeMB": 8.87,
+      "mtime": 1785307352613.966
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_20F.glb",
+      "url": "/models/hospital/B_20F.glb",
+      "displayName": "B 20F",
+      "sizeBytes": 2722528,
+      "sizeMB": 2.6,
+      "mtime": 1785307352616.511
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_21F.glb",
+      "url": "/models/hospital/B_21F.glb",
+      "displayName": "B 21F",
+      "sizeBytes": 2746180,
+      "sizeMB": 2.62,
+      "mtime": 1785307352620.1555
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_22F.glb",
+      "url": "/models/hospital/B_22F.glb",
+      "displayName": "B 22F",
+      "sizeBytes": 3394460,
+      "sizeMB": 3.24,
+      "mtime": 1785307352624.0042
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_23F.glb",
+      "url": "/models/hospital/B_23F.glb",
+      "displayName": "B 23F",
+      "sizeBytes": 3456968,
+      "sizeMB": 3.3,
+      "mtime": 1785307352628.0557
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_24F.glb",
+      "url": "/models/hospital/B_24F.glb",
+      "displayName": "B 24F",
+      "sizeBytes": 3453680,
+      "sizeMB": 3.29,
+      "mtime": 1785307352631.8354
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_2F.glb",
+      "url": "/models/hospital/B_2F.glb",
+      "displayName": "B 2F",
+      "sizeBytes": 5910956,
+      "sizeMB": 5.64,
+      "mtime": 1785307352639.8396
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_3F.glb",
+      "url": "/models/hospital/B_3F.glb",
+      "displayName": "B 3F",
+      "sizeBytes": 6166220,
+      "sizeMB": 5.88,
+      "mtime": 1785307352648.1829
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_4F.glb",
+      "url": "/models/hospital/B_4F.glb",
+      "displayName": "B 4F",
+      "sizeBytes": 5144456,
+      "sizeMB": 4.91,
+      "mtime": 1785307352656.8303
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_5F.glb",
+      "url": "/models/hospital/B_5F.glb",
+      "displayName": "B 5F",
+      "sizeBytes": 5408188,
+      "sizeMB": 5.16,
+      "mtime": 1785307352665.3806
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_6F.glb",
+      "url": "/models/hospital/B_6F.glb",
+      "displayName": "B 6F",
+      "sizeBytes": 3627280,
+      "sizeMB": 3.46,
+      "mtime": 1785307352668.8972
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_7F.glb",
+      "url": "/models/hospital/B_7F.glb",
+      "displayName": "B 7F",
+      "sizeBytes": 3772224,
+      "sizeMB": 3.6,
+      "mtime": 1785307352672.0308
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_8F.glb",
+      "url": "/models/hospital/B_8F.glb",
+      "displayName": "B 8F",
+      "sizeBytes": 3819336,
+      "sizeMB": 3.64,
+      "mtime": 1785307352676.6614
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_9F.glb",
+      "url": "/models/hospital/B_9F.glb",
+      "displayName": "B 9F",
+      "sizeBytes": 2914528,
+      "sizeMB": 2.78,
+      "mtime": 1785307352680.843
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_DING.glb",
+      "url": "/models/hospital/B_DING.glb",
+      "displayName": "B DING",
+      "sizeBytes": 2720288,
+      "sizeMB": 2.59,
+      "mtime": 1785307400625.3748
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "B_T.glb",
+      "url": "/models/hospital/B_T.glb",
+      "displayName": "B T",
+      "sizeBytes": 3417716,
+      "sizeMB": 3.26,
+      "mtime": 1785307352688.1545
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "BASEMENT_B1.glb",
+      "url": "/models/hospital/BASEMENT_B1.glb",
+      "displayName": "BASEMENT B1",
+      "sizeBytes": 5640212,
+      "sizeMB": 5.38,
+      "mtime": 1785307352549.9956
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "BASEMENT_B2.glb",
+      "url": "/models/hospital/BASEMENT_B2.glb",
+      "displayName": "BASEMENT B2",
+      "sizeBytes": 4207788,
+      "sizeMB": 4.01,
+      "mtime": 1785307352554.609
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "BASEMENT_B3.glb",
+      "url": "/models/hospital/BASEMENT_B3.glb",
+      "displayName": "BASEMENT B3",
+      "sizeBytes": 3562416,
+      "sizeMB": 3.4,
+      "mtime": 1785307352558.9448
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "BASEMENT_B4.glb",
+      "url": "/models/hospital/BASEMENT_B4.glb",
+      "displayName": "BASEMENT B4",
+      "sizeBytes": 4755092,
+      "sizeMB": 4.53,
+      "mtime": 1785307352565.2668
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "C_10F.glb",
+      "url": "/models/hospital/C_10F.glb",
+      "displayName": "C 10F",
+      "sizeBytes": 2731940,
+      "sizeMB": 2.61,
+      "mtime": 1785307352691.6375
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "C_6F.glb",
+      "url": "/models/hospital/C_6F.glb",
+      "displayName": "C 6F",
+      "sizeBytes": 4902824,
+      "sizeMB": 4.68,
+      "mtime": 1785307352696.3513
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "C_7F.glb",
+      "url": "/models/hospital/C_7F.glb",
+      "displayName": "C 7F",
+      "sizeBytes": 2729752,
+      "sizeMB": 2.6,
+      "mtime": 1785307352698.4553
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "C_8F.glb",
+      "url": "/models/hospital/C_8F.glb",
+      "displayName": "C 8F",
+      "sizeBytes": 2728624,
+      "sizeMB": 2.6,
+      "mtime": 1785307352700.3293
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "C_9F.glb",
+      "url": "/models/hospital/C_9F.glb",
+      "displayName": "C 9F",
+      "sizeBytes": 2728952,
+      "sizeMB": 2.6,
+      "mtime": 1785307352701.9863
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "C_DING.glb",
+      "url": "/models/hospital/C_DING.glb",
+      "displayName": "C DING",
+      "sizeBytes": 2496608,
+      "sizeMB": 2.38,
+      "mtime": 1785307400626.7673
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "LANDSCAPE_FACADE.glb",
+      "url": "/models/hospital/LANDSCAPE_FACADE.glb",
+      "displayName": "LANDSCAPE FACADE",
+      "sizeBytes": 15892936,
+      "sizeMB": 15.16,
+      "mtime": 1785307352717.1348
+    },
+    {
+      "kind": "file",
+      "subcategory": "hospital",
+      "filename": "LANDSCAPE_TERRAIN.glb",
+      "url": "/models/hospital/LANDSCAPE_TERRAIN.glb",
+      "displayName": "LANDSCAPE TERRAIN",
+      "sizeBytes": 16382008,
+      "sizeMB": 15.62,
+      "mtime": 1785307352730.1362
+    },
+    {
+      "kind": "file",
+      "subcategory": "",
+      "filename": "hospital.glb",
+      "url": "/models/hospital.glb",
+      "displayName": "Hospital",
+      "sizeBytes": 77572476,
+      "sizeMB": 73.98,
+      "mtime": 1784773899161.759
+    },
+    {
+      "kind": "file",
+      "subcategory": "",
+      "filename": "hospital.opt.glb",
+      "url": "/models/hospital.opt.glb",
+      "displayName": "Hospital",
+      "sizeBytes": 37593048,
+      "sizeMB": 35.85,
+      "mtime": 1784775914519.6882
+    }
+  ],
+  "__fingerprint": "1785307400626.7673|57|58"
+}

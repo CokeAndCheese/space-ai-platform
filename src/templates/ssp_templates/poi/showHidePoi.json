@@ -1,0 +1,40 @@
+{
+  "id": "showHidePoi",
+  "category": "poi",
+  "subcategory": "root",
+  "intent": [
+    "显示/隐藏 POI",
+    "弹出气泡",
+    "关掉标签"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.poiManager.show / ssp.poiManager.hide",
+  "signature": "show(id: string): boolean / hide(id: string): boolean",
+  "params": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true,
+      "desc": "POI 的 id (add() 返回)"
+    }
+  ],
+  "returns": "boolean (true = 找到了并切了可见性, false = id 不存在)",
+  "code": "const p = ssp.poiManager.list()[0] ?? ssp.poiManager.add({ text: '测试', position: { x: 0, y: 30, z: 0 } }); const hidden = ssp.poiManager.hide(p.id); const shown = ssp.poiManager.show(p.id); console.log('poi visibility toggled', p.id, { hidden, shown });",
+  "example": "const p = ssp.poiManager.list()[0];\nif (!p) throw new Error('请先创建 POI');\nssp.poiManager.hide(p.id);\nssp.poiManager.show(p.id);",
+  "guard": [
+    "POI 必须已 add 过 (在当前页面生命周期内)",
+    "hide 不销毁, 可以再 show 回来",
+    "remove 是销毁 (show 不回来)"
+  ],
+  "seeAlso": [
+    "createPoi",
+    "createPoiNode"
+  ],
+  "tags": [
+    "poi",
+    "show",
+    "hide",
+    "toggle"
+  ]
+}

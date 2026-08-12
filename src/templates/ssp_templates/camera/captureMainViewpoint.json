@@ -1,0 +1,24 @@
+{
+  "id": "captureMainViewpoint",
+  "category": "camera",
+  "subcategory": "viewpoint",
+  "intent": [
+    "设为主视角",
+    "记录主视角",
+    "保存当前视角"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.cameraController.getViewpoint + window.__chatStore.mainViewpoint",
+  "signature": "captureMainViewpoint(): Viewpoint",
+  "aiEnabled": true,
+  "params": [],
+  "returns": "Viewpoint { position, target, rotation?, fov? }",
+  "code": "const vp = ssp.cameraController.getViewpoint(); if (!window.__chatStore) throw new Error('chat store 未初始化'); window.__chatStore.mainViewpoint = vp; return { message: '已记录主视角', data: vp };",
+  "example": "const vp = ssp.cameraController.getViewpoint();\nif (!window.__chatStore) throw new Error('chat store 未初始化');\nwindow.__chatStore.mainViewpoint = vp;",
+  "guard": [
+    "vp 不会自动存到 ssp 内部,需要应用层持有引用",
+    "fitScene 完成后建议立即 capture"
+  ],
+  "tags": ["camera", "viewpoint", "capture"]
+}

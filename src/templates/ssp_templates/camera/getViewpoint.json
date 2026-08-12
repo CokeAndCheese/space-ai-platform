@@ -1,0 +1,34 @@
+{
+  "id": "getViewpoint",
+  "category": "camera",
+  "subcategory": "root",
+  "intent": [
+    "获取当前视角",
+    "保存视角",
+    "读取相机状态",
+    "get camera state",
+    "save viewpoint"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.cameraController.getViewpoint",
+  "signature": "getViewpoint(): Viewpoint",
+  "params": [],
+  "returns": "Viewpoint { position: Vec3, target: Vec3, fov?: number }",
+  "code": "const vp = ssp.cameraController.getViewpoint(); console.log('current viewpoint:', JSON.stringify(vp));",
+  "example": "/* 读取视角用于: 1) 保存分享 2) setViewpoint 还原 */\nconst vp = ssp.cameraController.getViewpoint();\nconsole.log('current:', JSON.stringify(vp, null, 2));\n\n/* 然后调 setViewpoint 切回 */\nsetTimeout(() => {\n  ssp.cameraController.setViewpoint(vp);\n  console.log('restored');\n}, 3000);",
+  "guard": [
+    "返回的是浅拷贝, 修改不影响内部",
+    "返回值包含 position、target 和当前相机 fov"
+  ],
+  "seeAlso": [
+    "setViewpoint",
+    "flyToMainViewpoint"
+  ],
+  "tags": [
+    "camera",
+    "viewpoint",
+    "getter"
+  ],
+  "_renamedFrom": "getCameraViewpoint"
+}

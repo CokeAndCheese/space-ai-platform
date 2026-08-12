@@ -1,0 +1,37 @@
+{
+  "id": "resetVisibility",
+  "category": "objects",
+  "subcategory": "visibility",
+  "intent": [
+    "重置显示",
+    "全部显示",
+    "恢复显示",
+    "全部恢复",
+    "还原可见性"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.resetVisibility",
+  "signature": "resetVisibility(): { restored: number, hiddenBefore: number }",
+  "aiEnabled": true,
+  "params": [],
+  "returns": "{ restored, hiddenBefore } — restored 是设了 visible=true 的 mesh 数, hiddenBefore 是还原前已隐藏数",
+  "code": "const r = ssp.objectsTool.resetVisibility(); return { ...r, message: '已恢复全部对象显示' };",
+  "example": "/* 1) 全部恢复显示 */\nconst r = ssp.objectsTool.resetVisibility();\nconsole.log(`${r.restored} meshes restored, ${r.hiddenBefore} were hidden`);\n\n/* 2) 配合 isolate 使用: 显示 A_6F → 飞过去看 → 还原 */\nssp.objectsTool.setVisibleByFloor('A_6F');\n// ... 用户看完\nconst r = ssp.objectsTool.resetVisibility();\n\n/* 3) 单个 / 单个楼层 还原 (不调 resetVisibility): */\nssp.objectsTool.setVisible(mesh, true);            // 单 mesh\nssp.objectsTool.setVisibleByFloor('A_6F', true);   // 单 floor",
+  "guard": [
+    "不清高亮 (用 clearAllHighlights)",
+    "ssp_helper_ 开头的是辅助对象 (axes/grid),不动",
+    "Camera / Light 不动",
+    "只是把 visible 设为 true, 不会改 material/highlight/explode 等其他状态",
+    "单 mesh / 单 floor 还原用 setVisible(obj, true) / setVisibleByFloor(fn, true), 不用 resetVisibility"
+  ],
+  "seeAlso": [
+    "floor",
+    "clearAllHighlights"
+  ],
+  "tags": [
+    "objects",
+    "visibility",
+    "reset"
+  ]
+}

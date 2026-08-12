@@ -1,0 +1,32 @@
+{
+  "id": "getTopologyById",
+  "category": "topology",
+  "subcategory": "query",
+  "intent": [
+    "按 id 获取拓扑图",
+    "查询指定拓扑图",
+    "get topology by id"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.getById",
+  "signature": "getById(id: string): TopologyHandle | null",
+  "params": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": false,
+      "desc": "拓扑图 id；省略时查询当前第一张图"
+    }
+  ],
+  "returns": "查询摘要：{ id, found }；没有对应图时 found=false",
+  "code": "const fallbackId = ssp.topologyTool.list()[0]?.id; const id = params.id ?? fallbackId; const found = id ? ssp.topologyTool.getById(id) : null; console.log('topology found:', Boolean(found), id ?? null); return { id: id ?? null, found: Boolean(found) };",
+  "example": "const graph = ssp.topologyTool.getById('topology_1'); console.log(graph);",
+  "guard": [
+    "查询不会创建、删除或修改拓扑图",
+    "省略 id 且当前没有图时返回 { id: null, found: false }"
+  ],
+  "seeAlso": ["createTopology", "listTopologies"],
+  "tags": ["topology", "query", "id"],
+  "aiEnabled": false
+}

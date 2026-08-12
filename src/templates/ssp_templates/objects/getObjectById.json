@@ -1,0 +1,37 @@
+{
+  "id": "getObjectById",
+  "category": "objects",
+  "subcategory": "root",
+  "intent": [
+    "按 sid 查对象",
+    "按唯一 ID 查",
+    "query by id"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.objectsTool.getById",
+  "signature": "getObjectById(id: string): Object3D | null",
+  "params": [
+    {
+      "name": "id",
+      "type": "string",
+      "required": true,
+      "desc": "业务短 ID, 格式 <RENDERTYPE>_<FLOORNAME>_<SEQ>, 例如 'WINDOW_A_6F_1' / 'DOOR_B_24F_3'。fallback 也支持 findId (A_6F_mesh_42)"
+    }
+  ],
+  "returns": "Object3D | null",
+  "code": "const obj = ssp.objectsTool.getById('CEILING_A_6F_1'); if (obj) console.log('found sid:', obj.userData.sid, 'renderType:', obj.userData.renderType); else console.log('not found');",
+  "example": "const obj = ssp.objectsTool.getById('DOOR_A_6F_1'); if (obj) await ssp.cameraController.flyToObject(obj);",
+  "guard": [
+    "可能返回 null, 必须检查"
+  ],
+  "seeAlso": [
+    "getObjectByUserDataProperty",
+    "focus-on-object"
+  ],
+  "tags": [
+    "query",
+    "lookup",
+    "sid"
+  ]
+}

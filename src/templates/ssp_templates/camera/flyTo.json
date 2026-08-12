@@ -1,0 +1,54 @@
+{
+  "id": "flyTo",
+  "category": "camera",
+  "subcategory": "root",
+  "intent": [
+    "飞到指定坐标",
+    "跳转视角",
+    "相机定位",
+    "fly to position"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.cameraController.flyTo",
+  "signature": "flyTo(position: Vec3Like | { position: Vec3Like, target: Vec3Like }, opt?: FlyToOptions): Promise<void>",
+  "params": [
+    {
+      "name": "position",
+      "type": "{ x: number, y: number, z: number }",
+      "required": true,
+      "desc": "世界坐标 (x, y, z)"
+    },
+    {
+      "name": "opt.enableTransition",
+      "type": "boolean",
+      "required": false,
+      "default": "true",
+      "desc": "是否使用 camera-controls 过渡动画"
+    },
+    {
+      "name": "opt.done",
+      "type": "Function",
+      "required": false,
+      "desc": "过渡结束后的回调"
+    }
+  ],
+  "returns": "Promise<void>",
+  "code": "await ssp.cameraController.flyTo({ x: 0, y: 10, z: 30 });",
+  "example": "await ssp.cameraController.flyTo({ position: { x: 12, y: 5, z: -8 }, target: { x: 0, y: 0, z: 0 } }, { enableTransition: true });",
+  "guard": [
+    "确认 ssp 已初始化且场景非空",
+    "坐标在合理范围（一般 -100000 ~ 100000）",
+    "需要同时指定位置和注视点时，传 { position, target } 形式"
+  ],
+  "seeAlso": [
+    "flyToObject",
+    "flyToMainViewpoint",
+    "setViewpoint"
+  ],
+  "tags": [
+    "camera",
+    "fly",
+    "nav"
+  ]
+}

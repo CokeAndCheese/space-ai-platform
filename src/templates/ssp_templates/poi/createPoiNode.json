@@ -1,0 +1,50 @@
+{
+  "id": "createPoiNode",
+  "category": "poi",
+  "subcategory": "root",
+  "intent": [
+    "创建 POI 节点",
+    "交互式 POI",
+    "可点击 POI",
+    "Node"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.poiManager.addNode",
+  "signature": "addNode(opts?: PoiNodeOptions): PoiHandle",
+  "params": [
+    {
+      "name": "opts",
+      "type": "PoiNodeOptions (跟 add 一样, 但支持 onClick / onHover 回调)",
+      "required": false
+    },
+    {
+      "name": "opts.onClick",
+      "type": "(e: unknown) => void",
+      "required": false,
+      "desc": "点击 POI 时的回调"
+    },
+    {
+      "name": "opts.onHover",
+      "type": "(e: unknown) => void",
+      "required": false,
+      "desc": "鼠标悬停 POI 时的回调"
+    }
+  ],
+  "returns": "PoiHandle",
+  "code": "const node = ssp.poiManager.addNode({ text: 'A_6F', position: { x: 0, y: 30, z: 0 }, color: '#ff5722' }); console.log('poi node:', node.id);",
+  "example": "const a6 = ssp.objectsTool.getByUserDataProperty('floorName', 'A_6F')[0]; const pos = a6 ? { x: 0, y: 50, z: 0 } : { x: 0, y: 30, z: 0 }; const node = ssp.poiManager.addNode({ text: 'A_6F - 点击查看', position: pos, color: '#29ccff' }); console.log('created:', node.id);",
+  "guard": [
+    "addNode 跟 add 接口一致, 区别在交互层",
+    "v1 实现: 节点版和普通 POI 渲染一样 (Sprite + canvas), 后续可加 click/hover 事件"
+  ],
+  "seeAlso": [
+    "createPoi",
+    "showHidePoi"
+  ],
+  "tags": [
+    "poi",
+    "node",
+    "interactive"
+  ]
+}

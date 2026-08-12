@@ -1,0 +1,62 @@
+{
+  "id": "createDirectionalLight",
+  "category": "light",
+  "subcategory": "root",
+  "intent": [
+    "创建平行光",
+    "太阳光",
+    "directional light",
+    "投影光",
+    "shadow caster",
+    "模拟太阳"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.lightTool.createDirectionalLight",
+  "signature": "createDirectionalLight(options: DirectionalLightOptions): DirectionalLight",
+  "params": [
+    {
+      "name": "options.color",
+      "type": "string | number",
+      "required": true,
+      "desc": "光颜色 — hex/CSS/数字",
+      "examples": ["'#ffffff'", "'#fff5d8' (sunset)", "0xfff5d8"]
+    },
+    {
+      "name": "options.intensity",
+      "type": "number",
+      "required": false,
+      "default": "0.8",
+      "desc": "强度 (0-2)"
+    },
+    {
+      "name": "options.position",
+      "type": "Vec3",
+      "required": true,
+      "desc": "光源位置 (默认从高处往下照, e.g. { x:0, y:500, z:0 })"
+    },
+    {
+      "name": "options.target",
+      "type": "Vec3",
+      "required": false,
+      "default": "{ x: 0, y: 0, z: 0 }",
+      "desc": "光照方向 — 光从 position 指向 target"
+    }
+  ],
+  "returns": "DirectionalLight (Three.js 原生对象, 已 add 到 scene)",
+  "code": "ssp.lightTool.createDirectionalLight({ color: '#ffffff', intensity: 0.8, position: { x: 0, y: 500, z: 0 }, target: { x: 0, y: 0, z: 0 } });",
+  "example": "/* 1) 正午白光 */\nssp.lightTool.createDirectionalLight({ color: '#ffffff', intensity: 0.8, position: { x: 0, y: 500, z: 0 } });\n\n/* 2) 黄昏暖光 */\nssp.lightTool.createDirectionalLight({ color: '#fff5d8', intensity: 1, position: { x: 100, y: 200, z: 50 } });\n\n/* 3) 侧光 (打出侧面阴影) */\nssp.lightTool.createDirectionalLight({ color: '#ffffff', intensity: 1.2, position: { x: 500, y: 100, z: 0 }, target: { x: 0, y: 0, z: 0 } });",
+  "guard": [
+    "产生阴影需要单独启用 shadow (不在本 API 内)",
+    "光向由 (position - target) 决定",
+    "同一方向调多次只保留最后一个"
+  ],
+  "seeAlso": [
+    "createAmbientLight"
+  ],
+  "tags": [
+    "light",
+    "directional",
+    "sun"
+  ]
+}

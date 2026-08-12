@@ -1,0 +1,21 @@
+{
+  "id": "findPath",
+  "category": "topology",
+  "subcategory": "routing",
+  "intent": ["计算约束最短路径", "查找经过消火栓的路线", "find constrained shortest path"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.findPath",
+  "signature": "findPath(query: TopologyPathQuery): TopologyPathResult",
+  "params": [
+    { "name": "query", "type": "TopologyPathQuery", "required": false, "desc": "完整查询；省略时自建演示图并求入口→消火栓→着火点路线" }
+  ],
+  "returns": "成功返回自包含 route 和统计；正常无路返回可判别失败，不抛错",
+  "code": "const demoId = 'topology_demo_find_path'; if (params.query === undefined && !ssp.topologyTool.getGraph(demoId)) ssp.topologyTool.createGraph({ id: demoId, layers: [{ id: 'A_1F', order: 1, elevation: 0 }, { id: 'A_2F', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }); const query = params.query === undefined ? { graphId: demoId, startNodeId: 'entry-door', goalNodeId: 'fire-a2', requirements: [{ anyOfNodeIds: ['hydrant-a1'] }] } : params.query; return ssp.topologyTool.findPath(query);",
+  "example": "return ssp.topologyTool.findPath({ graphId, startNodeId: 'entry', goalNodeId: 'fire', requirements: [{ anyOfNodeIds: hydrantNodeIds }] });",
+  "guard": ["多个 requirement 之间为 AND，同一 anyOfNodeIds 内为 OR", "算法是带 requirement bitmask 的精确 Dijkstra，不使用贪心拼接", "显式 query 的 graphId 不存在时返回 GRAPH_NOT_FOUND，不创建替代图"],
+  "seeAlso": ["createGraph", "setEdgeRoutingState", "renderRoute"],
+  "tags": ["topology", "pathfinding", "dijkstra", "route", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

@@ -1,0 +1,44 @@
+{
+  "id": "flyToObject",
+  "category": "camera",
+  "subcategory": "root",
+  "intent": [
+    "飞向某个对象",
+    "飞行到 instance",
+    "聚焦",
+    "locate object"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.cameraController.flyToObject",
+  "signature": "flyToObject(idOrObj: string | Object3D, opts?: { enableTransition?: boolean, done?: () => void }): Promise<void>",
+  "params": [
+    {
+      "name": "idOrObj",
+      "type": "string | Object3D",
+      "required": true,
+      "desc": "业务 sid 或目标 Object3D"
+    },
+    {
+      "name": "enableTransition",
+      "type": "boolean",
+      "required": false,
+      "default": true
+    }
+  ],
+  "code": "const name = ssp.modelTool.getLoadedFloors()[0]; const obj = name ? ssp.modelTool.getFloorInfo(name)?.root : null; if (!obj) throw new Error('当前没有已加载模型'); await ssp.cameraController.flyToObject(obj, { enableTransition: true }); console.log('flew to', name);",
+  "example": "const obj = ssp.objectsTool.getById('WINDOW_A_10F_1');\nif (!obj) throw new Error('object not found');\nawait ssp.cameraController.flyToObject(obj, { enableTransition: true });",
+  "guard": [
+    "idOrObj 可能找不到，调用前先判空",
+    "公开 options 只有 enableTransition 和 done",
+    "字符串参数按 sid/findId 查找"
+  ],
+  "tags": [
+    "camera",
+    "fly",
+    "instance",
+    "object"
+  ],
+  "_origin": "改编自 uspace/templates/tpl-flyto-instance.md（去 u-space 命名空间）",
+  "code_lang": "javascript"
+}

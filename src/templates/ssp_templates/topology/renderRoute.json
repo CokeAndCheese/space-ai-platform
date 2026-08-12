@@ -1,0 +1,21 @@
+{
+  "id": "renderRoute",
+  "category": "topology",
+  "subcategory": "route",
+  "intent": ["在三维模型显示路线", "渲染跨层拓扑路径", "render topology route"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.renderRoute",
+  "signature": "renderRoute(options: TopologyRouteRenderOptions): TopologyRouteRenderResult",
+  "params": [
+    { "name": "options", "type": "TopologyRouteRenderOptions", "required": false, "desc": "包含 findPath 返回的 route；省略时自建并渲染演示路线" }
+  ],
+  "returns": "可序列化渲染摘要；不直接返回 handle.root/THREE.Group",
+  "code": "const demoId = 'topology_demo_render_route'; let options = params.options; if (options === undefined) { if (!ssp.topologyTool.getGraph(demoId)) ssp.topologyTool.createGraph({ id: demoId, layers: [{ id: 'A_1F', order: 1, elevation: 0 }, { id: 'A_2F', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }); const path = ssp.topologyTool.findPath({ graphId: demoId, startNodeId: 'entry-door', goalNodeId: 'fire-a2', requirements: [{ anyOfNodeIds: ['hydrant-a1'] }] }); if (!path.ok) return path; options = { route: path.route, style: { color: '#FF5A36', width: 0.16, opacity: 0.95, depthTest: true }, flow: { active: true, speed: 2, spacing: 1.4, color: '#FFF176', size: 0.14 } }; } const result = ssp.topologyTool.renderRoute(options); if (!result.rendered) return result; const handle = result.handle; return { rendered: true, id: handle.id, status: handle.status, graphId: handle.route.graphId, graphRoutingRevision: handle.route.graphRoutingRevision, nodeIds: handle.route.nodeIds, layerIds: handle.route.layerIds, edgeIds: handle.route.steps.map((step) => step.edgeId), totalLength: handle.route.totalLength, totalWeight: handle.route.totalWeight };",
+  "example": "const path = ssp.topologyTool.findPath(query); if (path.ok) return ssp.topologyTool.renderRoute({ route: path.route, flow: { active: true } });",
+  "guard": ["默认拒绝渲染 routingRevision 已过期的路线", "depthTest 默认开启，路线是模型场景中的 Three.js overlay", "模板只返回句柄摘要，不泄漏 THREE 对象"],
+  "seeAlso": ["findPath", "setRouteVisualState", "hideRoute", "removeRoute"],
+  "tags": ["topology", "route", "render", "flow", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

@@ -1,0 +1,25 @@
+{
+  "id": "removeAllTopologies",
+  "category": "topology",
+  "subcategory": "cleanup",
+  "intent": [
+    "删除全部拓扑图",
+    "清空拓扑图",
+    "remove all topology graphs"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.removeAll",
+  "signature": "removeAll(): number",
+  "params": [],
+  "returns": "删除的拓扑图数量",
+  "code": "const removed = ssp.topologyTool.removeAll(); console.log('removed all topologies:', removed); return removed;",
+  "example": "const removed = ssp.topologyTool.removeAll(); console.log(removed);",
+  "guard": [
+    "会删除当前页面中的全部拓扑图并释放渲染资源",
+    "空状态返回 0"
+  ],
+  "seeAlso": ["createTopology", "removeTopology"],
+  "tags": ["topology", "remove", "all", "cleanup"],
+  "aiEnabled": false
+}

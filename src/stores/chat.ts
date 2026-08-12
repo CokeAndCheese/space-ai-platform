@@ -1,0 +1,349 @@
+/**
+ * chatStore —— Pinia 状态管理
+ *
+ * 职责:
+ *   - 维护 ChatContext (多轮)
+ *   - 暴露 sendQuery() 给 ChatPanel UI
+ *   - 暴露 isStreaming, currentThinking, lastError 等状态
+ */
+
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { chatContext, type ChatTurn } from '@/ai/context/chatContext'
+import { parseQuery, parseRawIntent } from '@/ai/parser/NlQueryParser'
+import { planIntent, type Plan } from '@/ai/planner/IntentPlanner'
+import { executePlan, type ExecutionResult } from '@/ai/executor/PlanExecutor'
+import {
+  fallbackParse,
+  isFloorCollapseQuery,
+  isFloorVisibilityQuery,
+} from '@/ai/rules/fallbackRules'
+import { intentLogger } from '@/ai/audit/IntentLogger'
+import { reloadLLMClient as reloadLLMClientFn } from '@/ai/parser/llmClient'
+import { intentCache } from '@/ai/parser/intentCache'
+import {
+  createTemplateIntent,
+  parseIntent,
+  type Intent,
+  type QueryOperation,
+  type QuerySceneParams,
+} from '@/ai/types/Intent'
+
+export type StreamStatus = 'idle' | 'thinking' | 'parsing' | 'executing'
+
+export const useChatStore = defineStore('chat', () => {
+  // 暴露 turns (computed)
+  const turns = computed<ChatTurn[]>(() => chatContext.turns)
+
+  // 状态
+  const isStreaming = ref(false)
+  const status = ref<StreamStatus>('idle')
+  const currentThinking = ref('')
+  const currentRawContent = ref('')
+  const lastIntent = ref<Intent | null>(null)
+  const lastResult = ref<ExecutionResult | null>(null)
+  const lastError = ref<string | null>(null)
+  /**
+   * 主视角 (用户主动设置或场景加载完自动设置).
+   * 应用层控制,不走 ssp-shim 内部 mainViewpoint.
+   * null = 还没设置过 → "主视角" 应走 fitScene.
+   */
+  const mainViewpoint = ref<{
+    position: { x: number; y: number; z: number }
+    target: { x: number; y: number; z: number }
+    fov?: number
+  } | null>(null)
+
+  /** 解析用户 query + 执行 */
+  async function sendQuery(rawQuery: string, opts: {
+    /** mock 模式 (LLM 不可用时强制用 regex) */
+    forceFallback?: boolean
+    /** 直接传入 Intent (用户手动改的 JSON) */
+    overrideIntent?: Intent
+    /** 内部调用,跳过 push user turn (UI 不显示, audit 不记 user 消息) */
+    internal?: boolean
+  } = {}): Promise<void> {
+    if (!rawQuery.trim()) return
+
+    lastError.value = null
+    isStreaming.value = true
+    status.value = 'thinking'
+
+    // 1. 记录 user turn (内部调用不记)
+    if (!opts.internal) {
+      const userTurn: ChatTurn = {
+        role: 'user',
+        content: rawQuery,
+        timestamp: Date.now(),
+      }
+      chatContext.push(userTurn)
+    }
+
+    const t0 = performance.now()
+
+    try {
+      let intent: Intent
+      let source: 'llm' | 'fallback' | 'mock' | 'user-edit'
+      let thinking = ''
+      let rawContent = ''
+
+      // 应用内部命令和结构明确的楼层导航必须确定性路由，避免 LLM
+      // 把“飞到 A 楼 6 层”误判为 flyToMainViewpoint。路由结果仍是模板调用。
+      const isInternalCommand = /^__[a-z0-9_]+__$/i.test(rawQuery)
+      const isFloorNavigation = /飞(?:到|去)\s*[ABC]\s*[栋楼#]?\s*\d+\s*(?:F|层|楼)/i.test(rawQuery)
+      const isFloorVisibility = isFloorVisibilityQuery(rawQuery)
+      const isFloorCollapse = isFloorCollapseQuery(rawQuery)
+      const isFloorCount = /(?:每栋|每楼|所有|总共|一共|有|共).*多少\s*(?:层|楼层)/i.test(rawQuery)
+      const groupFloorsByBuilding = /每栋|每楼|所有/i.test(rawQuery)
+      const deterministicIntent = opts.overrideIntent
+        ? null
+        : isFloorCount
+          ? createTemplateIntent('query-scene', {
+              entity: 'floor',
+              operation: 'count',
+              ...(groupFloorsByBuilding
+                ? { groupBy: 'building', output: { format: 'table' } }
+                : {}),
+            })
+          : (isInternalCommand || isFloorNavigation || isFloorVisibility || isFloorCollapse)
+            ? fallbackParse(rawQuery)
+            : null
+
+      if (opts.overrideIntent) {
+        // Internal/manual/replay calls must pass the same registry validation as LLM output.
+        intent = parseIntent(opts.overrideIntent)
+        source = 'user-edit'
+      } else if (deterministicIntent) {
+        intent = deterministicIntent
+        source = 'fallback'
+        thinking = rawQuery.startsWith('__')
+          ? '(系统指令，跳过 LLM)'
+          : '(确定性模板路由，跳过 LLM)'
+      } else if (opts.forceFallback) {
+        // 强制 mock 模式
+        const fb = fallbackParse(rawQuery)
+        if (!fb) throw new Error('mock 模式无法识别 query')
+        intent = fb
+        source = 'mock'
+      } else {
+        // 先查缓存
+        const cached = intentCache.get(rawQuery)
+        if (cached) {
+          intent = cached
+          source = 'fallback'  // 标记 (实际来源可能是 LLM, 但走缓存)
+          thinking = '(命中缓存, 跳过 LLM)'
+        } else {
+          // 调 LLM
+          status.value = 'thinking'
+          try {
+            const result = await parseQuery({
+              history: chatContext.getHistoryForLLM().slice(0, -1),  // 排除刚加的 user
+              currentQuery: rawQuery,
+              now: new Date().toISOString().slice(0, 16).replace('T', ' '),
+            })
+            intent = result.intent
+            // 缓存成功的 Intent
+            intentCache.set(rawQuery, intent, 'llm')
+            thinking = result.thinking
+            rawContent = result.rawContent
+            currentThinking.value = thinking
+            currentRawContent.value = rawContent
+            source = 'llm'
+          } catch (err) {
+            // LLM 失败 → fallback
+            const fb = fallbackParse(rawQuery)
+            if (!fb) throw err  // fallback 也失败, 抛错
+            intent = fb
+            intentCache.set(rawQuery, intent, 'fallback')
+            source = 'fallback'
+          }
+        }
+
+      }
+
+      // 所有自然语言来源都按当前会话重新补全上下文。
+      // 缓存中保留的是补全前 Intent，因此同一句“恢复1F”不会从 A 楼串到 B 楼。
+      // 手工 override / replay / internal 是明确调用，必须保持原样。
+      if (!opts.overrideIntent && !opts.internal && !isInternalCommand) {
+        intent = chatContext.applyInheritance(intent, rawQuery)
+      }
+
+      status.value = 'parsing'
+      lastIntent.value = intent
+
+      // 二次确认由模板调用参数决定，AI 不能通过额外字段绕过。
+      const operation = querySceneOperation(intent)
+      if (operation === 'hide') {
+        const cancel = !window.confirm(
+          `即将隐藏 ${resultPlaceholder(intent)} 个 mesh. 确认执行?`
+        )
+        if (cancel) {
+          status.value = 'idle'
+          isStreaming.value = false
+          intentLogger.log({
+            query: rawQuery,
+            intent,
+            rawContent,
+            thinking,
+            source,
+            errored: true,
+            errorMsg: '用户取消 (破坏性操作)',
+            durationMs: performance.now() - t0,
+          })
+          return
+        }
+      }
+
+      // 2. 记录 Intent (assistant turn)
+      const assistantTurn: ChatTurn = {
+        role: 'assistant',
+        content: formatIntentSummary(intent),
+        intent,
+        timestamp: Date.now(),
+      }
+      if (!opts.internal) chatContext.push(assistantTurn)
+
+      // 3. 规划 + 执行
+      status.value = 'executing'
+      const plan: Plan = planIntent(intent)
+      const result = await executePlan(plan)
+      lastResult.value = result
+      assistantTurn.resultSids = result.sids
+      assistantTurn.resultCount = result.count
+      assistantTurn.resultGrouped = result.grouped
+      assistantTurn.resultMessage = result.message
+      assistantTurn.resultData = result.data
+
+      // 4. audit
+      intentLogger.log({
+        query: rawQuery,
+        intent,
+        rawContent,
+        thinking,
+        source,
+        errored: false,
+        durationMs: performance.now() - t0,
+      })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      lastError.value = msg
+      intentLogger.log({
+        query: rawQuery,
+        intent: undefined,
+        source: 'llm',
+        errored: true,
+        errorMsg: msg,
+        durationMs: performance.now() - t0,
+      })
+      if (opts.internal) throw err
+    } finally {
+      status.value = 'idle'
+      isStreaming.value = false
+      currentThinking.value = ''
+    }
+  }
+
+  /** 用户从 audit UI 重放 Intent */
+  async function replayIntent(intentId: string): Promise<void> {
+    const entry = intentLogger.findById(intentId)
+    if (!entry || !entry.intent) {
+      lastError.value = '未找到该 Intent'
+      return
+    }
+    await sendQuery(`[replay] ${entry.query}`, { overrideIntent: entry.intent })
+  }
+
+  /** 用户手动改 Intent JSON */
+  async function executeRawIntent(rawText: string, query: string): Promise<void> {
+    try {
+      const intent = parseRawIntent(rawText)
+      await sendQuery(query, { overrideIntent: intent })
+    } catch (err) {
+      lastError.value = err instanceof Error ? err.message : String(err)
+    }
+  }
+
+  /** 重新加载 LLM client (设置改了之后) */
+  function reloadLLMClient(): void {
+    reloadLLMClientFn()
+  }
+
+  /** 应用层调用 — fit scene 到当前加载的 meshes.
+   *
+   * narrow waist: 应用层不直接调 ssp.
+   * AI 层暴露这个 API,内部走 executor → template → ssp-shim.
+   *
+   * 用法: 应用层 (HomeView / SandboxView) 模型加载完调一下.
+   */
+  async function fitScene(view: 'iso' | 'front' | 'top' | 'side' = 'iso'): Promise<void> {
+    // 走 AI 层 — 通过 sendQuery('__fit_scene__') 触发
+    // AI/application only creates a template call; TemplateRuntime owns SSP access.
+    await sendQuery('__fit_scene__', {
+      internal: true,  // 不显示在 chat UI 里
+      overrideIntent: {
+        action: 'template',
+        templateId: 'fitScene',
+        // 场景加载完成后直接就位，避免路由切换时动画 Promise 悬挂。
+        params: { view, animate: false },
+      },
+    })
+  }
+
+  /** 清空对话 */
+  function clearChat(): void {
+    chatContext.clear()
+    lastIntent.value = null
+    lastResult.value = null
+    lastError.value = null
+    intentCache.clear()
+  }
+
+  // ⚠️ narrow waist: 把 store 暴露给 window, 方便 executor 间接调用
+  // (避免 executor → chat store → sendQuery 的循环依赖)
+  if (typeof window !== 'undefined') {
+    ;(window as any).__chatStore = {
+      get mainViewpoint() { return mainViewpoint.value },
+      set mainViewpoint(v) { mainViewpoint.value = v },
+    }
+  }
+
+  return {
+    // state
+    turns,
+    isStreaming,
+    status,
+    currentThinking,
+    currentRawContent,
+    lastIntent,
+    lastResult,
+    lastError,
+    mainViewpoint,
+    // actions
+    sendQuery,
+    replayIntent,
+    executeRawIntent,
+    reloadLLMClient,
+    fitScene,
+    clearChat,
+  }
+})
+
+function formatIntentSummary(intent: Intent): string {
+  return JSON.stringify(intent, null, 2)
+}
+
+/** 用于二次确认弹窗的 mesh 数估算 */
+function resultPlaceholder(intent: Intent): string {
+  if (intent.templateId !== 'query-scene') return '?'
+  const t = (intent.params as QuerySceneParams).target
+  if (!t) return '?'
+  if (t.sid) return '1'
+  if (t.renderType) return t.fireType || t.spaceType ? '~7' : '~30+'
+  return '~?'
+}
+
+function querySceneOperation(intent: Intent): QueryOperation | null {
+  if (intent.templateId !== 'query-scene') return null
+  const operation = (intent.params as QuerySceneParams).operation
+  return typeof operation === 'string' ? operation : null
+}

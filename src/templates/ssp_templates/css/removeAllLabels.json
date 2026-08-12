@@ -1,0 +1,17 @@
+{
+  "id": "removeAllLabels",
+  "category": "css",
+  "subcategory": "root",
+  "intent": ["删除全部标签", "清空 CSS 标签", "remove all labels"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.cssTool.removeAll",
+  "signature": "removeAll(): number",
+  "params": [],
+  "returns": "删除的标签数量",
+  "code": "const removed = ssp.cssTool.removeAll(); console.log('removed all labels', removed);",
+  "example": "ssp.cssTool.removeAll();",
+  "guard": ["只删除 cssTool 创建的标签"],
+  "seeAlso": ["css2dLabel"],
+  "tags": ["css", "label", "remove", "cleanup"]
+}

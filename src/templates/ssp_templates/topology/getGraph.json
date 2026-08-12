@@ -1,0 +1,21 @@
+{
+  "id": "getGraph",
+  "category": "topology",
+  "subcategory": "graph",
+  "intent": ["读取路网快照", "按ID查询拓扑图", "get topology graph snapshot"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.topologyTool.getGraph",
+  "signature": "getGraph(id: string): TopologyGraphSnapshot | null",
+  "params": [
+    { "name": "graphId", "type": "string", "required": false, "desc": "图 ID；省略时自建演示图，显式不存在时返回 found=false" }
+  ],
+  "returns": "可序列化查询摘要，不返回内部 Map 或 THREE 对象",
+  "code": "const ensureDemo = (id) => ssp.topologyTool.getGraph(id) || ssp.topologyTool.createGraph({ id, layers: [{ id: 'A_1F', label: 'A楼1层', order: 1, elevation: 0 }, { id: 'A_2F', label: 'A楼2层', order: 2, elevation: 4 }], nodes: [{ id: 'entry-door', layerId: 'A_1F', position: { x: 0, y: 0, z: 0 }, kind: 'DOOR' }, { id: 'hydrant-a1', layerId: 'A_1F', position: { x: 4, y: 0, z: 0 }, kind: 'FACILITY', subtype: 'HYDRANT' }, { id: 'stair-a1', layerId: 'A_1F', position: { x: 8, y: 0, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'stair-a2', layerId: 'A_2F', position: { x: 8, y: 4, z: 0 }, connectorId: 'stair:north-01', kind: 'STAIR' }, { id: 'fire-a2', layerId: 'A_2F', position: { x: 12, y: 4, z: 0 }, kind: 'INCIDENT', subtype: 'FIRE' }], edges: [{ id: 'edge-entry-hydrant', source: 'entry-door', target: 'hydrant-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-hydrant-stair-a1', source: 'hydrant-a1', target: 'stair-a1', relation: 'LINK', direction: 'BIDIRECTIONAL' }, { id: 'edge-stair-a1-a2', source: 'stair-a1', target: 'stair-a2', relation: 'CONNECTOR', direction: 'BIDIRECTIONAL', mode: 'STAIR' }, { id: 'edge-stair-a2-fire', source: 'stair-a2', target: 'fire-a2', relation: 'LINK', direction: 'BIDIRECTIONAL' }] }); const graphId = params.graphId === undefined ? ensureDemo('topology_demo_get_graph').id : params.graphId; const graph = ssp.topologyTool.getGraph(graphId); if (!graph) return { found: false, id: graphId }; return { found: true, id: graph.id, routingRevision: graph.routingRevision, visualRevision: graph.visualRevision, layers: graph.layers.map((layer) => layer.id), nodes: graph.nodes.map((node) => ({ id: node.id, layerId: node.layerId, kind: node.kind || null, subtype: node.subtype || null, connectorId: node.connectorId || null })), edges: graph.edges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target, relation: edge.relation, length: edge.length, traversable: edge.routingState.traversable })) };",
+  "example": "return ssp.topologyTool.getGraph('topology_graph_1');",
+  "guard": ["显式 graphId 不存在时返回 found=false，不创建替代图", "返回值是与内部状态分离的快照"],
+  "seeAlso": ["createGraph", "listGraphs"],
+  "tags": ["topology", "graph", "query", "v2"],
+  "aiEnabled": false,
+  "testParams": {}
+}

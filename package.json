@@ -1,0 +1,43 @@
+{
+  "name": "space-ai-platform",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "list-models": "node scripts/list-models.mjs",
+    "predev": "node scripts/list-models.mjs",
+    "prebuild": "node scripts/list-models.mjs",
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "compress": "node scripts/compress-model.mjs",
+    "validate-metadata": "node scripts/validate-metadata.mjs",
+    "validate-metadata:cleaned": "node scripts/validate-metadata.mjs ./glb_cleaned",
+    "validate-metadata:public": "node scripts/validate-metadata.mjs",
+    "inject-scene-name": "node scripts/inject-scene-name.mjs",
+    "auto-fill": "node scripts/auto-fill.mjs",
+    "typecheck": "vue-tsc --noEmit",
+    "audit:templates": "node scripts/audit-template-schema.mjs",
+    "audit:ai-boundary": "node scripts/audit-ai-boundary.mjs",
+    "test:topology": "node scripts/test-topology.mjs",
+    "audit:topology-boundary": "node scripts/audit-topology-boundary.mjs"
+  },
+  "dependencies": {
+    "pinia": "^4.0.2",
+    "three": "^0.165.0",
+    "vue": "^3.4.27",
+    "vue-router": "^4.6.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@gltf-transform/cli": "^4.4.1",
+    "@gltf-transform/core": "^4.4.1",
+    "@gltf-transform/functions": "^4.4.1",
+    "@types/three": "^0.165.0",
+    "@vitejs/plugin-vue": "^5.0.5",
+    "sharp": "^0.35.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.13",
+    "vue-tsc": "^2.0.21"
+  }
+}

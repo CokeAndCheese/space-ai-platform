@@ -1,0 +1,50 @@
+{
+  "id": "createAmbientLight",
+  "category": "light",
+  "subcategory": "root",
+  "intent": [
+    "创建环境光",
+    "加环境光",
+    "ambient",
+    "加 lighting",
+    "全局补光",
+    "软阴影"
+  ],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.lightTool.createAmbientLight",
+  "signature": "createAmbientLight(options: { color: IColor, intensity?: number }): AmbientLight",
+  "params": [
+    {
+      "name": "options.color",
+      "type": "string | number",
+      "required": true,
+      "desc": "颜色 — hex/CSS/数字",
+      "examples": ["'#9a9a9a'", "'#ffffff'", "0xffffff"]
+    },
+    {
+      "name": "options.intensity",
+      "type": "number",
+      "required": false,
+      "default": "0.6",
+      "desc": "强度 (0-1, 1=最亮)"
+    }
+  ],
+  "returns": "LightHandle { id, type }",
+  "code": "ssp.lightTool.createAmbientLight({ color: '#9a9a9a', intensity: 0.6 });",
+  "example": "/* 1) 默认 (灰白光, 0.6) */\nssp.lightTool.createAmbientLight({ color: '#9a9a9a', intensity: 0.6 });\n\n/* 2) 暖光 (室内感) */\nssp.lightTool.createAmbientLight({ color: '#fff5e6', intensity: 0.5 });\n\n/* 3) 强光 (夜景补光) */\nssp.lightTool.createAmbientLight({ color: '#ffffff', intensity: 0.9 });",
+  "guard": [
+    "环境光是均匀的全向光, 不产生阴影",
+    "只有显式复用同一个 id 才会替换旧灯；不传 id 会创建新的自增 id",
+    "要换强度用 setAmbientLight, 不要再 create"
+  ],
+  "seeAlso": [
+    "setAmbientLight",
+    "createDirectionalLight"
+  ],
+  "tags": [
+    "light",
+    "ambient",
+    "soft"
+  ]
+}

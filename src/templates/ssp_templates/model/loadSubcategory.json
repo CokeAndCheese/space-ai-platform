@@ -1,0 +1,24 @@
+{
+  "id": "loadSubcategory",
+  "category": "model",
+  "subcategory": "load",
+  "intent": ["加载整个场景", "批量加载模型目录", "load subcategory"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "ssp.modelTool.loadSubcategory",
+  "signature": "loadSubcategory(subcategory?: string): Promise<FloorInfo[]>",
+  "params": [
+    {
+      "name": "subcategory",
+      "type": "string",
+      "required": true,
+      "desc": "manifest 中的模型子目录名，例如 hospital"
+    }
+  ],
+  "returns": "FloorInfo[]",
+  "code": "const infos = await ssp.modelTool.loadSubcategory('hospital'); console.log('loaded subcategory', infos.length, 'GLB');",
+  "example": "const infos = await ssp.modelTool.loadSubcategory('hospital');\nconsole.log(infos.map((item) => item.floorName));",
+  "guard": ["hospital 当前约 201 MB，执行前确认确实需要整个场景", "加载完成后可执行 fitScene"],
+  "seeAlso": ["loadFloor", "unloadAllModels", "fitScene"],
+  "tags": ["model", "load", "scene", "batch"]
+}

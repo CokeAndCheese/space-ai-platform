@@ -5,10 +5,10 @@
 ## 完成状态
 
 - Controller：10/10
-- Controller methods（当前 checkout 实际扫描）：81
-- CR-SSP-001/003 新增方法（当前 checkout）：0/4
+- Controller methods（当前 checkout 实际扫描）：85
+- CR-SSP-001/003 新增方法（当前 checkout）：4/4
 - SSP 合入后目标方法数：85
-- Capability classification：mapped 71 / host-only 9 / blocked 1 / deprecated 0
+- Capability classification：mapped 71 / host-only 13 / blocked 1 / deprecated 0
 - Unclassified：0
 - Legacy v2 templates：79/79 baseline entries
 - Template code classification：atomic 33 / composite 40 / non-SSP 1 / app-dependent 5
@@ -20,7 +20,7 @@
 ## SSP 实施交接与模板迁移门槛
 
 - SSP 状态：implemented-upstream-template-runtime-migration-pending
-- 源码同步状态：implemented-upstream-current-checkout-not-synced
+- 源码同步状态：integrated-in-current-checkout
 - 已实施公共方法：`objectsTool.query`, `objectsTool.describe`, `objectsTool.applyHighlight`, `objectsTool.releaseHighlight`
 - 当前清单只把本 checkout 中实际存在的方法计入 Capability classification，不伪造尚未合入此 checkout 的源码能力。
 - `query-scene` 当前状态：app-dependent; dependencies=[scene-traverse, ssp-context, timer]。必须迁移为 `query -> describe/action`，不得再遍历 scene、直读 metadata 或创建 timer。
@@ -37,7 +37,7 @@
 | lightTool | 3 | 3 | 0 | 0 |
 | helperTool | 3 | 3 | 0 | 0 |
 | modelTool | 12 | 6 | 0 | 6 |
-| objectsTool | 12 | 12 | 0 | 0 |
+| objectsTool | 16 | 12 | 0 | 4 |
 | poiManager | 8 | 7 | 0 | 1 |
 | cssTool | 3 | 2 | 0 | 1 |
 | viewerTool | 6 | 5 | 0 | 1 |
@@ -53,6 +53,10 @@
 - `modelTool.getSubcategories` — host-only; src/ssp/model/modelTool.ts:143; app-dependent=[none]
 - `modelTool.loadAll` — host-only; src/ssp/model/modelTool.ts:130; app-dependent=[none]
 - `modelTool.unloadSubcategory` — host-only; src/ssp/model/modelTool.ts:134; app-dependent=[none]
+- `objectsTool.applyHighlight` — host-only; src/ssp/objects/objectsTool.ts:110; app-dependent=[none]
+- `objectsTool.describe` — host-only; src/ssp/objects/objectsTool.ts:106; app-dependent=[none]
+- `objectsTool.query` — host-only; src/ssp/objects/objectsTool.ts:105; app-dependent=[none]
+- `objectsTool.releaseHighlight` — host-only; src/ssp/objects/objectsTool.ts:111; app-dependent=[none]
 - `poiManager.getById` — host-only; src/ssp/poi/poiManager.ts:93; app-dependent=[none]
 - `viewerTool.getById` — host-only; src/ssp/viewer/viewerTool.ts:86; app-dependent=[none]
 

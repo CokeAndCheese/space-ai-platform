@@ -1,28 +1,28 @@
 {
   "schemaVersion": 0,
   "phase": "template-layer-phase-0",
-  "sourceDigest": "a092bd621cda49a82f0d6cefe73af5af507b4a1ba4216eb371769247633faff0",
+  "sourceDigest": "0f489dd4ccb8fb4e621c4b7512d0e88f17d248fada5e3b040233d7ed91c6436b",
   "sspImplementationHandoff": {
     "verifiedDate": "2026-08-14",
     "status": "implemented-upstream-template-runtime-migration-pending",
-    "sourceIntegration": "implemented-upstream-current-checkout-not-synced",
+    "sourceIntegration": "integrated-in-current-checkout",
     "expectedMethodsAfterIntegration": 85,
     "addedCapabilities": [
       {
         "id": "objectsTool.query",
-        "presentInCheckout": false
+        "presentInCheckout": true
       },
       {
         "id": "objectsTool.describe",
-        "presentInCheckout": false
+        "presentInCheckout": true
       },
       {
         "id": "objectsTool.applyHighlight",
-        "presentInCheckout": false
+        "presentInCheckout": true
       },
       {
         "id": "objectsTool.releaseHighlight",
-        "presentInCheckout": false
+        "presentInCheckout": true
       }
     ],
     "runtimeMigration": {
@@ -51,10 +51,10 @@
   },
   "summary": {
     "controllers": 10,
-    "methods": 81,
+    "methods": 85,
     "classifications": {
       "mapped": 71,
-      "host-only": 9,
+      "host-only": 13,
       "blocked": 1,
       "deprecated": 0,
       "unclassified": 0
@@ -751,6 +751,33 @@
       "legacyReferences": []
     },
     {
+      "id": "objectsTool.applyHighlight",
+      "namespace": "objectsTool",
+      "method": "applyHighlight",
+      "signature": "applyHighlight(objects: readonly THREE.Object3D[], options?: HighlightOptions): HighlightLease",
+      "params": [
+        {
+          "name": "objects",
+          "required": true,
+          "type": "readonly THREE.Object3D[]"
+        },
+        {
+          "name": "options",
+          "required": false,
+          "type": "HighlightOptions"
+        }
+      ],
+      "returnType": "HighlightLease",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:110",
+      "declaredIn": "ObjectsTool",
+      "classification": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
       "id": "objectsTool.clearAllHighlights",
       "namespace": "objectsTool",
       "method": "clearAllHighlights",
@@ -758,7 +785,7 @@
       "params": [],
       "returnType": "void",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:57",
+      "source": "src/ssp/objects/objectsTool.ts:109",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -784,7 +811,7 @@
       ],
       "returnType": "void",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:65",
+      "source": "src/ssp/objects/objectsTool.ts:119",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -795,6 +822,33 @@
       "legacyReferences": [
         "collapse-floor"
       ]
+    },
+    {
+      "id": "objectsTool.describe",
+      "namespace": "objectsTool",
+      "method": "describe",
+      "signature": "describe(objects: readonly THREE.Object3D[], options?: ObjectDescribeOptions): SceneObjectDescriptor[]",
+      "params": [
+        {
+          "name": "objects",
+          "required": true,
+          "type": "readonly THREE.Object3D[]"
+        },
+        {
+          "name": "options",
+          "required": false,
+          "type": "ObjectDescribeOptions"
+        }
+      ],
+      "returnType": "SceneObjectDescriptor[]",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:106",
+      "declaredIn": "ObjectsTool",
+      "classification": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
     },
     {
       "id": "objectsTool.explodeFloor",
@@ -810,7 +864,7 @@
       ],
       "returnType": "void",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:63",
+      "source": "src/ssp/objects/objectsTool.ts:117",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -841,7 +895,7 @@
       ],
       "returnType": "THREE.Object3D | null",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:53",
+      "source": "src/ssp/objects/objectsTool.ts:103",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -877,7 +931,7 @@
       ],
       "returnType": "THREE.Object3D | null",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:52",
+      "source": "src/ssp/objects/objectsTool.ts:102",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -916,7 +970,7 @@
       ],
       "returnType": "THREE.Object3D[]",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:54",
+      "source": "src/ssp/objects/objectsTool.ts:104",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -957,7 +1011,7 @@
       "params": [],
       "returnType": "boolean",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:67",
+      "source": "src/ssp/objects/objectsTool.ts:121",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -975,6 +1029,55 @@
       ]
     },
     {
+      "id": "objectsTool.query",
+      "namespace": "objectsTool",
+      "method": "query",
+      "signature": "query(criteria: ObjectQueryCriteria, options: ObjectQueryOptions): THREE.Object3D[]",
+      "params": [
+        {
+          "name": "criteria",
+          "required": true,
+          "type": "ObjectQueryCriteria"
+        },
+        {
+          "name": "options",
+          "required": true,
+          "type": "ObjectQueryOptions"
+        }
+      ],
+      "returnType": "THREE.Object3D[]",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:105",
+      "declaredIn": "ObjectsTool",
+      "classification": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "objectsTool.releaseHighlight",
+      "namespace": "objectsTool",
+      "method": "releaseHighlight",
+      "signature": "releaseHighlight(lease: HighlightLease): boolean",
+      "params": [
+        {
+          "name": "lease",
+          "required": true,
+          "type": "HighlightLease"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:111",
+      "declaredIn": "ObjectsTool",
+      "classification": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
       "id": "objectsTool.resetVisibility",
       "namespace": "objectsTool",
       "method": "resetVisibility",
@@ -982,7 +1085,7 @@
       "params": [],
       "returnType": "{ restored: number; hiddenBefore: number }",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:61",
+      "source": "src/ssp/objects/objectsTool.ts:115",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -1018,7 +1121,7 @@
       ],
       "returnType": "void",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:55",
+      "source": "src/ssp/objects/objectsTool.ts:107",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -1060,7 +1163,7 @@
       ],
       "returnType": "void",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:58",
+      "source": "src/ssp/objects/objectsTool.ts:112",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -1096,7 +1199,7 @@
       ],
       "returnType": "void",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:59",
+      "source": "src/ssp/objects/objectsTool.ts:113",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
@@ -1124,7 +1227,7 @@
       ],
       "returnType": "void",
       "async": false,
-      "source": "src/ssp/objects/objectsTool.ts:56",
+      "source": "src/ssp/objects/objectsTool.ts:108",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",

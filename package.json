@@ -18,6 +18,8 @@
     "auto-fill": "node scripts/auto-fill.mjs",
     "typecheck": "vue-tsc --noEmit",
     "audit:templates": "node scripts/audit-template-schema.mjs",
+    "phase0:generate": "node scripts/phase0-template-inventory.mjs --write",
+    "audit:phase0": "node scripts/phase0-template-inventory.mjs --check",
     "audit:ai-boundary": "node scripts/audit-ai-boundary.mjs",
     "test:topology": "node scripts/test-topology.mjs",
     "audit:topology-boundary": "node scripts/audit-topology-boundary.mjs"

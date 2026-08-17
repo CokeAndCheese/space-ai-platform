@@ -1,0 +1,322 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Freeze the legacy v2 code-template set. Deletions are allowed; additions require an explicit baseline review.",
+  "templates": [
+    {
+      "id": "captureMainViewpoint",
+      "file": "camera/captureMainViewpoint.json"
+    },
+    {
+      "id": "fitScene",
+      "file": "camera/fitScene.json"
+    },
+    {
+      "id": "flyTo",
+      "file": "camera/flyTo.json"
+    },
+    {
+      "id": "flyToMainViewpoint",
+      "file": "camera/flyToMainViewpoint.json"
+    },
+    {
+      "id": "flyToObject",
+      "file": "camera/flyToObject.json"
+    },
+    {
+      "id": "getViewpoint",
+      "file": "camera/getViewpoint.json"
+    },
+    {
+      "id": "setViewpoint",
+      "file": "camera/setViewpoint.json"
+    },
+    {
+      "id": "surroundOnTarget",
+      "file": "camera/surroundOnTarget.json"
+    },
+    {
+      "id": "css2dLabel",
+      "file": "css/css2dLabel.json"
+    },
+    {
+      "id": "removeAllLabels",
+      "file": "css/removeAllLabels.json"
+    },
+    {
+      "id": "addAxes",
+      "file": "helper/addAxes.json"
+    },
+    {
+      "id": "addGrid",
+      "file": "helper/addGrid.json"
+    },
+    {
+      "id": "removeHelpers",
+      "file": "helper/removeHelpers.json"
+    },
+    {
+      "id": "createAmbientLight",
+      "file": "light/createAmbientLight.json"
+    },
+    {
+      "id": "createDirectionalLight",
+      "file": "light/createDirectionalLight.json"
+    },
+    {
+      "id": "removeLight",
+      "file": "light/removeLight.json"
+    },
+    {
+      "id": "setAmbientLight",
+      "file": "light/setAmbientLight.json"
+    },
+    {
+      "id": "loadFloor",
+      "file": "model/loadFloor.json"
+    },
+    {
+      "id": "loadSubcategory",
+      "file": "model/loadSubcategory.json"
+    },
+    {
+      "id": "unloadAllModels",
+      "file": "model/unloadAllModels.json"
+    },
+    {
+      "id": "unloadFloor",
+      "file": "model/unloadFloor.json"
+    },
+    {
+      "id": "clearAllHighlights",
+      "file": "objects/clearAllHighlights.json"
+    },
+    {
+      "id": "collapse-floor",
+      "file": "objects/collapse-floor.json"
+    },
+    {
+      "id": "explode-floor",
+      "file": "objects/explode-floor.json"
+    },
+    {
+      "id": "flash-alarm",
+      "file": "objects/flash-alarm.json"
+    },
+    {
+      "id": "floor",
+      "file": "objects/floor.json"
+    },
+    {
+      "id": "fly-to-floor",
+      "file": "objects/fly-to-floor.json"
+    },
+    {
+      "id": "focus-on-object",
+      "file": "objects/focus-on-object.json"
+    },
+    {
+      "id": "getObjectById",
+      "file": "objects/getObjectById.json"
+    },
+    {
+      "id": "getObjectByName",
+      "file": "objects/getObjectByName.json"
+    },
+    {
+      "id": "getObjectByUserDataProperty",
+      "file": "objects/getObjectByUserDataProperty.json"
+    },
+    {
+      "id": "highlight-objects",
+      "file": "objects/highlight-objects.json"
+    },
+    {
+      "id": "highlightIsolate",
+      "file": "objects/highlightIsolate.json"
+    },
+    {
+      "id": "query-scene",
+      "file": "objects/query-scene.json"
+    },
+    {
+      "id": "resetVisibility",
+      "file": "objects/resetVisibility.json"
+    },
+    {
+      "id": "setObjectHighlight",
+      "file": "objects/setObjectHighlight.json"
+    },
+    {
+      "id": "setObjectVisible",
+      "file": "objects/setObjectVisible.json"
+    },
+    {
+      "id": "setVisibleByFloor",
+      "file": "objects/setVisibleByFloor.json"
+    },
+    {
+      "id": "unHighlightObject",
+      "file": "objects/unHighlightObject.json"
+    },
+    {
+      "id": "createPoi",
+      "file": "poi/createPoi.json"
+    },
+    {
+      "id": "createPoiNode",
+      "file": "poi/createPoiNode.json"
+    },
+    {
+      "id": "hidePoi",
+      "file": "poi/hidePoi.json"
+    },
+    {
+      "id": "removeAllPoi",
+      "file": "poi/removeAllPoi.json"
+    },
+    {
+      "id": "removePoi",
+      "file": "poi/removePoi.json"
+    },
+    {
+      "id": "showHidePoi",
+      "file": "poi/showHidePoi.json"
+    },
+    {
+      "id": "showPoi",
+      "file": "poi/showPoi.json"
+    },
+    {
+      "id": "clear",
+      "file": "scene/clear.json"
+    },
+    {
+      "id": "dispose",
+      "file": "scene/dispose.json"
+    },
+    {
+      "id": "help",
+      "file": "scene/help.json"
+    },
+    {
+      "id": "setBackgroundColor",
+      "file": "scene/setBackgroundColor.json"
+    },
+    {
+      "id": "setFog",
+      "file": "scene/setFog.json"
+    },
+    {
+      "id": "update",
+      "file": "scene/update.json"
+    },
+    {
+      "id": "createGraph",
+      "file": "topology/createGraph.json"
+    },
+    {
+      "id": "createTopology",
+      "file": "topology/createTopology.json"
+    },
+    {
+      "id": "findPath",
+      "file": "topology/findPath.json"
+    },
+    {
+      "id": "getGraph",
+      "file": "topology/getGraph.json"
+    },
+    {
+      "id": "getRouteById",
+      "file": "topology/getRouteById.json"
+    },
+    {
+      "id": "getTopologyById",
+      "file": "topology/getTopologyById.json"
+    },
+    {
+      "id": "hideRoute",
+      "file": "topology/hideRoute.json"
+    },
+    {
+      "id": "hideTopology",
+      "file": "topology/hideTopology.json"
+    },
+    {
+      "id": "listGraphs",
+      "file": "topology/listGraphs.json"
+    },
+    {
+      "id": "listRoutes",
+      "file": "topology/listRoutes.json"
+    },
+    {
+      "id": "listTopologies",
+      "file": "topology/listTopologies.json"
+    },
+    {
+      "id": "removeAllGraphs",
+      "file": "topology/removeAllGraphs.json"
+    },
+    {
+      "id": "removeAllRoutes",
+      "file": "topology/removeAllRoutes.json"
+    },
+    {
+      "id": "removeAllTopologies",
+      "file": "topology/removeAllTopologies.json"
+    },
+    {
+      "id": "removeGraph",
+      "file": "topology/removeGraph.json"
+    },
+    {
+      "id": "removeRoute",
+      "file": "topology/removeRoute.json"
+    },
+    {
+      "id": "removeTopology",
+      "file": "topology/removeTopology.json"
+    },
+    {
+      "id": "renderRoute",
+      "file": "topology/renderRoute.json"
+    },
+    {
+      "id": "setEdgeRoutingState",
+      "file": "topology/setEdgeRoutingState.json"
+    },
+    {
+      "id": "setEdgeVisualState",
+      "file": "topology/setEdgeVisualState.json"
+    },
+    {
+      "id": "setRouteVisualState",
+      "file": "topology/setRouteVisualState.json"
+    },
+    {
+      "id": "showRoute",
+      "file": "topology/showRoute.json"
+    },
+    {
+      "id": "showTopology",
+      "file": "topology/showTopology.json"
+    },
+    {
+      "id": "createCanvas3D",
+      "file": "viewer/createCanvas3D.json"
+    },
+    {
+      "id": "removeAllCanvases",
+      "file": "viewer/removeAllCanvases.json"
+    },
+    {
+      "id": "removeCanvas3D",
+      "file": "viewer/removeCanvas3D.json"
+    },
+    {
+      "id": "screenshot",
+      "file": "viewer/screenshot.json"
+    }
+  ]
+}

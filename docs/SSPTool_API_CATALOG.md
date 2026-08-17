@@ -2,7 +2,7 @@
 
 > ssp-shim 完整 API 目录，并标出当前已有的模板映射；部分底层 API 没有独立模板。
 
-最后更新: 2026-08-10 (topologyTool v2 路网、约束寻路与路线渲染)
+最后更新: 2026-08-14 (objectsTool 有界查询/描述与高亮租约)
 
 ## 总览
 
@@ -11,15 +11,15 @@
 | 上下文工具 | 4 (setContext / getContext / hasContext / clearContext) |
 | Controller | 10 (camera / scene / light / helper / model / objects / poi / css / viewer / topology) |
 | DEV diagnostics | 1 (`window.sspDev.modelInspector`,不属于 SSP API) |
-| Controller methods | 81 |
-| 公开 callable 总数 | 85 (81 controller methods + 4 上下文函数) |
-| 公开 members 总数 | 86 (callable 85 + `cameraController.controls` 属性) |
+| Controller methods | 85 |
+| 公开 callable 总数 | 89 (85 controller methods + 4 上下文函数) |
+| 公开 members 总数 | 90 (callable 89 + `cameraController.controls` 属性) |
 | 模板总数 | 79 (active) |
 | 占位模板 | 0 |
 | soonspace 兼容 | 0 (阶段 2.5 清完) |
 
-`controls` 是 `CameraControls` 实例属性，不是可调用方法；因此方法口径为 85，
-若按 namespace 的公开 members 计数则为 86。模板数量、组合数、AI 开放数以
+`controls` 是 `CameraControls` 实例属性，不是可调用方法；因此可调用函数口径为 89，
+若按 namespace 的公开 members 计数则为 90。模板数量、组合数、AI 开放数以
 `npm run audit:templates` 的当前输出为准。
 
 ## 1. 命名空间
@@ -95,16 +95,20 @@
 
 ⚠️ `loadSubcategory` 现在限并发 8,55 个 GLB ~5-10s 加载完。
 
-### 2.6 `ssp.objectsTool` — 对象操作(12 个 API)
+### 2.6 `ssp.objectsTool` — 对象操作(16 个 API)
 
 | API | 签名 | 模板 |
 |---|---|---|
 | `getByName` | `(name, opts?)` | (无模板) |
 | `getById` | `(id, opts?)` | [getObjectById](../src/templates/ssp_templates/objects/getObjectById.json) |
 | `getByUserDataProperty` | `(key, value, opts?)` | [getObjectByUserDataProperty](../src/templates/ssp_templates/objects/getObjectByUserDataProperty.json) |
+| `query` | `(criteria, { limit }) → Object3D[]` | —（仅供受控 Runtime 内部组合） |
+| `describe` | `(objects, { fields? }?) → SceneObjectDescriptor[]` | —（AI 输出仍由 Runtime 投影/脱敏） |
 | `setHighlight` | `(obj, color?, pulse?)` | [highlight-objects](../src/templates/ssp_templates/objects/highlight-objects.json), [flash-alarm](../src/templates/ssp_templates/objects/flash-alarm.json) |
 | `unHighlight` | `(obj)` | — |
 | `clearAllHighlights` | `()` | [clearAllHighlights](../src/templates/ssp_templates/objects/clearAllHighlights.json) |
+| `applyHighlight` | `(objects, options?) → HighlightLease` | —（Runtime capability） |
+| `releaseHighlight` | `(lease) → boolean` | —（仅接受原始不透明 handle） |
 | `setVisible` | `(obj, visible)` | — |
 | `setVisibleByFloor` | `(floorName, visible?)` | [floor](../src/templates/ssp_templates/objects/floor.json) |
 | `resetVisibility` | `() → {restored, hiddenBefore}` | [resetVisibility](../src/templates/ssp_templates/objects/resetVisibility.json) |
@@ -113,6 +117,8 @@
 | `isExploded` | `()` | — |
 
 `FindOptions.scope` 限定查找范围 (subcategory / building)。
+
+`query` 只接受编译期字段白名单、扁平 AND、`equals/in` 和必填 `limit`；不接受动态属性路径、业务规则、排序或分页。`describe` 只返回有界 plain data。`applyHighlight/releaseHighlight` 使用对象 identity 校验的不透明租约，重叠采用后写优先；模型移除或 context 清理会自动回收材质 clone 与 timer。`clearAllHighlights` 仅作为宿主紧急全局恢复能力，新模板和补偿流程不得调用。
 
 **resetVisibility** (阶段 2.5 新增): 一键把所有 mesh 设为 visible=true (跳过 Camera/Light/helper),返回 `{restored, hiddenBefore}` 给 UI 反馈用。
 

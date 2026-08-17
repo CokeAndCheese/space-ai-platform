@@ -1,6 +1,6 @@
 # SSP Change Requests from Template Phase 0
 
-> 最后更新：2026-08-14
+> 最后更新：2026-08-17
 > 对接状态：主任务已获用户明确授权并完成 CR-SSP-001 与 CR-SSP-003 的 SSP 实施和复审；CR-SSP-002 维持关闭。
 > 模板任务边界：本任务未修改任何 `src/ssp/**` 文件，也不重复实现 SSP。
 > 职责边界：AI 公共输出的字段投影、脱敏、截断和最终序列化仍属于模板 Runtime，不下沉 SSP。
@@ -69,9 +69,9 @@ releaseHighlight(lease: HighlightLease): boolean
 
 已实施边界：
 
-- SSP 只接受当前 manager 创建的原始 handle identity；复制、伪造或其他 manager 的 handle 被拒绝。
+- SSP 只接受当前 manager 创建的原始 handle identity；复制、伪造或其他 manager 的 handle 被拒绝。真实 handle 首次释放返回 `true`，已释放/已过期后再次释放返回 `false`。
 - 单租约最多 256 个对象，当前 context 最多 128 个活动租约，`durationMs` 为 100～300000ms。
-- 状态按 `mesh + material slot` 维护，重叠采用 last-applied-wins；旧租约释放或到期不会覆盖新租约。
+- 状态按 `mesh + material slot` 维护，重叠采用 last-applied-wins；释放非顶层不改变视觉，释放顶层显示下一活动层，最后释放恢复原材质。
 - 共享单材质和 `Material[]` 均使用 clone-on-write；最后一层结束后恢复原引用并 dispose SSP-owned clone。
 - apply 失败原子回滚；子 Mesh/模型根移除、scene/context cleanup 会释放对应租约和视觉资源。
 - pulse 使用 manager 级共享调度器，周期固定 500ms。
@@ -95,9 +95,16 @@ releaseHighlight(lease: HighlightLease): boolean
 
 ## 主任务实施与验证记录
 
-主任务实施范围包括 `objectsTool` 查询/描述、高亮租约管理器、内部 context cleanup hook、scene 销毁接入和对象回归测试。本模板任务只读核对接口，不修改这些文件。
+主任务实施范围：
 
-主任务回传验证：
+- `src/ssp/objects/objectsTool.ts`
+- `src/ssp/objects/highlightLeaseManager.ts`
+- `src/ssp/core/context.ts`（仅新增内部 cleanup hook，不挂到公共 `ssp` namespace）
+- `src/composables/useThreeScene.ts`（销毁时先释放 scene-bound SSP 资源，再 dispose 模型材质）
+- `src/test/objects/objectsToolSuite.ts`
+- `scripts/test-objects.mjs`
+
+本模板任务只读核对接口与提交，不修改上述 SSP 实施文件。主任务验证命令：
 
 ```bash
 npm run test:objects
@@ -109,4 +116,6 @@ npm run audit:ai-boundary
 npm run build
 ```
 
-独立对象回归共 13 项，覆盖严格输入、重叠与到期、伪造 handle、共享单材质与材质数组、异常原子回滚、资源上限、子 Mesh/模型根移除、context 切换/清理和 detached legacy 兼容。
+独立对象回归共 13 项，覆盖 inherited/non-enumerable 与严格输入、重叠与到期、伪造 handle、共享单材质与材质数组、异常原子回滚、资源上限、子 Mesh/模型根移除、复用 context 对象切换 scene、context 清理和 detached legacy 兼容。
+
+实现授权不扩大到行业适配器。后续 topology 数据适配必须以“通用 GLB metadata -> world-space 显式 graph”为目标；行业模型仅可作为测试 fixture，生产函数、变量、模板和文档不得使用 `hospital-navigation` 一类定向命名。

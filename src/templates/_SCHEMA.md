@@ -188,7 +188,7 @@ Sandbox 会自动把模板返回值打印为 `[template result]`；`console.log`
 **objectsTool 完整 API**: [../../docs/objectsTool_API.md](../../docs/objectsTool_API.md)
 **本阶段总结**: [../../docs/STAGE2_SUMMARY.md](../../docs/STAGE2_SUMMARY.md)
 
-## ssp-shim 当前已实现的 controller (2026-08-10)
+## ssp-shim 当前已实现的 controller (2026-08-14)
 
 | Controller | 实现状态 |
 |---|---|
@@ -197,7 +197,7 @@ Sandbox 会自动把模板返回值打印为 `[template result]`；`console.log`
 | `ssp.lightTool` | ✅ createAmbientLight / createDirectionalLight (含 castShadow) / removeLight |
 | `ssp.helperTool` | ✅ addAxes / addGrid / removeAll |
 | `ssp.modelTool` | ✅ loadFloor / loadSubcategory (并发 8) / loadAll / unload* / get* |
-| `ssp.objectsTool` | ✅ getByName/getById/getByUserDataProperty / setHighlight(unHighlight/clearAll) / setVisible(setVisibleByFloor/resetVisibility) / explodeFloor/collapseFloor/isExploded |
+| `ssp.objectsTool` | ✅ getByName/getById/getByUserDataProperty / query/describe（受控 Runtime） / setHighlight(unHighlight/clearAll) / applyHighlight/releaseHighlight（不透明 capability） / setVisible(setVisibleByFloor/resetVisibility) / explodeFloor/collapseFloor/isExploded |
 | `ssp.poiManager` | ✅ add / addNode (含 onClick/onHover/hoverColor) / show/hide/remove/removeAll/getById/list |
 | `ssp.cssTool` | ✅ createCSS2DObject / removeAll / list (实际是 Sprite,不是真 CSS2D) |
 | `ssp.viewerTool` | ✅ createCanvas / getById / remove / removeAll / list (snapshot 模式 5fps) / screenshot |

@@ -34,12 +34,62 @@
 import * as THREE from 'three'
 import { getSspContext } from '../core/context'
 import { findInScene, getObjectByName, getObjectsByUserDataProperty, getUserDataValue, type SceneFindOptions } from '../core/sceneUtils'
+import {
+  createHighlightLeaseManager,
+  type HighlightLease,
+  type HighlightOptions,
+} from './highlightLeaseManager'
+
+export type { HighlightLease, HighlightOptions } from './highlightLeaseManager'
 
 /** 灯 / 高亮用的颜色: 字符串 (hex/css) / 数字 (0xffffff) / THREE.Color */
 export type SceneColor = string | number | THREE.Color
 
 /** @deprecated 用 core/sceneUtils.ts 的 SceneFindOptions (兼容 alias) */
 export type FindOptions = SceneFindOptions
+
+export type SceneQueryScalar = string | number | boolean | null
+
+export type SceneMetadataField =
+  | 'sid'
+  | 'findId'
+  | 'floorName'
+  | 'building'
+  | 'level'
+  | 'floorType'
+  | 'renderType'
+  | 'renderTypeConfidence'
+  | 'spaceType'
+  | 'fireType'
+
+export type SceneQueryField = SceneMetadataField | 'name'
+export type SceneDescriptorField = SceneMetadataField
+
+export type SceneQueryCondition =
+  | { field: SceneQueryField; op: 'equals'; value: SceneQueryScalar }
+  | { field: SceneQueryField; op: 'in'; values: readonly SceneQueryScalar[] }
+
+export interface ObjectQueryCriteria {
+  /** Conditions are always a flat AND; same-field OR is represented by `in`. */
+  all?: readonly SceneQueryCondition[]
+}
+
+export interface ObjectQueryOptions {
+  /** Required result limit, from 1 through 200. */
+  limit: number
+}
+
+export interface ObjectDescribeOptions {
+  fields?: readonly SceneDescriptorField[]
+}
+
+export interface SceneObjectDescriptor {
+  id: string
+  name: string
+  type: string
+  visible: boolean
+  metadata: Readonly<Record<string, SceneQueryScalar | readonly SceneQueryScalar[]>>
+}
 
 /**
  * objectsTool 公开接口。
@@ -52,9 +102,13 @@ export interface ObjectsTool {
   getByName(name: string, opts?: FindOptions): THREE.Object3D | null
   getById(id: string, opts?: FindOptions): THREE.Object3D | null
   getByUserDataProperty(key: string, value: unknown, opts?: FindOptions): THREE.Object3D[]
+  query(criteria: ObjectQueryCriteria, options: ObjectQueryOptions): THREE.Object3D[]
+  describe(objects: readonly THREE.Object3D[], options?: ObjectDescribeOptions): SceneObjectDescriptor[]
   setHighlight(obj: THREE.Object3D, color?: SceneColor, pulse?: boolean): void
   unHighlight(obj: THREE.Object3D): void
   clearAllHighlights(): void
+  applyHighlight(objects: readonly THREE.Object3D[], options?: HighlightOptions): HighlightLease
+  releaseHighlight(lease: HighlightLease): boolean
   setVisible(obj: THREE.Object3D, visible: boolean): void
   setVisibleByFloor(floorName: string, visible?: boolean): void
   /** 一键重置所有可见性 — 把 scene 里所有 mesh 设为 visible=true (跳过 Camera/Light/helper) */
@@ -67,8 +121,6 @@ export interface ObjectsTool {
   isExploded(): boolean
 }
 
-/** userData 上存原始 emissive 的 key, 高亮时存, unHighlight 时还原 */
-const ORIGINAL_EMISSIVE_KEY = '__originalEmissive'
 /** 注: visible 不单独存, 因为可以直接 obj.visible 改回 */
 
 /**
@@ -77,10 +129,12 @@ const ORIGINAL_EMISSIVE_KEY = '__originalEmissive'
  */
 
 /**
- * objectsTool 工厂。无闭包变量, 所有运行时状态通过 obj.userData 跟踪。
- * 查找通过 core/sceneUtils.ts 的 findInScene / getObjectsByUserDataProperty。
+ * objectsTool 工厂。查询复用 core/sceneUtils；高亮状态由实例内的 lease manager
+ * 管理，材质状态不会写入模型 userData。楼层炸开仍使用既有 userData 内部标记。
  */
 export function createObjectsTool(): ObjectsTool {
+  const highlightLeases = createHighlightLeaseManager()
+
   /** 在 scene 整个 traverse 找 (排除 lights, cameras, helpers) */
   // ↑ 注: findInScene 已抽到 core/sceneUtils.ts, 此处直接复用
 
@@ -115,110 +169,253 @@ export function createObjectsTool(): ObjectsTool {
     return getObjectsByUserDataProperty(key, value, opts)
   }
 
-  // ===== 内部 helper (highlight) =====
+  const QUERY_FIELDS: ReadonlySet<string> = new Set<SceneQueryField>([
+    'name',
+    'sid',
+    'findId',
+    'floorName',
+    'building',
+    'level',
+    'floorType',
+    'renderType',
+    'renderTypeConfidence',
+    'spaceType',
+    'fireType',
+  ])
+  const DESCRIPTOR_FIELDS: readonly SceneDescriptorField[] = [
+    'sid',
+    'findId',
+    'floorName',
+    'building',
+    'level',
+    'floorType',
+    'renderType',
+    'renderTypeConfidence',
+    'spaceType',
+    'fireType',
+  ]
 
-  /**
-   * 内部 helper: 遍历 obj 的所有子 mesh, 调 getColor 拿到颜色后赋给 material.emissive。
-   *   - 跳过没有 material 的 mesh
-   *   - 兼容 multi-material (mesh.material 是数组的情况)
-   *   - 只对有 emissive 字段的材质生效 (MeshStandard / MeshPhysical / MeshLambert / MeshPhong)
-   *   - getColor 返回 null 表示跳过这个 mesh
-   */
-  function applyEmissive(
-    obj: THREE.Object3D,
-    getColor: (mesh: THREE.Mesh, material: THREE.Material) => THREE.Color | null,
-  ): void {
-    obj.traverse((child) => {
-      const mesh = child as THREE.Mesh
-      if (!(mesh instanceof THREE.Mesh) || !mesh.material) return
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-      for (const m of mats) {
-        const em = (m as any).emissive as THREE.Color | undefined
-        if (!em) continue
-        const c = getColor(mesh, m)
-        if (!c) continue
-        em.copy(c)
-      }
-    })
+  function isQueryScalar(value: unknown): value is SceneQueryScalar {
+    return value === null || typeof value === 'string' || typeof value === 'boolean' ||
+      (typeof value === 'number' && Number.isFinite(value))
   }
 
-  /** 内部 helper: 停 obj 上的 pulse 定时器, 清 userData key。无定时器则 no-op。 */
-  function clearPulseTimer(obj: THREE.Object3D): void {
-    const timer = obj.userData['__pulseTimer'] as ReturnType<typeof setInterval> | undefined
-    if (timer) {
-      clearInterval(timer)
-      delete obj.userData['__pulseTimer']
+  function hasStrictShape(
+    value: unknown,
+    allowed: readonly string[],
+    required: readonly string[] = [],
+  ): boolean {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return false
+    const prototype = Object.getPrototypeOf(value)
+    if (prototype !== Object.prototype && prototype !== null) return false
+    const ownKeys = Reflect.ownKeys(value)
+    if (ownKeys.some((key) => typeof key !== 'string' || !allowed.includes(key))) return false
+    const descriptors = Object.getOwnPropertyDescriptors(value)
+    if (Object.values(descriptors).some((descriptor) => !('value' in descriptor))) return false
+    return required.every((key) => Object.prototype.hasOwnProperty.call(value, key))
+  }
+
+  function isStrictArray(value: unknown, maxLength: number): boolean {
+    if (!Array.isArray(value) || value.length > maxLength || Object.getPrototypeOf(value) !== Array.prototype) return false
+    const expectedKeys = new Set<string>(['length'])
+    for (let index = 0; index < value.length; index++) expectedKeys.add(String(index))
+    const ownKeys = Reflect.ownKeys(value)
+    if (ownKeys.some((key) => typeof key !== 'string' || !expectedKeys.has(key)) || ownKeys.length !== expectedKeys.size) return false
+    for (let index = 0; index < value.length; index++) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index))
+      if (!descriptor || !('value' in descriptor)) return false
     }
+    return true
+  }
+
+  function validateQueryScalar(value: unknown): asserts value is SceneQueryScalar {
+    if (!isQueryScalar(value)) throw new Error('[objectsTool] query values must be JSON scalars')
+    if (typeof value === 'string' && value.length > 256) {
+      throw new Error('[objectsTool] query string values must be at most 256 characters')
+    }
+  }
+
+  function readSceneField(object: THREE.Object3D, field: SceneQueryField): unknown {
+    return field === 'name' ? object.name : getUserDataValue(object, field)
+  }
+
+  function stableObjectId(object: THREE.Object3D): string | null {
+    const sid = getUserDataValue(object, 'sid')
+    if (typeof sid === 'string' && sid.length > 0 && sid.length <= 256) return sid
+    const findId = getUserDataValue(object, 'findId')
+    if (typeof findId === 'string' && findId.length > 0 && findId.length <= 256) return findId
+    return null
+  }
+
+  function isCurrentStableObject(object: THREE.Object3D, scene: THREE.Scene): boolean {
+    if (!(object instanceof THREE.Object3D)) return false
+    if (object instanceof THREE.Camera || object instanceof THREE.Light) return false
+    if (object.name.startsWith('ssp_helper_')) return false
+    return !!stableObjectId(object) && isDescendantOf(object, scene)
+  }
+
+  function isDescendantOf(object: THREE.Object3D, scene: THREE.Scene): boolean {
+    for (let current: THREE.Object3D | null = object; current; current = current.parent) {
+      if (current === scene) return true
+    }
+    return false
+  }
+
+  /** Pre-order traversal with a real early-stop, preserving Object3D child order. */
+  function walkScene(scene: THREE.Scene, visit: (object: THREE.Object3D) => boolean): void {
+    const stack = scene.children.slice().reverse()
+    while (stack.length > 0) {
+      const object = stack.pop()!
+      if (!visit(object)) return
+      for (let index = object.children.length - 1; index >= 0; index--) {
+        stack.push(object.children[index])
+      }
+    }
+  }
+
+  function validateQuery(criteria: ObjectQueryCriteria): readonly SceneQueryCondition[] {
+    if (!hasStrictShape(criteria, ['all'])) {
+      throw new Error('[objectsTool] query criteria only supports flat all conditions')
+    }
+    const conditions = criteria.all === undefined ? [] : criteria.all
+    if (!isStrictArray(conditions, 8)) {
+      throw new Error('[objectsTool] query supports at most 8 conditions')
+    }
+    for (const condition of conditions) {
+      if (!hasStrictShape(condition, ['field', 'op', 'value', 'values'], ['field', 'op']) || !QUERY_FIELDS.has(String(condition.field))) {
+        throw new Error('[objectsTool] query condition field is not allowed')
+      }
+      if (condition.op === 'equals') {
+        if (!hasStrictShape(condition, ['field', 'op', 'value'], ['field', 'op', 'value'])) {
+          throw new Error('[objectsTool] equals condition contains unsupported fields')
+        }
+        validateQueryScalar(condition.value)
+      } else if (condition.op === 'in') {
+        if (!hasStrictShape(condition, ['field', 'op', 'values'], ['field', 'op', 'values'])) {
+          throw new Error('[objectsTool] in condition contains unsupported fields')
+        }
+        if (!isStrictArray(condition.values, 50)) {
+          throw new Error('[objectsTool] query in supports at most 50 values')
+        }
+        condition.values.forEach(validateQueryScalar)
+      } else {
+        throw new Error('[objectsTool] query operator must be equals or in')
+      }
+    }
+    return conditions
+  }
+
+  function matchesCondition(object: THREE.Object3D, condition: SceneQueryCondition): boolean {
+    const actual = readSceneField(object, condition.field)
+    if (condition.op === 'equals') return isQueryScalar(actual) && actual === condition.value
+    return isQueryScalar(actual) && condition.values.some((value) => actual === value)
+  }
+
+  function query(criteria: ObjectQueryCriteria, options: ObjectQueryOptions): THREE.Object3D[] {
+    if (!hasStrictShape(options, ['limit'], ['limit']) || !Number.isInteger(options.limit) || options.limit < 1 || options.limit > 200) {
+      throw new Error('[objectsTool] query limit must be an integer from 1 to 200')
+    }
+    const conditions = validateQuery(criteria)
+    const scene = getSspContext().scene
+    const result: THREE.Object3D[] = []
+    walkScene(scene, (object) => {
+      if (isCurrentStableObject(object, scene) && conditions.every((condition) => matchesCondition(object, condition))) {
+        result.push(object)
+        if (result.length >= options.limit) return false
+      }
+      return true
+    })
+    return result
+  }
+
+  function boundedMetadataValue(value: unknown): SceneQueryScalar | readonly SceneQueryScalar[] | undefined {
+    if (isQueryScalar(value)) {
+      if (typeof value === 'string' && value.length > 256) return undefined
+      return value
+    }
+    if (!isStrictArray(value, 50)) return undefined
+    const values: SceneQueryScalar[] = []
+    for (const item of value as readonly unknown[]) {
+      if (!isQueryScalar(item) || (typeof item === 'string' && item.length > 256)) return undefined
+      values.push(item)
+    }
+    return Object.freeze(values)
+  }
+
+  function describe(objects: readonly THREE.Object3D[], options: ObjectDescribeOptions = {}): SceneObjectDescriptor[] {
+    if (!isStrictArray(objects, 200)) {
+      throw new Error('[objectsTool] describe accepts at most 200 objects')
+    }
+    if (!hasStrictShape(options, ['fields'])) {
+      throw new Error('[objectsTool] describe options only supports fields')
+    }
+    const fields = options.fields === undefined ? DESCRIPTOR_FIELDS : options.fields
+    if (!isStrictArray(fields, 16) || fields.some((field) => !DESCRIPTOR_FIELDS.includes(field as SceneDescriptorField))) {
+      throw new Error('[objectsTool] describe fields are not allowed or exceed 16 fields')
+    }
+    const scene = getSspContext().scene
+    // Validate every reference before constructing any result so the operation is atomic.
+    for (const object of objects) {
+      if (!isCurrentStableObject(object, scene)) {
+        throw new Error('[objectsTool] describe object is stale, foreign, or has no stable id')
+      }
+    }
+    return objects.map((object) => {
+      const metadata: Record<string, SceneQueryScalar | readonly SceneQueryScalar[]> = {}
+      for (const field of fields) {
+        const value = boundedMetadataValue(getUserDataValue(object, field))
+        if (value !== undefined) metadata[field] = value
+      }
+      return {
+        id: stableObjectId(object)!,
+        name: object.name.slice(0, 256),
+        type: object.type.slice(0, 256),
+        visible: object.visible,
+        metadata: Object.freeze(metadata),
+      }
+    })
   }
 
   // ===== 公开 API (highlight) =====
 
   /**
    * 高亮 + 可选闪烁。
-   *   - 改 obj 及其所有子 mesh 的 material.emissive
-   *   - 第一次高亮时把原始 emissive 存到 userData.__originalEmissive (按 mesh 路径)
-   *     用于 unHighlight 还原
-   *   - 再次 setHighlight 会停掉之前的 pulse 定时器 (即使新调用 pulse=false)
+   *   - 作为兼容层接入统一 lease manager，不向 userData 写高亮状态
+   *   - 共享材质使用 clone-on-write，unHighlight 时恢复原材质引用
+   *   - 再次 setHighlight 会释放该对象先前的 legacy owner layer
    *
    *   @param obj     要高亮的 Object3D (递归到所有子 mesh)
    *   @param color   高亮颜色, 默认 '#ff0000' (红)
-   *   @param pulse   是否闪烁 (setInterval 500ms 切换 0/1), 默认 false
+   *   @param pulse   是否闪烁（manager 每 500ms 调度）, 默认 false
    */
   function setHighlight(obj: THREE.Object3D, color: SceneColor = '#ff0000', pulse = false): void {
-    // 先停止上次的 pulse (如果有)
-    clearPulseTimer(obj)
-
-    const c = color instanceof THREE.Color ? color : new THREE.Color(color as string | number)
-    // 先把"原始色"基础 = 之前的 origEmissiveMap (之前已存过原始色)
-    // 这样再次高亮时, 不会把上次的高亮色当成"原始色"
-    const prev = obj.userData[ORIGINAL_EMISSIVE_KEY] as Map<THREE.Material, THREE.Color> | undefined
-    const origEmissiveMap = prev ? new Map(prev) : new Map<THREE.Material, THREE.Color>()
-
-    // 应用高亮色; 第一次高亮时把原始色存进 origEmissiveMap
-    applyEmissive(obj, (_mesh, material) => {
-      if (!origEmissiveMap.has(material)) {
-        const em = (material as any).emissive as THREE.Color
-        origEmissiveMap.set(material, em.clone())
-      }
-      return c.clone()
-    })
-
-    obj.userData[ORIGINAL_EMISSIVE_KEY] = origEmissiveMap
-
-    // pulse: 每 500ms 切换 0/1 emissive 模拟闪烁
-    if (pulse) {
-      let on = true
-      const timer = setInterval(() => {
-        on = !on
-        applyEmissive(obj, () => (on ? c.clone() : new THREE.Color(0, 0, 0)))
-      }, 500)
-      obj.userData['__pulseTimer'] = timer
-    }
+    const previous = highlightLeases.getLegacyLease(obj)
+    if (previous) highlightLeases.releaseLegacyForObject(obj)
+    const lease = highlightLeases.apply([obj], { color, pulse }, false)
+    highlightLeases.setLegacyLease(obj, lease)
   }
 
   /**
-   * 还原高亮 — 读 userData.__originalEmissive 恢复原始 emissive, 停 pulse 定时器, 清 userData key。
-   * 多次高亮时, 只有最后一次 unHighlight 才能完全还原 (中间状态是叠加)。
+   * 还原该对象的 legacy 高亮层；不会释放 applyHighlight 创建的 scoped 租约。
    */
   function unHighlight(obj: THREE.Object3D): void {
-    clearPulseTimer(obj)
-    const orig = obj.userData[ORIGINAL_EMISSIVE_KEY] as Map<THREE.Material, THREE.Color> | undefined
-    if (!orig) return
-    applyEmissive(obj, (_mesh, material) => orig.get(material)?.clone() ?? null)
-    delete obj.userData[ORIGINAL_EMISSIVE_KEY]
+    highlightLeases.releaseLegacyForObject(obj)
   }
 
   /**
-   * 清掉所有高亮 — traverse scene 找有 __originalEmissive 的 obj, 逐个 unHighlight。
-   * 给"还原一切"按钮用。
+   * 宿主紧急全局恢复：释放当前 manager 的 legacy 与 scoped 高亮。
+   * 新模板和补偿流程不得用它代替 releaseHighlight。
    */
   function clearAllHighlights(): void {
-    const ctx = getSspContext()
-    ctx.scene.traverse((obj) => {
-      if (obj.userData[ORIGINAL_EMISSIVE_KEY]) {
-        unHighlight(obj)
-      }
-    })
+    highlightLeases.releaseAll()
+  }
+
+  function applyHighlight(objects: readonly THREE.Object3D[], options?: HighlightOptions): HighlightLease {
+    return highlightLeases.apply(objects, options, true)
+  }
+
+  function releaseHighlight(lease: HighlightLease): boolean {
+    return highlightLeases.release(lease)
   }
 
   // ===== 可见性 =====
@@ -442,12 +639,20 @@ export function createObjectsTool(): ObjectsTool {
     getById,
     /** 按 userData 字段找 — 见 getByUserDataProperty */
     getByUserDataProperty,
+    /** 结构化查询 — 见 query */
+    query,
+    /** 有界对象描述 — 见 describe */
+    describe,
     /** 高亮 — 见 setHighlight */
     setHighlight,
     /** 还原高亮 — 见 unHighlight */
     unHighlight,
     /** 清掉所有高亮 — 见 clearAllHighlights */
     clearAllHighlights,
+    /** 创建作用域高亮租约 — 见 applyHighlight */
+    applyHighlight,
+    /** 释放作用域高亮租约 — 见 releaseHighlight */
+    releaseHighlight,
     /** 单个显示/隐藏 — 见 setVisible */
     setVisible,
     /** 按楼层名显示/隐藏 — 见 setVisibleByFloor */

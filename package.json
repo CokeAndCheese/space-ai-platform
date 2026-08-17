@@ -19,6 +19,7 @@
     "typecheck": "vue-tsc --noEmit",
     "audit:templates": "node scripts/audit-template-schema.mjs",
     "audit:ai-boundary": "node scripts/audit-ai-boundary.mjs",
+    "test:objects": "node scripts/test-objects.mjs",
     "test:topology": "node scripts/test-topology.mjs",
     "audit:topology-boundary": "node scripts/audit-topology-boundary.mjs"
   },

@@ -32,14 +32,36 @@ export interface SspContext {
   onBeforeRender?: () => void
 }
 
+/** Internal lifecycle hook used by SSP managers that own scene-bound resources. */
+export type SspContextCleanup = () => void
+
 let _ctx: SspContext | null = null
+let _scene: THREE.Scene | null = null
+const _cleanupHooks = new Set<SspContextCleanup>()
+
+/**
+ * Register an internal cleanup hook. This is intentionally not mounted on the
+ * public `ssp` namespace; it only coordinates context-owned runtime resources.
+ */
+export function registerSspContextCleanup(cleanup: SspContextCleanup): () => void {
+  _cleanupHooks.add(cleanup)
+  return () => _cleanupHooks.delete(cleanup)
+}
+
+function runContextCleanup(): void {
+  for (const cleanup of Array.from(_cleanupHooks)) cleanup()
+}
 
 /**
  * 由路由页面在初始化完场景后调用。
  * 注入 scene / camera / renderer / controls 等, 各 controller 通过 getSspContext() 拿到。
  */
 export function setSspContext(ctx: SspContext): void {
+  // Keep an immutable snapshot of scene identity: callers may reuse and mutate
+  // the same context object between model sessions.
+  if (_ctx && (_ctx !== ctx || _scene !== ctx.scene)) runContextCleanup()
   _ctx = ctx
+  _scene = ctx.scene
   console.log('[ssp] context set', {
     scene: !!ctx.scene,
     camera: !!ctx.camera,
@@ -66,5 +88,7 @@ export function hasSspContext(): boolean {
 
 /** 清掉当前 context — 路由切换时由 useThreeScene 调用 */
 export function clearSspContext(): void {
+  if (_ctx) runContextCleanup()
   _ctx = null
+  _scene = null
 }

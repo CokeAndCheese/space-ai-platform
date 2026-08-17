@@ -310,6 +310,9 @@ export function useThreeScene(
       console.warn('[useThreeScene] onModelUnload failed during dispose:', err)
     }
 
+    // Scene-bound SSP resources (for example highlight material clones) must be
+    // restored before the model's material graph is disposed.
+    ssp.clearContext()
     mixer?.stopAllAction()
     if (currentModel) {
       disposeObject(currentModel)
@@ -324,7 +327,6 @@ export function useThreeScene(
     scene = null
     camera = null
     controls = null
-    ssp.clearContext()
   }
 
   // 自动 watch containerRef,有值时 init

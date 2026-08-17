@@ -1,12 +1,12 @@
 # objectsTool API 文档
 
-> 场景内对象操作 — 查找 / 高亮 / 可见性 / 楼层炸开
+> 场景内对象操作 — 有界查询与描述 / 高亮租约 / 可见性 / 楼层炸开
 > 文件: `src/ssp/objects/objectsTool.ts`
 > 命名空间: `ssp.objectsTool.*`
 
 ---
 
-## 1. 查找 API
+## 1. 查找与有界查询 API
 
 ### 1.1 `getById(id, opts?)`
 
@@ -96,13 +96,58 @@ interface FindOptions {
 }
 ```
 
+### 1.5 `query(criteria, options)`
+
+按受控字段白名单查询当前 context 的 scene，返回稳定 scene traversal 顺序的对象引用。对象引用只用于 SSP/模板 Runtime 内部组合，不能直接作为 AI 公共输出。
+
+```ts
+query(
+  criteria: {
+    all?: readonly (
+      | { field: SceneQueryField; op: 'equals'; value: string | number | boolean | null }
+      | { field: SceneQueryField; op: 'in'; values: readonly (string | number | boolean | null)[] }
+    )[]
+  },
+  options: { limit: number },
+): THREE.Object3D[]
+```
+
+- 条件固定为扁平 AND；同字段 OR 用 `in`。
+- 最多 8 个条件，单个 `in` 最多 50 个值，字符串查询值最长 256 字符。
+- `limit` 必填且为 1～200；达到上限立即停止遍历。
+- 字段是编译期 union，不接受点路径、回调、正则、嵌套 DSL、排序或分页。
+- 只返回当前 scene 中具有 `sid` 或 `findId` 的有效对象。
+
+```js
+const objects = ssp.objectsTool.query(
+  { all: [
+    { field: 'renderType', op: 'equals', value: 'DOOR' },
+    { field: 'level', op: 'in', values: [1, 2] },
+  ] },
+  { limit: 50 },
+)
+```
+
+### 1.6 `describe(objects, options?)`
+
+把当前 scene 的对象引用转换为有界 plain data。最多 200 个对象、最多 16 个字段；任何对象已脱离 scene、来自其他 context、无稳定 ID 或为伪造引用时，整次调用原子失败。
+
+```ts
+describe(
+  objects: readonly THREE.Object3D[],
+  options?: { fields?: readonly SceneDescriptorField[] },
+): SceneObjectDescriptor[]
+```
+
+返回项固定包含 `id / name / type / visible / metadata`。`metadata` 只含白名单内的 JSON scalar 或最多 50 项的 scalar 数组；最终 AI 字段投影、脱敏、截断和序列化仍由模板 Runtime 负责。
+
 ---
 
 ## 2. 高亮 API
 
 ### 2.1 `setHighlight(obj, color?, pulse?)`
 
-**改 material.emissive**, 原始值自动备份 (`userData.__originalEmissive`)
+兼容旧调用的单对象高亮。内部已接入与租约 API 相同的材质状态引擎，不再把高亮状态写入模型 `userData`；旧用法中的 detached `Object3D` 和未初始化 context 场景仍可由 `setHighlight/unHighlight` 成对处理，但新 scoped 租约始终要求当前 scene 与稳定 ID。
 
 ```ts
 setHighlight(
@@ -117,7 +162,7 @@ setHighlight(
 - 数字: `0xff0000`
 - THREE.Color 对象
 
-**pulse = true**: 1Hz 闪烁 (500ms 切换 0/1 emissive)。`unHighlight` 自动停 pulse。
+**pulse = true**：每 500ms 切换高亮状态。`unHighlight` 只释放该对象的 legacy 高亮层，不会释放独立租约。
 
 **例子**:
 ```js
@@ -141,13 +186,13 @@ ssp.objectsTool.unHighlight(door)
 unHighlight(obj: THREE.Object3D): void
 ```
 
-会自动停掉 `pulse` 定时器 (如果有)。
+会自动停止该 legacy 层的 pulse（如果有）。
 
 ---
 
 ### 2.3 `clearAllHighlights()`
 
-**还原场景内所有对象的高亮**
+**宿主紧急全局恢复**：释放当前 `objectsTool` 实例中的所有 legacy 与 scoped 高亮。
 
 ```ts
 clearAllHighlights(): void
@@ -162,6 +207,36 @@ ssp.objectsTool.setHighlight(window, '#29ccff')
 // 全部取消
 ssp.objectsTool.clearAllHighlights()
 ```
+
+该 API 不得用于新模板的补偿逻辑；模板应保留原始 `HighlightLease` 并调用 `releaseHighlight`，避免误伤其他执行。
+
+### 2.4 `applyHighlight(objects, options?)`
+
+```ts
+applyHighlight(
+  objects: readonly THREE.Object3D[],
+  options?: {
+    color?: string | number | THREE.Color
+    pulse?: boolean
+    durationMs?: number
+  },
+): HighlightLease
+```
+
+- 单租约 1～256 个当前 scene 对象；对象必须有 `sid` 或 `findId`。
+- 当前 context 最多 128 个活动租约。
+- `durationMs` 省略时必须显式释放；提供时范围为 100～300000ms。
+- 重叠高亮按“最后应用者优先”；释放顶层会显示下一活动层，最后释放才恢复原材质。
+- 共享 material 使用 clone-on-write；最后一层结束后恢复原引用并 dispose SSP 创建的 clone。
+- `pulse` 只影响当前可见的顶层租约，由 manager 级调度器统一驱动。
+
+### 2.5 `releaseHighlight(lease)`
+
+```ts
+releaseHighlight(lease: HighlightLease): boolean
+```
+
+只接受当前 `objectsTool` 创建的原始不透明 handle；复制对象、伪造 ID 或其他 manager 的 handle 会被拒绝。首次释放活动租约返回 `true`，真实租约在已释放或已过期后再次释放返回 `false`。模型根移除或 context 清理也会自动回收活动租约。
 
 ---
 
@@ -262,11 +337,16 @@ isExploded(): boolean
 | `getById(sid)` | `Object3D \| null` | 按 sid 找 |
 | `getByUserDataProperty(key, value, opts?)` | `Object3D[]` | 按 userData 字段找 |
 | `getByName(name, opts?)` | `Object3D \| null` | 按 name 找 (不可靠) |
+| `query(criteria, {limit})` | `Object3D[]` | 有界白名单查询，仅供 Runtime 内部消费 |
+| `describe(objects, opts?)` | `SceneObjectDescriptor[]` | 有界 plain-data 描述 |
 | `setHighlight(obj, color, pulse?)` | `void` | 高亮 / 闪烁 |
 | `unHighlight(obj)` | `void` | 还原单对象 |
-| `clearAllHighlights()` | `void` | 还原全部 |
+| `clearAllHighlights()` | `void` | 宿主紧急全局恢复 |
+| `applyHighlight(objects, opts?)` | `HighlightLease` | 创建 scoped 高亮租约 |
+| `releaseHighlight(lease)` | `boolean` | 按不透明 handle 释放租约 |
 | `setVisible(obj, visible)` | `void` | 切换可见 |
 | `setVisibleByFloor(floorName, visible?)` | `void` | 整层可见 |
+| `resetVisibility()` | `{restored, hiddenBefore}` | 恢复 mesh 可见性 |
 | `explodeFloor(opts?)` | `void` | 楼层炸开 |
 | `collapseFloor(durationMs?)` | `void` | 楼层收回 |
 | `isExploded()` | `boolean` | 查炸开状态 |
@@ -292,16 +372,14 @@ isExploded(): boolean
 
 ## 7. 内部实现细节 (debug 用)
 
-### 7.1 内部 key (userData 上)
+### 7.1 内部状态
 
 | key | 类型 | 含义 |
 |---|---|---|
-| `__originalEmissive` | `Map<Mesh, Color>` | setHighlight 前的 emissive, unHighlight 还原 |
-| `__pulseTimer` | `setInterval handle` | pulse 定时器, unHighlight / 重新 setHighlight 会 clear |
 | `__originalPosition` | `Vector3` | explodeFloor 前的 position, collapseFloor 还原 |
 | `__isExploded` | `true` | 标记炸开状态 (collapse 时 delete) |
 
-**注意**: 这些 key 是 `__` 前缀的内部数据, LLM 模板 / 业务代码**不应该**读写。
+高亮状态不再写入 `userData`：manager 按 `mesh + material slot` 保存原材质、SSP-owned clone 和租约层栈，并统一维护到期与 pulse 调度。`__originalPosition` / `__isExploded` 仍是炸开功能的内部 key，LLM 模板和业务代码不应读写。
 
 ### 7.2 跳过规则
 
@@ -321,7 +399,7 @@ isExploded(): boolean
 
 ## 8. 跟 GLB metadata 的关系
 
-objectsTool **完全依赖** GLB metadata 注入:
+objectsTool 的稳定查询、描述、按楼层操作和 scoped 高亮依赖符合通用 GLB metadata 契约的数据；医院模型仅是测试样例，不是生产命名或业务边界：
 
 | objectsTool 调用 | 依赖的 userData 字段 |
 |---|---|
@@ -331,4 +409,4 @@ objectsTool **完全依赖** GLB metadata 注入:
 | `setVisibleByFloor('A_6F')` | `userData.floorName === 'A_6F'` |
 | `explodeFloor()` | `userData.level` (数字) |
 
-**所以**:**GLB 没注入 metadata → objectsTool 完全失效**。详见 [GLB_METADATA_SPEC.md](./GLB_METADATA_SPEC.md)。
+缺少对应 metadata 时，依赖该字段的查询或操作不可用；直接持有有效 `Object3D` 的基础显隐和 legacy 操作仍可工作。详见 [GLB_METADATA_SPEC.md](./GLB_METADATA_SPEC.md)。

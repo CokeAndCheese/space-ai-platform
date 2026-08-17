@@ -1,10 +1,10 @@
 # AI Layer 验收清单 (Phase 1 + Phase 2)
 
-> 最后整理：2026-08-10
+> 最后整理：2026-08-17
 >
 > 这是下一轮手工验收清单。所有 `☐` 都表示“本轮尚未手工复验”，不能据此判断
 > 当前代码失败；文末旧 Bug 表只保留历史线索。当前自动化基线：79 个模板全部
-> active、0 schema 问题，9 个模板允许 AI 调用，AI/template 边界审计通过，
+> active、0 schema 问题，统一目录 8 个模板允许 AI 调用，AI/template 边界审计通过，
 > topology 10 项回归通过。
 >
 > **验收人**: ___________________
@@ -60,7 +60,7 @@ npm run audit:topology-boundary
 | 1.2.2 | 点 **🚪 所有门** | 高亮所有 DOOR (黄色) | ☐ | |
 | 1.2.3 | 点 **🪟 所有窗** | 高亮所有 WINDOW (蓝色) | ☐ | |
 | 1.2.4 | 点 **🏠 主视角** | camera 飞回主视角 (无 confirm 弹窗) | ☐ | |
-| 1.2.5 | 点 **🧹 清高亮** | 直接清高亮,不调 LLM | ☐ | |
+| 1.2.5 | 点 **🧹 清高亮** | 仅走 host-only 模板适配器直接清高亮，不调 LLM/Intent | ☐ | |
 | 1.2.6 | 点 **👁 重置显示** | console 有 `reset visibility: X meshes restored`,全 visible=true | ☐ | |
 
 ## 1.3 自然语言 - LLM 路径 (P0)

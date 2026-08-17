@@ -1,7 +1,7 @@
 # Template Layer Design v3
 
-> 状态：Phase 0 分类账已实现；CR-SSP-001/003 已由主任务实施，模板 Runtime 迁移待完成
-> 日期：2026-08-14
+> 状态：Phase 0 分类账与 Phase 1 v3 原子运行核已实现；Phase 2 组合与 lease capability 迁移待完成
+> 日期：2026-08-17
 > 目标：模板层严格由 SSP 能力组合，支持一一映射与组合模板，并作为 AI 唯一能力面。
 
 ## 1. 结论
@@ -49,16 +49,18 @@ CR-SSP-001/003 合入后的最终 SSP 能力面为：
 
 ### 2.2 当前模板与 AI 链路
 
-当前仓库有 79 个 active JSON、4 个带 `steps` 的组合模板、9 个 `aiEnabled:true` 模板。实际 AI 链路为：
+当前 v2 兼容目录有 79 个 active JSON、4 个带 `steps` 的组合模板、8 个 `aiEnabled:true` 模板；v3 已有 4 个 atomic，其中 `resetVisibility` 以同 ID 面向 AI。实际 AI 链路为：
 
 ```text
 Chat -> fallback/cache/LLM -> Intent -> one-step Plan
-     -> PlanExecutor -> templateRuntime -> template.code -> SSP
+     -> PlanExecutor -> v3-first templateRuntime
+        -> migrated id: static atomic dispatch -> SSP
+        -> unmigrated id: isolated legacy compiler -> SSP
 ```
 
 已成立的边界：
 
-- AI 只能选择 Registry 中 `aiEnabled:true` 的模板；
+- AI 只能选择统一 Registry 中显式开放的模板；
 - Intent 和 Runtime 都会校验 AI 白名单；
 - `src/ai` 不直接导入 SSP；
 - 模板参数会在执行前校验。
@@ -544,19 +546,25 @@ Planner 仍只产生一个顶层模板调用。多步行为是组合模板内部
 
 - 对当前 checkout 实际源码生成 Capability Manifest；上游 SSP 合入前为 81 方法，完整合入后目标为 85 方法，半同步状态硬失败；
 - 标出当前模板到 SSP 方法的真实映射、重复映射、组合项和非 SSP 依赖；
-- 记录 CR-SSP-001/003 已实施交接，以及 `query-scene`、lease Runtime、`clearAllHighlights` AI policy 三项模板迁移门槛；
+- 记录 CR-SSP-001/003 已实施交接；`query-scene` 与 lease Runtime 仍待迁移，`clearAllHighlights` AI policy 已关闭；
 - 冻结新增 v2 `code` 模板。
 
 完成标准：所有公开方法均为 `mapped/host-only/blocked/deprecated`，`unclassified=0`。
 
 ### Phase 1：v3 原子模板
 
-- 定义 v3 JSON Schema、JsonSchema validator 和 atomic runtime；
-- 优先迁移 AI 当前依赖的单 SSP 模板；
-- 引入不透明 ObjectRef 和序列化结果投影；
-- v2/v3 Registry 并行读取，但 v3 优先。
+状态：✅ 原子运行核与首批迁移已实现。
 
-完成标准：atomic contract tests 全过，执行路径中没有 `new Function`。
+- 已定义封闭 v3 JSON Schema、同源 JsonSchema validator 和静态 atomic runtime；
+- 已加入独立 v3 capability machine contract，逐方法锁定模板 allow-list、参数 schema 与返回 schema，缺失映射按 fail-closed 处理；
+- 已迁移 `getViewpoint`、`setBackgroundColor`、`setFog`、`resetVisibility` 四个一一映射模板；
+- 已引入 execution-local 不透明 ObjectRef，以及有界公共结果投影、JSON round-trip 与 64 KiB 序列化上限；
+- v2/v3 Registry 并行读取，同 ID v3 始终优先，隐藏的 v3 不回退 v2；
+- `clearAllHighlights` 已撤销 legacy AI 暴露，v3 Manifest policy 同时拒绝该 host-only 绑定；
+- 通用 legacy/v3 dispatcher 无法通过 `aiOnly:false` 绕过 host-only，只有窄化的宿主动作适配器可调用紧急恢复；
+- AI 目录只加载纯 Registry，SSP 仅在 `appRuntime` 注入，避免 Prompt/Intent 构建间接初始化执行层。
+
+完成证据：12 项 atomic contract tests 与 v3 mapping audit 全过；已迁移 v3 路径不使用 `new Function`。未迁移 v2 的兼容编译器被隔离在 `legacyRuntime.ts`，待后续迁移完成后删除。
 
 ### Phase 2：组合运行时
 
@@ -577,7 +585,7 @@ Planner 仍只产生一个顶层模板调用。多步行为是组合模板内部
 - `objectsTool.applyHighlight` / `releaseHighlight` 已实施 opaque handle、cleanup hook、legacy owner layer、共享单材质及 `Material[]` 生命周期与 manager pulse scheduler；
 - 主任务已通过 13 项 objects 回归、typecheck、topology、boundary、template/AI audit 和 build。
 
-SSP 完成标准已满足；端到端完成仍取决于 Phase 1/2/4 的模板 Runtime 与 AI policy 迁移。
+SSP 完成标准已满足；端到端完成仍取决于 Phase 2/4 的组合 Runtime 与 AI policy 迁移。
 
 ### Phase 4：AI 切换与清理
 

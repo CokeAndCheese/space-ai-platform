@@ -2,6 +2,7 @@
   "schemaVersion": 0,
   "phase": "template-layer-phase-0",
   "sourceDigest": "0f489dd4ccb8fb4e621c4b7512d0e88f17d248fada5e3b040233d7ed91c6436b",
+  "v3CapabilityContractDigest": "5e9b8285787766c577b99f1348906ee0f4a1a6d9eb6df06018f7a06e7ac04117",
   "sspImplementationHandoff": {
     "verifiedDate": "2026-08-14",
     "status": "implemented-upstream-template-runtime-migration-pending",
@@ -26,18 +27,22 @@
       }
     ],
     "runtimeMigration": {
-      "status": "pending",
+      "status": "phase1-atomic-complete-phase2-lease-pending",
+      "completed": [
+        "closed v3 atomic schema and static manifest-gated dispatch",
+        "execution-local opaque ObjectRef",
+        "project, redact, bound, and serialize every v3 public result",
+        "v3-first registry with legacy fallback for unmigrated ids"
+      ],
       "obligations": [
         "execution-local capability table",
         "maximum 32 active highlight leases per execution",
         "AI durationMs maximum 60000",
-        "release execution-owned leases on cancel or timeout",
-        "project, redact, bound, and serialize every public result"
+        "release execution-owned leases on cancel or timeout"
       ]
     },
     "knownLegacyBlockers": [
-      "query-scene still traverses scene, reads metadata, and creates timers in legacy code",
-      "clearAllHighlights remains an AI-enabled legacy template although the API is host emergency only"
+      "query-scene still traverses scene, reads metadata, and creates timers in legacy code"
     ],
     "upstreamValidationEvidence": [
       "test:objects (13 cases)",
@@ -83,6 +88,7 @@
       "source": "src/ssp/camera/cameraController.ts:136",
       "declaredIn": "CameraController",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "fitScene"
@@ -119,6 +125,7 @@
       "source": "src/ssp/camera/cameraController.ts:121",
       "declaredIn": "CameraController",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "flyTo"
@@ -150,6 +157,7 @@
       "source": "src/ssp/camera/cameraController.ts:122",
       "declaredIn": "CameraController",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "floor",
@@ -181,10 +189,88 @@
       "source": "src/ssp/camera/cameraController.ts:124",
       "declaredIn": "CameraController",
       "classification": "mapped",
-      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "templatePolicy": "allowed",
+      "classificationReason": "Approved by a reviewed v3 machine contract; this does not imply AI exposure.",
       "mappedTemplates": [
         "getViewpoint"
       ],
+      "atomicContract": {
+        "templateIds": [
+          "getViewpoint"
+        ],
+        "args": [],
+        "result": {
+          "kind": "public-data",
+          "schema": {
+            "type": "object",
+            "required": [
+              "position",
+              "target",
+              "fov"
+            ],
+            "properties": {
+              "position": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  },
+                  "y": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  },
+                  "z": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  }
+                },
+                "additionalProperties": false
+              },
+              "target": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  },
+                  "y": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  },
+                  "z": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  }
+                },
+                "additionalProperties": false
+              },
+              "fov": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 180
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
       "appDependentTemplates": [
         "captureMainViewpoint"
       ],
@@ -210,6 +296,7 @@
       "source": "src/ssp/camera/cameraController.ts:123",
       "declaredIn": "CameraController",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "setViewpoint"
@@ -244,6 +331,7 @@
       "source": "src/ssp/camera/cameraController.ts:129",
       "declaredIn": "CameraController",
       "classification": "blocked",
+      "templatePolicy": "blocked",
       "classificationReason": "Referenced only by app-dependent legacy v2 code; a reviewed SSP-only mapping is required.",
       "mappedTemplates": [],
       "appDependentTemplates": [
@@ -270,6 +358,7 @@
       "source": "src/ssp/css/cssTool.ts:67",
       "declaredIn": "CSSTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "css2dLabel"
@@ -290,6 +379,7 @@
       "source": "src/ssp/css/cssTool.ts:69",
       "declaredIn": "CSSTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -306,6 +396,7 @@
       "source": "src/ssp/css/cssTool.ts:68",
       "declaredIn": "CSSTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeAllLabels"
@@ -332,6 +423,7 @@
       "source": "src/ssp/helper/helperTool.ts:66",
       "declaredIn": "HelperTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "addAxes"
@@ -358,6 +450,7 @@
       "source": "src/ssp/helper/helperTool.ts:67",
       "declaredIn": "HelperTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "addGrid"
@@ -378,6 +471,7 @@
       "source": "src/ssp/helper/helperTool.ts:68",
       "declaredIn": "HelperTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeHelpers"
@@ -404,6 +498,7 @@
       "source": "src/ssp/light/lightTool.ts:82",
       "declaredIn": "LightTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "createAmbientLight",
@@ -434,6 +529,7 @@
       "source": "src/ssp/light/lightTool.ts:83",
       "declaredIn": "LightTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "createDirectionalLight"
@@ -460,6 +556,7 @@
       "source": "src/ssp/light/lightTool.ts:85",
       "declaredIn": "LightTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeLight"
@@ -486,6 +583,7 @@
       "source": "src/ssp/model/modelTool.ts:139",
       "declaredIn": "ModelTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "fitScene",
@@ -524,6 +622,7 @@
       "source": "src/ssp/model/modelTool.ts:141",
       "declaredIn": "ModelTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -546,6 +645,7 @@
       "source": "src/ssp/model/modelTool.ts:140",
       "declaredIn": "ModelTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -562,6 +662,7 @@
       "source": "src/ssp/model/modelTool.ts:137",
       "declaredIn": "ModelTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "fitScene",
@@ -593,6 +694,7 @@
       "source": "src/ssp/model/modelTool.ts:138",
       "declaredIn": "ModelTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -609,6 +711,7 @@
       "source": "src/ssp/model/modelTool.ts:143",
       "declaredIn": "ModelTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -625,6 +728,7 @@
       "source": "src/ssp/model/modelTool.ts:130",
       "declaredIn": "ModelTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -647,6 +751,7 @@
       "source": "src/ssp/model/modelTool.ts:120",
       "declaredIn": "ModelTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "loadFloor"
@@ -673,6 +778,7 @@
       "source": "src/ssp/model/modelTool.ts:126",
       "declaredIn": "ModelTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "loadSubcategory"
@@ -693,6 +799,7 @@
       "source": "src/ssp/model/modelTool.ts:136",
       "declaredIn": "ModelTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "unloadAllModels"
@@ -719,6 +826,7 @@
       "source": "src/ssp/model/modelTool.ts:132",
       "declaredIn": "ModelTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "unloadFloor"
@@ -745,6 +853,7 @@
       "source": "src/ssp/model/modelTool.ts:134",
       "declaredIn": "ModelTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -772,6 +881,7 @@
       "source": "src/ssp/objects/objectsTool.ts:110",
       "declaredIn": "ObjectsTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -788,6 +898,7 @@
       "source": "src/ssp/objects/objectsTool.ts:109",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "host-only",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "clearAllHighlights"
@@ -814,6 +925,7 @@
       "source": "src/ssp/objects/objectsTool.ts:119",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "collapse-floor"
@@ -845,6 +957,7 @@
       "source": "src/ssp/objects/objectsTool.ts:106",
       "declaredIn": "ObjectsTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -867,6 +980,7 @@
       "source": "src/ssp/objects/objectsTool.ts:117",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "explode-floor"
@@ -898,6 +1012,7 @@
       "source": "src/ssp/objects/objectsTool.ts:103",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "focus-on-object",
@@ -934,6 +1049,7 @@
       "source": "src/ssp/objects/objectsTool.ts:102",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "getObjectByName"
@@ -973,6 +1089,7 @@
       "source": "src/ssp/objects/objectsTool.ts:104",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "flash-alarm",
@@ -1014,6 +1131,7 @@
       "source": "src/ssp/objects/objectsTool.ts:121",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "collapse-floor",
@@ -1050,6 +1168,7 @@
       "source": "src/ssp/objects/objectsTool.ts:105",
       "declaredIn": "ObjectsTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -1072,6 +1191,7 @@
       "source": "src/ssp/objects/objectsTool.ts:111",
       "declaredIn": "ObjectsTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -1088,10 +1208,40 @@
       "source": "src/ssp/objects/objectsTool.ts:115",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
-      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "templatePolicy": "allowed",
+      "classificationReason": "Approved by a reviewed v3 machine contract; this does not imply AI exposure.",
       "mappedTemplates": [
         "resetVisibility"
       ],
+      "atomicContract": {
+        "templateIds": [
+          "resetVisibility"
+        ],
+        "args": [],
+        "result": {
+          "kind": "public-data",
+          "schema": {
+            "type": "object",
+            "required": [
+              "restored",
+              "hiddenBefore"
+            ],
+            "properties": {
+              "restored": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "hiddenBefore": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
       "appDependentTemplates": [],
       "legacyReferences": [
         "resetVisibility"
@@ -1124,6 +1274,7 @@
       "source": "src/ssp/objects/objectsTool.ts:107",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "flash-alarm",
@@ -1166,6 +1317,7 @@
       "source": "src/ssp/objects/objectsTool.ts:112",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "setObjectVisible"
@@ -1202,6 +1354,7 @@
       "source": "src/ssp/objects/objectsTool.ts:113",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "floor",
@@ -1230,6 +1383,7 @@
       "source": "src/ssp/objects/objectsTool.ts:108",
       "declaredIn": "ObjectsTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "unHighlightObject"
@@ -1259,6 +1413,7 @@
       "source": "src/ssp/poi/poiManager.ts:87",
       "declaredIn": "PoiManager",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "createPoi",
@@ -1287,6 +1442,7 @@
       "source": "src/ssp/poi/poiManager.ts:88",
       "declaredIn": "PoiManager",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "createPoiNode"
@@ -1313,6 +1469,7 @@
       "source": "src/ssp/poi/poiManager.ts:93",
       "declaredIn": "PoiManager",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -1335,6 +1492,7 @@
       "source": "src/ssp/poi/poiManager.ts:90",
       "declaredIn": "PoiManager",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "hidePoi",
@@ -1357,6 +1515,7 @@
       "source": "src/ssp/poi/poiManager.ts:94",
       "declaredIn": "PoiManager",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "hidePoi",
@@ -1389,6 +1548,7 @@
       "source": "src/ssp/poi/poiManager.ts:91",
       "declaredIn": "PoiManager",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removePoi"
@@ -1409,6 +1569,7 @@
       "source": "src/ssp/poi/poiManager.ts:92",
       "declaredIn": "PoiManager",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeAllPoi"
@@ -1435,6 +1596,7 @@
       "source": "src/ssp/poi/poiManager.ts:89",
       "declaredIn": "PoiManager",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "showHidePoi",
@@ -1463,6 +1625,7 @@
       "source": "src/ssp/scene/sceneTool.ts:59",
       "declaredIn": "SceneTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "clear"
@@ -1483,6 +1646,7 @@
       "source": "src/ssp/scene/sceneTool.ts:65",
       "declaredIn": "SceneTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "dispose"
@@ -1509,10 +1673,38 @@
       "source": "src/ssp/scene/sceneTool.ts:53",
       "declaredIn": "SceneTool",
       "classification": "mapped",
-      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "templatePolicy": "allowed",
+      "classificationReason": "Approved by a reviewed v3 machine contract; this does not imply AI exposure.",
       "mappedTemplates": [
         "setBackgroundColor"
       ],
+      "atomicContract": {
+        "templateIds": [
+          "setBackgroundColor"
+        ],
+        "args": [
+          {
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 16777215
+                }
+              ]
+            }
+          }
+        ],
+        "result": {
+          "kind": "void"
+        }
+      },
       "appDependentTemplates": [],
       "legacyReferences": [
         "setBackgroundColor"
@@ -1535,10 +1727,69 @@
       "source": "src/ssp/scene/sceneTool.ts:54",
       "declaredIn": "SceneTool",
       "classification": "mapped",
-      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "templatePolicy": "allowed",
+      "classificationReason": "Approved by a reviewed v3 machine contract; this does not imply AI exposure.",
       "mappedTemplates": [
         "setFog"
       ],
+      "atomicContract": {
+        "templateIds": [
+          "setFog"
+        ],
+        "args": [
+          {
+            "required": false,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "color": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777215
+                    }
+                  ]
+                },
+                "near": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "far": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "density": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "linear",
+                    "exp2"
+                  ]
+                },
+                "visible": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        ],
+        "result": {
+          "kind": "void"
+        }
+      },
       "appDependentTemplates": [],
       "legacyReferences": [
         "setFog"
@@ -1555,6 +1806,7 @@
       "source": "src/ssp/scene/sceneTool.ts:67",
       "declaredIn": "SceneTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "update"
@@ -1581,6 +1833,7 @@
       "source": "src/ssp/topology/topologyTool.ts:146",
       "declaredIn": "TopologyTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "createTopology",
@@ -1613,6 +1866,7 @@
       "source": "src/ssp/topology/types.ts:384",
       "declaredIn": "TopologyGraphApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "createGraph",
@@ -1669,6 +1923,7 @@
       "source": "src/ssp/topology/types.ts:401",
       "declaredIn": "TopologyGraphApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "findPath",
@@ -1711,6 +1966,7 @@
       "source": "src/ssp/topology/topologyTool.ts:152",
       "declaredIn": "TopologyTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "getTopologyById",
@@ -1743,6 +1999,7 @@
       "source": "src/ssp/topology/types.ts:385",
       "declaredIn": "TopologyGraphApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "findPath",
@@ -1795,6 +2052,7 @@
       "source": "src/ssp/topology/types.ts:410",
       "declaredIn": "TopologyRouteApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "getRouteById",
@@ -1827,6 +2085,7 @@
       "source": "src/ssp/topology/topologyTool.ts:150",
       "declaredIn": "TopologyTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "hideTopology"
@@ -1853,6 +2112,7 @@
       "source": "src/ssp/topology/types.ts:409",
       "declaredIn": "TopologyRouteApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "hideRoute"
@@ -1873,6 +2133,7 @@
       "source": "src/ssp/topology/topologyTool.ts:154",
       "declaredIn": "TopologyTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "getTopologyById",
@@ -1901,6 +2162,7 @@
       "source": "src/ssp/topology/types.ts:386",
       "declaredIn": "TopologyGraphApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "listGraphs",
@@ -1923,6 +2185,7 @@
       "source": "src/ssp/topology/types.ts:411",
       "declaredIn": "TopologyRouteApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "listRoutes",
@@ -1951,6 +2214,7 @@
       "source": "src/ssp/topology/topologyTool.ts:156",
       "declaredIn": "TopologyTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeTopology"
@@ -1971,6 +2235,7 @@
       "source": "src/ssp/topology/topologyTool.ts:158",
       "declaredIn": "TopologyTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeAllTopologies"
@@ -1991,6 +2256,7 @@
       "source": "src/ssp/topology/types.ts:388",
       "declaredIn": "TopologyGraphApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeAllGraphs"
@@ -2011,6 +2277,7 @@
       "source": "src/ssp/topology/types.ts:413",
       "declaredIn": "TopologyRouteApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeAllRoutes"
@@ -2037,6 +2304,7 @@
       "source": "src/ssp/topology/types.ts:387",
       "declaredIn": "TopologyGraphApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeGraph"
@@ -2063,6 +2331,7 @@
       "source": "src/ssp/topology/types.ts:412",
       "declaredIn": "TopologyRouteApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeRoute"
@@ -2089,6 +2358,7 @@
       "source": "src/ssp/topology/types.ts:406",
       "declaredIn": "TopologyRouteApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "getRouteById",
@@ -2144,6 +2414,7 @@
       "source": "src/ssp/topology/types.ts:389",
       "declaredIn": "TopologyGraphApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "setEdgeRoutingState"
@@ -2185,6 +2456,7 @@
       "source": "src/ssp/topology/types.ts:395",
       "declaredIn": "TopologyGraphApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "setEdgeVisualState"
@@ -2216,6 +2488,7 @@
       "source": "src/ssp/topology/types.ts:407",
       "declaredIn": "TopologyRouteApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "setRouteVisualState"
@@ -2242,6 +2515,7 @@
       "source": "src/ssp/topology/topologyTool.ts:148",
       "declaredIn": "TopologyTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "showTopology"
@@ -2268,6 +2542,7 @@
       "source": "src/ssp/topology/types.ts:408",
       "declaredIn": "TopologyRouteApi",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "showRoute"
@@ -2294,6 +2569,7 @@
       "source": "src/ssp/viewer/viewerTool.ts:85",
       "declaredIn": "ViewerTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "createCanvas3D"
@@ -2320,6 +2596,7 @@
       "source": "src/ssp/viewer/viewerTool.ts:86",
       "declaredIn": "ViewerTool",
       "classification": "host-only",
+      "templatePolicy": "host-only",
       "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
       "mappedTemplates": [],
       "appDependentTemplates": [],
@@ -2336,6 +2613,7 @@
       "source": "src/ssp/viewer/viewerTool.ts:89",
       "declaredIn": "ViewerTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeCanvas3D"
@@ -2362,6 +2640,7 @@
       "source": "src/ssp/viewer/viewerTool.ts:87",
       "declaredIn": "ViewerTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeCanvas3D"
@@ -2382,6 +2661,7 @@
       "source": "src/ssp/viewer/viewerTool.ts:88",
       "declaredIn": "ViewerTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "removeAllCanvases"
@@ -2408,6 +2688,7 @@
       "source": "src/ssp/viewer/viewerTool.ts:95",
       "declaredIn": "ViewerTool",
       "classification": "mapped",
+      "templatePolicy": "allowed",
       "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
       "mappedTemplates": [
         "screenshot"
@@ -3092,7 +3373,7 @@
         "id": "clearAllHighlights",
         "file": "objects/clearAllHighlights.json",
         "category": "objects",
-        "aiEnabled": true,
+        "aiEnabled": false,
         "status": "active",
         "hasCode": true,
         "hasSteps": false,
@@ -3110,7 +3391,7 @@
         "declaredParams": [],
         "consumedParams": [],
         "ignoredParams": [],
-        "contentSha256": "a893ee7bad1748b863636c2d317e6d7a009e7bba089f9a91892c67405cdf1860",
+        "contentSha256": "b482786cd3e41ef75525912da388421afb0baeba358f0c7ee9ea341a2fe898b4",
         "codeSha256": "599de9386d67614a7eb6c3f193d27108b1d63863146b0e4151407a8e041d8780"
       },
       {
@@ -3207,7 +3488,7 @@
           "color",
           "renderType"
         ],
-        "contentSha256": "4c720eac2057ff236e9efe481795054caf6eb6b834a6a13e3f8f3903f1f3be6a",
+        "contentSha256": "7aeeea719192b0329db3c27be856fd893fda7d5786e8fd01c44c9ef300045063",
         "codeSha256": "aae8648240d05547d7384d067c5156c16f1095f07d6e31a60872956d8ad1e8e2"
       },
       {
@@ -3441,7 +3722,7 @@
           "key",
           "value"
         ],
-        "contentSha256": "e108a06c3824bd43d5e86b421cc6cc98b0edce56895f496da77ea77de4db1df9",
+        "contentSha256": "bebb18fed1e4c1248b3a456b8f967cdbdd95e4c0eb7dd4844291e8bb450768b2",
         "codeSha256": "28975f45b02e2b94459d77e70be39cab08307a2bad89668d4a9127b926d6e1e1"
       },
       {
@@ -3483,7 +3764,7 @@
           "key",
           "value"
         ],
-        "contentSha256": "8cfafa1a82993f261e76caa30fcb8634a53c2dd1f8bf6a58becae18cf3678fe0",
+        "contentSha256": "cd7acfdf4316ff51df09311aeb12b740238bdd4b1ba32b04438b8dc82b7937b6",
         "codeSha256": "2e4767e2f502caf82ad12d5b3688f73bcfbb2765bc3fa11a229a793c6ca1b583"
       },
       {
@@ -3535,7 +3816,7 @@
           "visual"
         ],
         "ignoredParams": [],
-        "contentSha256": "660a8a52502547ad333b059c7dae44291e69bf9c2983ca059738925ba17d6308",
+        "contentSha256": "e85732d0bbd1cad1fa35d8f0925ae3efdfa7b20ef0b0c60a664620dfc9f48cc6",
         "codeSha256": "1e6af80717a459f7869c93876c086205135f2be93f566e868385cd583c0dcf48"
       },
       {
@@ -3560,7 +3841,7 @@
         "declaredParams": [],
         "consumedParams": [],
         "ignoredParams": [],
-        "contentSha256": "47ddad023ed750a53c791c1bc72521d941c6ba56ae32a0e40069462adf82d508",
+        "contentSha256": "95470e90565cc196798e081c5b43749c731d21b5b6269241d9c7dce679aec8e9",
         "codeSha256": "5060e6c11cdc512ca9de9968d516ddcde31291a57ef758152c2650f452e581d9"
       },
       {
@@ -3594,7 +3875,7 @@
           "pulse",
           "sid"
         ],
-        "contentSha256": "8eaa9627a9e2f2ee4ab1c54e92612c38c80cdd9ac7294cdd093bd1370b4d882f",
+        "contentSha256": "1be89247da8ec3e05381f34642aaeffbcb79a713695151d2a41014e05223f584",
         "codeSha256": "39599422eb24f47f218b85289e4fd9484c493100ea850d7fe6156f0755e49356"
       },
       {
@@ -3688,7 +3969,7 @@
         "ignoredParams": [
           "sid"
         ],
-        "contentSha256": "03767911ec3403a50cf9af94e048cad3b561895190649d0eb8232d406de393db",
+        "contentSha256": "409d2f49c49b88da6bb955a1e5f1e0c69c51da5e122f77ab3e2994976bc90c24",
         "codeSha256": "98e130f4ee558d60e8cda173184fdf2c4ae915cf12597be0f185aba09dc9bc65"
       },
       {

@@ -20,7 +20,9 @@
     "audit:templates": "node scripts/audit-template-schema.mjs",
     "phase0:generate": "node scripts/phase0-template-inventory.mjs --write",
     "audit:phase0": "node scripts/phase0-template-inventory.mjs --check",
+    "audit:v3": "node scripts/audit-template-v3.mjs",
     "audit:ai-boundary": "node scripts/audit-ai-boundary.mjs",
+    "test:templates-v3": "node scripts/test-template-v3.mjs",
     "test:objects": "node scripts/test-objects.mjs",
     "test:topology": "node scripts/test-topology.mjs",
     "audit:topology-boundary": "node scripts/audit-topology-boundary.mjs"

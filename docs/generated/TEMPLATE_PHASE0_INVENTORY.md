@@ -24,8 +24,9 @@
 - 已实施公共方法：`objectsTool.query`, `objectsTool.describe`, `objectsTool.applyHighlight`, `objectsTool.releaseHighlight`
 - 当前清单只把本 checkout 中实际存在的方法计入 Capability classification，不伪造尚未合入此 checkout 的源码能力。
 - `query-scene` 当前状态：app-dependent; dependencies=[scene-traverse, ssp-context, timer]。必须迁移为 `query -> describe/action`，不得再遍历 scene、直读 metadata 或创建 timer。
-- `clearAllHighlights` 当前状态：aiEnabled=true; classification=atomic。该 SSP API 仅供宿主紧急全局恢复，AI/template 必须撤销直接调用。
-- Runtime 待办：execution-local capability table；maximum 32 active highlight leases per execution；AI durationMs maximum 60000；release execution-owned leases on cancel or timeout；project, redact, bound, and serialize every public result。
+- `clearAllHighlights` 当前状态：aiEnabled=false; classification=atomic; templatePolicy=host-only。legacy AI 暴露已撤销，v3 Manifest policy 也拒绝绑定；该 SSP API 仅供宿主紧急全局恢复。
+- Runtime 已完成：closed v3 atomic schema and static manifest-gated dispatch；execution-local opaque ObjectRef；project, redact, bound, and serialize every v3 public result；v3-first registry with legacy fallback for unmigrated ids。
+- Runtime 待办：execution-local capability table；maximum 32 active highlight leases per execution；AI durationMs maximum 60000；release execution-owned leases on cancel or timeout。
 - 主任务验证记录：test:objects (13 cases)、typecheck、test:topology、audit:topology-boundary、audit:templates、audit:ai-boundary、build。
 
 ## Controller 计数

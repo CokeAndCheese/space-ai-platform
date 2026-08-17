@@ -13,7 +13,7 @@
   "returns": "void",
   "code": "const obj = ssp.objectsTool.getByUserDataProperty('renderType', 'WINDOW')[0]; if (!obj) console.warn('no target'); else { ssp.objectsTool.unHighlight(obj); console.log('unhighlighted', obj.userData.sid ?? obj.name); }",
   "example": "const obj = ssp.objectsTool.getById('WINDOW_A_10F_1');\nif (obj) ssp.objectsTool.unHighlight(obj);",
-  "guard": ["只恢复目标对象；全部恢复使用 clearAllHighlights"],
-  "seeAlso": ["setObjectHighlight", "clearAllHighlights"],
+  "guard": ["只恢复目标对象；模板不得执行宿主全局清理"],
+  "seeAlso": ["setObjectHighlight"],
   "tags": ["objects", "highlight", "restore"]
 }

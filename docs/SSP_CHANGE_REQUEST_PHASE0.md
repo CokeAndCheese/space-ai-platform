@@ -78,18 +78,18 @@ releaseHighlight(lease: HighlightLease): boolean
 - legacy `setHighlight/unHighlight/clearAllHighlights` 接入同一状态引擎；`setHighlight/unHighlight` 兼容 detached/no-context，`unHighlight` 只释放 legacy owner layer。
 - `clearAllHighlights` 仅保留为宿主紧急全局恢复能力，AI/template 和补偿流程不得直接调用。
 
-模板 Runtime 仍必须实现：
+模板 Runtime 阶段状态：Phase 1 已完成通用 ObjectRef 的 execution-local identity、顶层伪造拒绝和公共结果投影。Phase 2 仍必须实现 HighlightLease 专用 capability 生命周期：
 
 - 每次 execution 独立的 capability table，租约只能在本 execution 的 internal output 中传递；
 - 每 execution 最多 32 个活动租约，AI `durationMs <= 60000`；
 - cancel/timeout/finally 时逐一释放本 execution 持有的原始 handle；
-- 拒绝跨 execution 解引用、顶层参数伪造和公共输出句柄残留；
+- 拒绝跨 execution lease 解引用和公共输出句柄残留；
 - AI 只接收如 `{ applied, objectCount, expiresAt? }` 的有界回执。
 
 ## 当前模板迁移风险
 
 - 旧 `query-scene` 仍直接 traverse scene、读取 metadata 并创建 timer；现有审计通过不代表其满足严格 SSP 组合语义。
-- `clearAllHighlights` 仍是 AI-enabled legacy 模板，但公共 API 已明确为 host-only 紧急恢复；必须撤销 AI 直接暴露。
+- `clearAllHighlights` 的 legacy AI 暴露已在 Phase 1 撤销，v3 Manifest policy 同时硬拒绝该绑定；公共 API 继续仅供 host-only 紧急恢复。
 - 新模板应使用通用 GLB metadata 命名，不得引入面向单一 fixture 或行业的生产命名。
 - CR-SSP-001/003 的 SSP 实施已完成，但只有 Runtime capability、声明式组合和 AI policy 迁移完成后才算端到端关闭。
 

@@ -44,11 +44,11 @@
     }
   ],
   "code": "const list = ssp.objectsTool.getByUserDataProperty('renderType', 'CEILING'); list.forEach(o => ssp.objectsTool.setHighlight(o, '#ff0000', true)); console.log('alarm highlighted', list.length, 'objects (pulse)');",
-  "example": "/* 完整告警流程: 查对象 → 高亮(pulse=true) → 5 秒后取消 */\nconst color = '#ff1744';\nconst list = ssp.objectsTool.getByUserDataProperty('renderType', 'CEILING');\nlist.forEach(o => ssp.objectsTool.setHighlight(o, color, true));\nconsole.log(`alarm triggered: ${list.length} ceilings flashing in ${color}`);\n\n/* 5 秒后清除 */\nsetTimeout(() => ssp.objectsTool.clearAllHighlights(), 5000);",
+  "example": "/* 告警示例: 查对象 → legacy 高亮；生命周期由宿主逐对象释放 */\nconst color = '#ff1744';\nconst list = ssp.objectsTool.getByUserDataProperty('renderType', 'CEILING');\nlist.forEach(o => ssp.objectsTool.setHighlight(o, color, true));\nconsole.log(`alarm triggered: ${list.length} ceilings flashing in ${color}`);\n\n/* 结束时只释放本次对象；模板内不得创建 timer 或执行全局清理 */\nlist.forEach(o => ssp.objectsTool.unHighlight(o));",
   "guard": [
     "setHighlight 的第三个参数 pulse=true 时每 500ms 切换一次 emissive",
-    "要手动取消闪烁调 ssp.objectsTool.clearAllHighlights() (会清掉所有高亮)",
-    "或用 ssp.objectsTool.unHighlight(obj) 单个清"
+    "legacy 路径只能逐对象调用 unHighlight；Phase 2 改用 HighlightLease",
+    "模板内不得创建 timer，也不得执行宿主全局清理"
   ],
   "seeAlso": [
     "getObjectByUserDataProperty",

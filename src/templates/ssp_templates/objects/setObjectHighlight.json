@@ -15,7 +15,7 @@
   "returns": "void",
   "code": "const obj = ssp.objectsTool.getByUserDataProperty('renderType', 'WINDOW')[0]; if (!obj) console.warn('no target'); else { ssp.objectsTool.setHighlight(obj, '#29ccff', false); console.log('highlighted', obj.userData.sid ?? obj.name); }",
   "example": "const obj = ssp.objectsTool.getById('WINDOW_A_10F_1');\nif (obj) ssp.objectsTool.setHighlight(obj, '#29ccff', false);",
-  "guard": ["对象必须来自当前场景", "pulse 高亮需用 unHighlight 或 clearAllHighlights 停止"],
-  "seeAlso": ["unHighlightObject", "clearAllHighlights", "highlight-objects"],
+  "guard": ["对象必须来自当前场景", "legacy pulse 高亮只允许对本次对象调用 unHighlight；Phase 2 改用 HighlightLease"],
+  "seeAlso": ["unHighlightObject", "highlight-objects"],
   "tags": ["objects", "highlight", "atomic"]
 }

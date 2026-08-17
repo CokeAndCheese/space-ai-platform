@@ -1,4 +1,32 @@
-# 模板 JSON Schema (v2)
+# 模板 Schema（v3 current / v2 legacy）
+
+## v3 当前规范
+
+新模板只能写入 `src/templates/v3/atomic/<namespace>/<id>.json`，机器规范为
+`src/templates/v3/schema/template-v3.schema.json`。Phase 1 仅开放 `kind: "atomic"`：
+
+- 一个 atomic 模板恰好绑定一个 Manifest 允许的公开 SSP 方法；
+- `src/templates/manifest/v3-capability-contracts.json` 独立审批模板 id、每个参数 schema 与返回形态；缺失/空映射或 schema 不一致均硬失败；
+- `call.method` 是静态 `namespace.method`，`call.args` 只能使用 `$input` 或 `$literal`；
+- 不允许 `code`、`steps`、`flow`、`window`、`THREE`、Store 或动态方法名；
+- `input` / `output` 使用封闭 JSON Schema，object 必须声明 `additionalProperties:false`；
+- 同 ID 时 v3 始终遮蔽 v2，隐藏 v3 不会回退到 legacy；
+- `clearAllHighlights` 是宿主紧急恢复能力，Manifest policy 禁止建立 v3 模板。
+- 通用 `executeTemplate` 即使传 `aiOnly:false` 也拒绝 host-only；只有显式宿主动作适配器可执行紧急全局恢复。
+- `timeoutMs` 仅允许异步只读原子调用，语义是等待返回超时，不会取消底层 Promise；有副作用取消留到 Phase 2。
+
+当前首批迁移：`getViewpoint`、`setBackgroundColor`、`setFog`、`resetVisibility`。
+
+```bash
+npm run audit:v3
+npm run test:templates-v3
+npm run typecheck
+```
+
+下面的 v2 文档只用于维护尚未迁移的兼容模板；Phase 0 基线禁止新增或重命名含
+`code` 的 v2 文件。
+
+## v2 legacy 规范
 
 ## 文件命名 — 目录式
 
@@ -90,12 +118,11 @@ ssp_templates/<category>/<id>.json
 - 红色 = 报错 (模板 code 错 或 ssp-shim 缺 API)
 - 白色 = 成功
 
-## 加新模板的工作流
+## v2 兼容模板维护
 
-1. 在 `ssp_templates/<category>/<id>.json` 创建文件
-2. 按本 schema 写字段
-3. 打开 `/sandbox` 刷新（Sandbox 与 AI 共用同一个 Registry/Runtime）
-4. 选中 → 执行 → 看到预期效果
+1. 不得新增或重命名含 `code` 的 v2 模板；新能力按上面的 v3 规范实现。
+2. 修复既有 v2 时保持 id/path 不变，并运行 `npm run audit:phase0`。
+3. `/sandbox` 仍可用于未迁移 v2 的兼容验收。
 
 ---
 
@@ -116,7 +143,7 @@ ssp_templates/<category>/<id>.json
 "code": "const obj = ssp.objectsTool.getById('xxx'); if (obj) console.log(obj.name);"
 ```
 
-现在共享 TemplateRuntime 内部:
+现在 v2 兼容编译器 `legacyRuntime.ts` 内部：
 ```js
 new Function('ssp', 'THREE', 'params', `return (async () => { ${code} })();`)
 ```
@@ -144,7 +171,7 @@ new Function('ssp', 'THREE', 'params', `return (async () => { ${code} })();`)
 | **合计** | **79** |
 
 审计封版结果为 active `79`、placeholder `0`、组合模板 `4`、`aiEnabled:true`
-`9`。Topology 的 23 个模板对应 7 个 legacy + 16 个 v2 callable 原子方法，全部
+`8`。Topology 的 23 个模板对应 7 个 legacy + 16 个 v2 callable 原子方法，全部
 显式 `aiEnabled:false`；AI 若需完成消防路线等任务，应调用经过参数校验的高层
 组合模板，不应直接选择 topology 原子模板。
 

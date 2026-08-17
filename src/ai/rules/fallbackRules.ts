@@ -74,15 +74,6 @@ const RULES: FallbackRule[] = [
     }),
   },
   {
-    name: 'system-clear-highlight',
-    pattern: /^__clear_highlight__$/,
-    build: () => ({
-      action: 'template',
-      templateId: 'clearAllHighlights',
-      params: {},
-    }),
-  },
-  {
     name: 'system-reset-visibility',
     pattern: /^__reset_visibility__$/,
     build: () => ({
@@ -590,11 +581,6 @@ const RULES: FallbackRule[] = [
     name: 'show-help',
     pattern: /(帮助|help|你能做什么|怎么用|介绍)/i,
     build: () => ({ action: 'template', templateId: 'help', params: {} }),
-  },
-  {
-    name: 'clear-highlights',
-    pattern: /(清空|清除|取消)\s*高亮/i,
-    build: () => ({ action: 'template', templateId: 'clearAllHighlights', params: {} }),
   },
 ]
 

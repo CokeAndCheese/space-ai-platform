@@ -1,60 +1,27 @@
-import * as THREE from 'three'
-import { ssp } from '@/ssp'
-import { templateRegistry } from './registry'
-import type { TemplateDefinition } from './types'
+import {
+  executeLegacyTemplate,
+  type ExecuteLegacyTemplateOptions,
+} from './legacyRuntime'
+import { v3TemplateRegistry } from './v3/appRegistry'
+import { v3TemplateRuntime } from './v3/appRuntime'
 
-type CompiledTemplate = (
-  sspNamespace: typeof ssp,
-  threeNamespace: typeof THREE,
-  params: Readonly<Record<string, unknown>>,
-) => Promise<unknown>
+export interface ExecuteTemplateOptions extends ExecuteLegacyTemplateOptions {}
 
-export interface ExecuteTemplateOptions {
-  /** Only templates explicitly exposed to AI may run. Defaults to true. */
-  aiOnly?: boolean
-  /** Sandbox can run fixed examples without supplying documented parameters. */
-  validateParams?: boolean
-}
-
-const compiledTemplates = new Map<string, CompiledTemplate>()
-
-function compileTemplate(definition: Readonly<TemplateDefinition>): CompiledTemplate {
-  const cached = compiledTemplates.get(definition.id)
-  if (cached) return cached
-
-  // Templates are trusted, bundled project files. User/LLM generated code is never compiled.
-  const factory = new Function(
-    'ssp',
-    'THREE',
-    'params',
-    `"use strict"; return (async () => { ${definition.code}\n})();`,
-  ) as CompiledTemplate
-  compiledTemplates.set(definition.id, factory)
-  return factory
-}
-
+/**
+ * Transitional v3-first dispatcher. A registered v3 id always shadows v2;
+ * the legacy compiler is reachable only for ids that have not migrated yet.
+ */
 export async function executeTemplate(
   templateId: string,
   params: Record<string, unknown> = {},
   options: ExecuteTemplateOptions = {},
 ): Promise<unknown> {
-  const aiOnly = options.aiOnly ?? true
-  const definition = templateRegistry.require(templateId)
-  if (aiOnly && definition.aiEnabled !== true) {
-    throw new Error(`[templates] template is not AI-enabled: ${definition.id}`)
+  if (v3TemplateRegistry.has(templateId)) {
+    return v3TemplateRuntime.execute(templateId, params, {
+      aiOnly: options.aiOnly ?? true,
+    })
   }
-
-  const shouldValidate = options.validateParams ?? aiOnly
-  const prepared = shouldValidate
-    ? templateRegistry.prepareParams(definition, params, true)
-    : { ...params }
-
-  try {
-    return await compileTemplate(definition)(ssp, THREE, Object.freeze(prepared))
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`[template:${definition.id}] ${message}`)
-  }
+  return executeLegacyTemplate(templateId, params, options)
 }
 
 export const templateRuntime = Object.freeze({ execute: executeTemplate })

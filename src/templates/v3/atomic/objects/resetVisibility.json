@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 3,
+  "id": "resetVisibility",
+  "version": "1.0.0",
+  "kind": "atomic",
+  "title": "重置对象可见性",
+  "description": "恢复场景对象的可见性并返回恢复统计。",
+  "intents": ["重置显示", "恢复全部显示", "还原对象可见性"],
+  "input": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "output": {
+    "type": "object",
+    "required": ["restored", "hiddenBefore"],
+    "properties": {
+      "restored": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+      "hiddenBefore": { "type": "integer", "minimum": 0, "maximum": 1000000 }
+    },
+    "additionalProperties": false
+  },
+  "effects": ["object.visibility"],
+  "risk": "visual",
+  "ai": { "exposed": true },
+  "call": {
+    "method": "objectsTool.resetVisibility",
+    "args": [],
+    "result": { "kind": "direct" }
+  }
+}

@@ -8,10 +8,12 @@ import { fileURLToPath } from 'node:url'
 const scriptDir = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(scriptDir, '..')
 const templateRoot = path.join(root, 'src/templates/ssp_templates')
+const v3AtomicRoot = path.join(root, 'src/templates/v3/atomic')
 const manifestDir = path.join(root, 'src/templates/manifest')
 const docsGeneratedDir = path.join(root, 'docs/generated')
 const manifestFile = path.join(manifestDir, 'ssp-capabilities.generated.json')
 const baselineFile = path.join(manifestDir, 'v2-template-baseline.json')
+const v3CapabilityContractsFile = path.join(manifestDir, 'v3-capability-contracts.json')
 const reportFile = path.join(docsGeneratedDir, 'TEMPLATE_PHASE0_INVENTORY.md')
 const requestFile = path.join(root, 'docs/SSP_CHANGE_REQUEST_PHASE0.md')
 
@@ -19,6 +21,10 @@ const args = new Set(process.argv.slice(2))
 const shouldWrite = args.has('--write')
 const shouldCheck = args.has('--check')
 const shouldInitBaseline = args.has('--init-baseline')
+
+const TEMPLATE_POLICY_OVERRIDES = Object.freeze({
+  'objectsTool.clearAllHighlights': 'host-only',
+})
 
 const SSP_PHASE0_IMPLEMENTATION = Object.freeze({
   verifiedDate: '2026-08-14',
@@ -36,7 +42,12 @@ const SSP_PHASE0_IMPLEMENTATION = Object.freeze({
     'maximum 32 active highlight leases per execution',
     'AI durationMs maximum 60000',
     'release execution-owned leases on cancel or timeout',
-    'project, redact, bound, and serialize every public result',
+  ]),
+  runtimeCompleted: Object.freeze([
+    'closed v3 atomic schema and static manifest-gated dispatch',
+    'execution-local opaque ObjectRef',
+    'project, redact, bound, and serialize every v3 public result',
+    'v3-first registry with legacy fallback for unmigrated ids',
   ]),
   validationEvidence: Object.freeze([
     'test:objects (13 cases)',
@@ -254,6 +265,83 @@ function walkJson(directory) {
     if (entry.isDirectory()) return walkJson(target)
     return entry.isFile() && entry.name.endsWith('.json') ? [target] : []
   }).sort()
+}
+
+function loadV3CapabilityContracts(capabilities) {
+  const source = fs.readFileSync(v3CapabilityContractsFile, 'utf8')
+  const document = JSON.parse(source)
+  if (document?.schemaVersion !== 1 || !document.capabilities || Array.isArray(document.capabilities)) {
+    throw new Error('v3 capability contracts must declare schemaVersion=1 and a capabilities object')
+  }
+
+  const capabilityById = new Map(capabilities.map((item) => [`${item.namespace}.${item.name}`, item]))
+  const atomicTemplates = walkJson(v3AtomicRoot).map((file) => {
+    const definition = JSON.parse(fs.readFileSync(file, 'utf8'))
+    if (definition?.schemaVersion !== 3 || definition?.kind !== 'atomic' || typeof definition.id !== 'string' || typeof definition.call?.method !== 'string') {
+      throw new Error(`Invalid v3 atomic declaration: ${relative(file)}`)
+    }
+    return { id: definition.id, method: definition.call.method, file: relative(file) }
+  })
+  const ids = new Set(atomicTemplates.map((item) => item.id))
+  const methods = new Set(atomicTemplates.map((item) => item.method))
+  if (ids.size !== atomicTemplates.length || methods.size !== atomicTemplates.length) {
+    throw new Error('v3 atomic templates must have unique ids and method bindings')
+  }
+
+  const contracts = new Map()
+  for (const [capabilityId, contract] of Object.entries(document.capabilities)) {
+    const capability = capabilityById.get(capabilityId)
+    if (!capability) throw new Error(`Unknown SSP method in v3 capability contracts: ${capabilityId}`)
+    if (!contract || typeof contract !== 'object' || Array.isArray(contract)) throw new Error(`Malformed v3 capability contract: ${capabilityId}`)
+    if (!Array.isArray(contract.templateIds) || contract.templateIds.length === 0 || contract.templateIds.some((id) => typeof id !== 'string')) {
+      throw new Error(`${capabilityId}: atomic contract templateIds must be non-empty strings`)
+    }
+    if (new Set(contract.templateIds).size !== contract.templateIds.length) throw new Error(`${capabilityId}: duplicate atomic contract template id`)
+    if (!Array.isArray(contract.args) || contract.args.length !== capability.params.length) {
+      throw new Error(`${capabilityId}: atomic contract must describe all ${capability.params.length} SSP parameters`)
+    }
+    contract.args.forEach((argument, index) => {
+      if (!argument || typeof argument !== 'object' || Array.isArray(argument) || typeof argument.required !== 'boolean' || !argument.schema || typeof argument.schema !== 'object' || Array.isArray(argument.schema)) {
+        throw new Error(`${capabilityId}: malformed atomic argument contract at index ${index}`)
+      }
+      if (argument.required !== capability.params[index].required) {
+        throw new Error(`${capabilityId}: atomic argument required flag differs from SSP parameter ${capability.params[index].name}`)
+      }
+    })
+    const resultKind = contract.result?.kind
+    if (!['public-data', 'void', 'object-ref', 'object-ref-array'].includes(resultKind)) {
+      throw new Error(`${capabilityId}: unsupported atomic result contract`)
+    }
+    if (resultKind === 'public-data' && (!contract.result.schema || typeof contract.result.schema !== 'object' || Array.isArray(contract.result.schema))) {
+      throw new Error(`${capabilityId}: public-data result requires a schema`)
+    }
+    const unwrappedReturn = capability.returnType.trim().replace(/^Promise<([\s\S]+)>$/, '$1').trim()
+    const returnsVoid = unwrappedReturn === 'void' || unwrappedReturn === 'undefined'
+    if ((resultKind === 'void') !== returnsVoid) {
+      throw new Error(`${capabilityId}: atomic result kind ${resultKind} conflicts with SSP return ${capability.returnType}`)
+    }
+    contracts.set(capabilityId, contract)
+  }
+
+  for (const template of atomicTemplates) {
+    const contract = contracts.get(template.method)
+    if (!contract || !contract.templateIds.includes(template.id)) {
+      throw new Error(`${template.file}: v3 template is not approved by an independent capability contract`)
+    }
+  }
+  for (const [capabilityId, contract] of contracts) {
+    for (const templateId of contract.templateIds) {
+      const template = atomicTemplates.find((item) => item.id === templateId)
+      if (!template || template.method !== capabilityId) {
+        throw new Error(`${capabilityId}: atomic contract references missing or mismatched template ${templateId}`)
+      }
+    }
+  }
+
+  return {
+    contracts,
+    digest: sha256(source),
+  }
 }
 
 function uniqueSorted(values) {
@@ -513,6 +601,7 @@ function loadBaseline() {
 function buildInventory() {
   const capabilities = buildCapabilities()
   const capabilityIds = new Set(capabilities.map((item) => `${item.namespace}.${item.name}`))
+  const v3Contracts = loadV3CapabilityContracts(capabilities)
   const aliasProbe = extractSspCalls(
     "const tool = ssp.objectsTool; tool.getById('x'); tool['getById']('b'); tool?.['getById']('c'); const asiTool = ssp.objectsTool\n asiTool.getById('asi'); const list = ssp.objectsTool.getById('y'); list.forEach(() => {}); ssp.objectsTool?.getById('z'); ssp.objectsTool?.['getById']('optional-bracket'); ssp.objectsTool.__unknown__(); ssp.objectsTool?.__unknown_optional__(); ssp.objectsTool['__unknown_bracket__'](); ssp.objectsTool?.['__unknown_optional_bracket__'](); tool['__unknown_alias__'](); tool?.[dynamicAliasMethod](); ssp.objectsTool[dynamicMethod](); ssp.objectsTool?.[dynamicOptionalMethod](); const indirect = ssp.objectsTool.getById; const { getById } = ssp.objectsTool; `${ssp.objectsTool.getById('template')}`; 'ssp.objectsTool.__string_only__()'; /* ssp.objectsTool.__comment_only__() */",
     capabilityIds,
@@ -546,13 +635,21 @@ function buildInventory() {
   const enrichedCapabilities = capabilities.map((item) => {
     const id = `${item.namespace}.${item.name}`
     const legacyReferences = uniqueSorted(referencedBy.get(id) ?? [])
-    const mappedTemplates = uniqueSorted(acceptableReferences.get(id) ?? [])
+    const legacyMappedTemplates = uniqueSorted(acceptableReferences.get(id) ?? [])
+    const atomicContract = v3Contracts.contracts.get(id)
+    const mappedTemplates = uniqueSorted([
+      ...legacyMappedTemplates,
+      ...(atomicContract?.templateIds ?? []),
+    ])
     const appDependentTemplates = uniqueSorted(appDependentReferences.get(id) ?? [])
     const classification = mappedTemplates.length > 0
       ? 'mapped'
       : appDependentTemplates.length > 0
         ? 'blocked'
         : 'host-only'
+    const templatePolicy = TEMPLATE_POLICY_OVERRIDES[id] ?? (
+      classification === 'mapped' ? 'allowed' : classification
+    )
     return {
       id,
       namespace: item.namespace,
@@ -564,12 +661,16 @@ function buildInventory() {
       source: item.source,
       declaredIn: item.declaredIn,
       classification,
+      templatePolicy,
       classificationReason: classification === 'mapped'
-        ? 'Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.'
+        ? atomicContract
+          ? 'Approved by a reviewed v3 machine contract; this does not imply AI exposure.'
+          : 'Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.'
         : classification === 'blocked'
           ? 'Referenced only by app-dependent legacy v2 code; a reviewed SSP-only mapping is required.'
           : 'No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.',
       mappedTemplates,
+      ...(atomicContract ? { atomicContract } : {}),
       appDependentTemplates,
       legacyReferences,
     }
@@ -606,12 +707,12 @@ function buildInventory() {
     expectedMethodsAfterIntegration: SSP_PHASE0_IMPLEMENTATION.expectedMethodsAfterIntegration,
     addedCapabilities: implementationMethodPresence,
     runtimeMigration: {
-      status: 'pending',
+      status: 'phase1-atomic-complete-phase2-lease-pending',
+      completed: [...SSP_PHASE0_IMPLEMENTATION.runtimeCompleted],
       obligations: [...SSP_PHASE0_IMPLEMENTATION.runtimeObligations],
     },
     knownLegacyBlockers: [
       'query-scene still traverses scene, reads metadata, and creates timers in legacy code',
-      'clearAllHighlights remains an AI-enabled legacy template although the API is host emergency only',
     ],
     upstreamValidationEvidence: [...SSP_PHASE0_IMPLEMENTATION.validationEvidence],
   }
@@ -619,6 +720,7 @@ function buildInventory() {
     schemaVersion: 0,
     phase: 'template-layer-phase-0',
     sourceDigest: sha256(sourceFiles.map((file) => `${file}\n${read(file)}`).join('\n')),
+    v3CapabilityContractDigest: v3Contracts.digest,
     sspImplementationHandoff: implementationHandoff,
     summary: {
       controllers: CONTROLLERS.length,
@@ -654,6 +756,7 @@ function renderReport(data) {
   const duplicatedReferences = capabilities.filter((item) => item.mappedTemplates.length > 1)
   const queryScene = templates.find((item) => item.id === 'query-scene')
   const clearAllHighlights = templates.find((item) => item.id === 'clearAllHighlights')
+  const clearAllHighlightsCapability = capabilities.find((item) => item.id === 'objectsTool.clearAllHighlights')
   const integratedAddedMethods = implementationHandoff.addedCapabilities.filter((item) => item.presentInCheckout).length
   const lines = [
     '# Template Layer Phase 0 Inventory',
@@ -684,7 +787,8 @@ function renderReport(data) {
     `- 已实施公共方法：${implementationHandoff.addedCapabilities.map((item) => `\`${item.id}\``).join(', ')}`,
     '- 当前清单只把本 checkout 中实际存在的方法计入 Capability classification，不伪造尚未合入此 checkout 的源码能力。',
     `- \`query-scene\` 当前状态：${queryScene?.classification ?? 'missing'}; dependencies=[${queryScene?.dependencies.join(', ') || 'none'}]。必须迁移为 \`query -> describe/action\`，不得再遍历 scene、直读 metadata 或创建 timer。`,
-    `- \`clearAllHighlights\` 当前状态：aiEnabled=${clearAllHighlights?.aiEnabled === true}; classification=${clearAllHighlights?.classification ?? 'missing'}。该 SSP API 仅供宿主紧急全局恢复，AI/template 必须撤销直接调用。`,
+    `- \`clearAllHighlights\` 当前状态：aiEnabled=${clearAllHighlights?.aiEnabled === true}; classification=${clearAllHighlights?.classification ?? 'missing'}; templatePolicy=${clearAllHighlightsCapability?.templatePolicy ?? 'missing'}。legacy AI 暴露已撤销，v3 Manifest policy 也拒绝绑定；该 SSP API 仅供宿主紧急全局恢复。`,
+    '- Runtime 已完成：' + implementationHandoff.runtimeMigration.completed.join('；') + '。',
     '- Runtime 待办：' + implementationHandoff.runtimeMigration.obligations.join('；') + '。',
     '- 主任务验证记录：' + implementationHandoff.upstreamValidationEvidence.join('、') + '。',
     '',
@@ -803,18 +907,18 @@ releaseHighlight(lease: HighlightLease): boolean
 - legacy \`setHighlight/unHighlight/clearAllHighlights\` 接入同一状态引擎；\`setHighlight/unHighlight\` 兼容 detached/no-context，\`unHighlight\` 只释放 legacy owner layer。
 - \`clearAllHighlights\` 仅保留为宿主紧急全局恢复能力，AI/template 和补偿流程不得直接调用。
 
-模板 Runtime 仍必须实现：
+模板 Runtime 阶段状态：Phase 1 已完成通用 ObjectRef 的 execution-local identity、顶层伪造拒绝和公共结果投影。Phase 2 仍必须实现 HighlightLease 专用 capability 生命周期：
 
 - 每次 execution 独立的 capability table，租约只能在本 execution 的 internal output 中传递；
 - 每 execution 最多 32 个活动租约，AI \`durationMs <= 60000\`；
 - cancel/timeout/finally 时逐一释放本 execution 持有的原始 handle；
-- 拒绝跨 execution 解引用、顶层参数伪造和公共输出句柄残留；
+- 拒绝跨 execution lease 解引用和公共输出句柄残留；
 - AI 只接收如 \`{ applied, objectCount, expiresAt? }\` 的有界回执。
 
 ## 当前模板迁移风险
 
 - 旧 \`query-scene\` 仍直接 traverse scene、读取 metadata 并创建 timer；现有审计通过不代表其满足严格 SSP 组合语义。
-- \`clearAllHighlights\` 仍是 AI-enabled legacy 模板，但公共 API 已明确为 host-only 紧急恢复；必须撤销 AI 直接暴露。
+- \`clearAllHighlights\` 的 legacy AI 暴露已在 Phase 1 撤销，v3 Manifest policy 同时硬拒绝该绑定；公共 API 继续仅供 host-only 紧急恢复。
 - 新模板应使用通用 GLB metadata 命名，不得引入面向单一 fixture 或行业的生产命名。
 - CR-SSP-001/003 的 SSP 实施已完成，但只有 Runtime capability、声明式组合和 AI policy 迁移完成后才算端到端关闭。
 

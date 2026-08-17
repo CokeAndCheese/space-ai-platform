@@ -1,12 +1,12 @@
 # AI 层设计（v0.1 历史方案 + 当前实现状态）
 
-> 最后核对：2026-08-10
+> 最后核对：2026-08-17
 >
 > 本文第 0-11 节保留 2026-07-29 的方案推演和取舍背景，不应直接当作当前
 > 实现契约。当前代码已经落地，且以下决策覆盖旧方案：
 >
 > - 模型只输出 `{ action: "template", templateId, params }`，不能输出或执行代码。
-> - AI 只面对 Registry 中 9 个 `aiEnabled:true` 模板；其余 70 个模板不可由 AI 调用。
+> - AI 只面对统一 Registry 中 8 个显式开放模板；v3 的 `resetVisibility` 同 ID 遮蔽 legacy，`clearAllHighlights` 为 host-only。
 > - `PlanExecutor` 只调用 `templateRuntime.execute(..., { aiOnly:true })`，不直接访问 SSP。
 > - 浏览器只请求同源 `/api/llm/chat/completions`；API Key 不进入浏览器配置或 localStorage。
 > - 当前模板总数为 79，全部 active、0 placeholder；数量以 `npm run audit:templates` 为准。
@@ -75,7 +75,7 @@
 
 **模块边界原则** (受 Hermes narrow waist 启发, **严格遵守**):
 - ✅ `src/ai/` 完全独立, 不污染 ssp-shim
-- 🕓 历史设想是 8 个 objects templates；当前实现改为 Registry 中 9 个 AI-enabled 模板，且 AI 不直接接触 objectsTool
+- ✅ 当前统一目录有 8 个 AI 模板，首批 4 个 v3 atomic 由 Manifest machine contract 约束，且 AI 不直接接触 objectsTool
 - ❌ 不在 ssp-shim 加任何 AI 相关 API
 - ❌ 不引入 LangChain / Vercel AI SDK (过度依赖)
 - ❌ 不在 ssp-shim 加新工具, 除非是为所有用户 (而非仅为 AI) 服务
@@ -681,20 +681,23 @@ UI 加一个"查看审计日志"按钮,弹窗展示最近 100 条,支持重放�
 - src/views/ChatPanel.vue                    # AI 对话 UI
 - docs/AI_LAYER_DESIGN.md                    # 本文档
 
-当前 AI-enabled 模板（9 个）:
+当前统一 AI 目录（8 个）:
 - camera/captureMainViewpoint.json
 - camera/fitScene.json
 - camera/flyToMainViewpoint.json
-- objects/clearAllHighlights.json
 - objects/collapse-floor.json
 - objects/explode-floor.json
 - objects/query-scene.json
 - objects/resetVisibility.json
 - scene/help.json
 
+其中 `resetVisibility` 由同 ID v3 原子模板遮蔽 legacy；`clearAllHighlights` 是
+host-only 紧急恢复动作，只能由显式宿主适配器调用，不进入 Intent、fallback 或 AI 目录。
+
 边界与注册表:
-- src/templates/registry.ts                  # 唯一模板注册表 + AI 白名单
-- src/templates/runtime.ts                   # 受信任模板执行器
+- src/templates/catalog.ts                   # v3-first 统一目录 + AI 白名单
+- src/templates/runtime.ts                   # v3-first 执行器；未迁移 id 才回退 legacy
+- src/templates/v3/                          # Manifest 约束的声明式原子 Runtime
 - scripts/audit-ai-boundary.mjs              # AI 不得越过 templates 的静态审计
 ```
 
@@ -715,10 +718,10 @@ UI 加一个"查看审计日志"按钮,弹窗展示最近 100 条,支持重放�
 | **Phase 5: 多轮** | chatContext + 楼层上下文补全 | ✅ |
 | **Phase 6: Audit + 重放** | IntentLogger + UI | ✅ |
 | **Phase 7: 缓存** | 原始 Intent 缓存 + 每次会话重新补全 | ✅ |
-| **Phase 8: 模板边界** | 9 个 AI 模板 + 70 个非 AI 模板 | ✅ |
+| **Phase 8: 模板边界** | 统一目录 8 个 AI 模板；4 个 ID 已有 v3 atomic 路径 | ✅ |
 
-下一阶段不是继续扩张 AI schema，而是在 templates/适配层增加真实业务组合，例如
-Hospital 消防进攻路线；低层 topology 原子模板仍保持 `aiEnabled:false`。
+下一阶段不是继续扩张 AI schema，而是在 templates/适配层增加通用 GLB 场景业务组合；
+低层 topology 原子模板仍保持 `aiEnabled:false`。
 
 ---
 

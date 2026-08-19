@@ -1,0 +1,5205 @@
+{
+  "schemaVersion": 0,
+  "phase": "template-layer-phase-0",
+  "sourceDigest": "0f489dd4ccb8fb4e621c4b7512d0e88f17d248fada5e3b040233d7ed91c6436b",
+  "v3CapabilityContractDigest": "5e9b8285787766c577b99f1348906ee0f4a1a6d9eb6df06018f7a06e7ac04117",
+  "sspImplementationHandoff": {
+    "verifiedDate": "2026-08-14",
+    "status": "implemented-upstream-template-runtime-migration-pending",
+    "sourceIntegration": "integrated-in-current-checkout",
+    "expectedMethodsAfterIntegration": 85,
+    "addedCapabilities": [
+      {
+        "id": "objectsTool.query",
+        "presentInCheckout": true
+      },
+      {
+        "id": "objectsTool.describe",
+        "presentInCheckout": true
+      },
+      {
+        "id": "objectsTool.applyHighlight",
+        "presentInCheckout": true
+      },
+      {
+        "id": "objectsTool.releaseHighlight",
+        "presentInCheckout": true
+      }
+    ],
+    "runtimeMigration": {
+      "status": "phase1-atomic-complete-phase2-lease-pending",
+      "completed": [
+        "closed v3 atomic schema and static manifest-gated dispatch",
+        "execution-local opaque ObjectRef",
+        "project, redact, bound, and serialize every v3 public result",
+        "v3-first registry with legacy fallback for unmigrated ids"
+      ],
+      "obligations": [
+        "execution-local capability table",
+        "maximum 32 active highlight leases per execution",
+        "AI durationMs maximum 60000",
+        "release execution-owned leases on cancel or timeout"
+      ]
+    },
+    "knownLegacyBlockers": [
+      "query-scene still traverses scene, reads metadata, and creates timers in legacy code"
+    ],
+    "upstreamValidationEvidence": [
+      "test:objects (13 cases)",
+      "typecheck",
+      "test:topology",
+      "audit:topology-boundary",
+      "audit:templates",
+      "audit:ai-boundary",
+      "build"
+    ]
+  },
+  "summary": {
+    "controllers": 10,
+    "methods": 85,
+    "classifications": {
+      "mapped": 71,
+      "host-only": 13,
+      "blocked": 1,
+      "deprecated": 0,
+      "unclassified": 0
+    }
+  },
+  "capabilities": [
+    {
+      "id": "cameraController.fitScene",
+      "namespace": "cameraController",
+      "method": "fitScene",
+      "signature": "fitScene(objects: Array<THREE.Object3D | null | undefined>, opts?: FitSceneOptions): Promise<{ position: Vec3Like; target: Vec3Like; distance: number }>",
+      "params": [
+        {
+          "name": "objects",
+          "required": true,
+          "type": "Array<THREE.Object3D | null | undefined>"
+        },
+        {
+          "name": "opts",
+          "required": false,
+          "type": "FitSceneOptions"
+        }
+      ],
+      "returnType": "Promise<{ position: Vec3Like; target: Vec3Like; distance: number }>",
+      "async": true,
+      "source": "src/ssp/camera/cameraController.ts:136",
+      "declaredIn": "CameraController",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "fitScene"
+      ],
+      "appDependentTemplates": [
+        "flyToMainViewpoint",
+        "query-scene"
+      ],
+      "legacyReferences": [
+        "fitScene",
+        "flyToMainViewpoint",
+        "query-scene"
+      ]
+    },
+    {
+      "id": "cameraController.flyTo",
+      "namespace": "cameraController",
+      "method": "flyTo",
+      "signature": "flyTo(position: Vec3Like, opt?: FlyToOptions): Promise<void>",
+      "params": [
+        {
+          "name": "position",
+          "required": true,
+          "type": "Vec3Like"
+        },
+        {
+          "name": "opt",
+          "required": false,
+          "type": "FlyToOptions"
+        }
+      ],
+      "returnType": "Promise<void>",
+      "async": true,
+      "source": "src/ssp/camera/cameraController.ts:121",
+      "declaredIn": "CameraController",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "flyTo"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "flyTo"
+      ]
+    },
+    {
+      "id": "cameraController.flyToObject",
+      "namespace": "cameraController",
+      "method": "flyToObject",
+      "signature": "flyToObject(idOrObj: string | THREE.Object3D, opt?: FlyToOptions): Promise<void>",
+      "params": [
+        {
+          "name": "idOrObj",
+          "required": true,
+          "type": "string | THREE.Object3D"
+        },
+        {
+          "name": "opt",
+          "required": false,
+          "type": "FlyToOptions"
+        }
+      ],
+      "returnType": "Promise<void>",
+      "async": true,
+      "source": "src/ssp/camera/cameraController.ts:122",
+      "declaredIn": "CameraController",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "floor",
+        "fly-to-floor",
+        "flyToObject",
+        "focus-on-object"
+      ],
+      "appDependentTemplates": [
+        "highlightIsolate",
+        "query-scene"
+      ],
+      "legacyReferences": [
+        "floor",
+        "fly-to-floor",
+        "flyToObject",
+        "focus-on-object",
+        "highlightIsolate",
+        "query-scene"
+      ]
+    },
+    {
+      "id": "cameraController.getViewpoint",
+      "namespace": "cameraController",
+      "method": "getViewpoint",
+      "signature": "getViewpoint(): Viewpoint",
+      "params": [],
+      "returnType": "Viewpoint",
+      "async": false,
+      "source": "src/ssp/camera/cameraController.ts:124",
+      "declaredIn": "CameraController",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Approved by a reviewed v3 machine contract; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "getViewpoint"
+      ],
+      "atomicContract": {
+        "templateIds": [
+          "getViewpoint"
+        ],
+        "args": [],
+        "result": {
+          "kind": "public-data",
+          "schema": {
+            "type": "object",
+            "required": [
+              "position",
+              "target",
+              "fov"
+            ],
+            "properties": {
+              "position": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  },
+                  "y": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  },
+                  "z": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  }
+                },
+                "additionalProperties": false
+              },
+              "target": {
+                "type": "object",
+                "required": [
+                  "x",
+                  "y",
+                  "z"
+                ],
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  },
+                  "y": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  },
+                  "z": {
+                    "type": "number",
+                    "minimum": -1000000,
+                    "maximum": 1000000
+                  }
+                },
+                "additionalProperties": false
+              },
+              "fov": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 180
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "appDependentTemplates": [
+        "captureMainViewpoint"
+      ],
+      "legacyReferences": [
+        "captureMainViewpoint",
+        "getViewpoint"
+      ]
+    },
+    {
+      "id": "cameraController.setViewpoint",
+      "namespace": "cameraController",
+      "method": "setViewpoint",
+      "signature": "setViewpoint(vp: Viewpoint): void",
+      "params": [
+        {
+          "name": "vp",
+          "required": true,
+          "type": "Viewpoint"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/camera/cameraController.ts:123",
+      "declaredIn": "CameraController",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "setViewpoint"
+      ],
+      "appDependentTemplates": [
+        "flyToMainViewpoint"
+      ],
+      "legacyReferences": [
+        "flyToMainViewpoint",
+        "setViewpoint"
+      ]
+    },
+    {
+      "id": "cameraController.surroundOnTarget",
+      "namespace": "cameraController",
+      "method": "surroundOnTarget",
+      "signature": "surroundOnTarget(target: THREE.Object3D, opts?: SurroundOptions): () => void",
+      "params": [
+        {
+          "name": "target",
+          "required": true,
+          "type": "THREE.Object3D"
+        },
+        {
+          "name": "opts",
+          "required": false,
+          "type": "SurroundOptions"
+        }
+      ],
+      "returnType": "() => void",
+      "async": false,
+      "source": "src/ssp/camera/cameraController.ts:129",
+      "declaredIn": "CameraController",
+      "classification": "blocked",
+      "templatePolicy": "blocked",
+      "classificationReason": "Referenced only by app-dependent legacy v2 code; a reviewed SSP-only mapping is required.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [
+        "surroundOnTarget"
+      ],
+      "legacyReferences": [
+        "surroundOnTarget"
+      ]
+    },
+    {
+      "id": "cssTool.createCSS2DObject",
+      "namespace": "cssTool",
+      "method": "createCSS2DObject",
+      "signature": "createCSS2DObject(opts?: CSS2DOptions): CSS2DObjectHandle",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "CSS2DOptions"
+        }
+      ],
+      "returnType": "CSS2DObjectHandle",
+      "async": false,
+      "source": "src/ssp/css/cssTool.ts:67",
+      "declaredIn": "CSSTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "css2dLabel"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "css2dLabel"
+      ]
+    },
+    {
+      "id": "cssTool.list",
+      "namespace": "cssTool",
+      "method": "list",
+      "signature": "list(): CSS2DObjectHandle[]",
+      "params": [],
+      "returnType": "CSS2DObjectHandle[]",
+      "async": false,
+      "source": "src/ssp/css/cssTool.ts:69",
+      "declaredIn": "CSSTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "cssTool.removeAll",
+      "namespace": "cssTool",
+      "method": "removeAll",
+      "signature": "removeAll(): number",
+      "params": [],
+      "returnType": "number",
+      "async": false,
+      "source": "src/ssp/css/cssTool.ts:68",
+      "declaredIn": "CSSTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeAllLabels"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeAllLabels"
+      ]
+    },
+    {
+      "id": "helperTool.addAxes",
+      "namespace": "helperTool",
+      "method": "addAxes",
+      "signature": "addAxes(opts?: AxesHelperOptions): { id: string; helper: THREE.AxesHelper }",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "AxesHelperOptions"
+        }
+      ],
+      "returnType": "{ id: string; helper: THREE.AxesHelper }",
+      "async": false,
+      "source": "src/ssp/helper/helperTool.ts:66",
+      "declaredIn": "HelperTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "addAxes"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "addAxes"
+      ]
+    },
+    {
+      "id": "helperTool.addGrid",
+      "namespace": "helperTool",
+      "method": "addGrid",
+      "signature": "addGrid(opts?: GridHelperOptions): { id: string; helper: THREE.GridHelper }",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "GridHelperOptions"
+        }
+      ],
+      "returnType": "{ id: string; helper: THREE.GridHelper }",
+      "async": false,
+      "source": "src/ssp/helper/helperTool.ts:67",
+      "declaredIn": "HelperTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "addGrid"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "addGrid"
+      ]
+    },
+    {
+      "id": "helperTool.removeAll",
+      "namespace": "helperTool",
+      "method": "removeAll",
+      "signature": "removeAll(): void",
+      "params": [],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/helper/helperTool.ts:68",
+      "declaredIn": "HelperTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeHelpers"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeHelpers"
+      ]
+    },
+    {
+      "id": "lightTool.createAmbientLight",
+      "namespace": "lightTool",
+      "method": "createAmbientLight",
+      "signature": "createAmbientLight(opts?: AmbientLightOptions): LightHandle",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "AmbientLightOptions"
+        }
+      ],
+      "returnType": "LightHandle",
+      "async": false,
+      "source": "src/ssp/light/lightTool.ts:82",
+      "declaredIn": "LightTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "createAmbientLight",
+        "removeLight",
+        "setAmbientLight"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "createAmbientLight",
+        "removeLight",
+        "setAmbientLight"
+      ]
+    },
+    {
+      "id": "lightTool.createDirectionalLight",
+      "namespace": "lightTool",
+      "method": "createDirectionalLight",
+      "signature": "createDirectionalLight(opts?: DirectionalLightOptions): LightHandle",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "DirectionalLightOptions"
+        }
+      ],
+      "returnType": "LightHandle",
+      "async": false,
+      "source": "src/ssp/light/lightTool.ts:83",
+      "declaredIn": "LightTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "createDirectionalLight"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "createDirectionalLight"
+      ]
+    },
+    {
+      "id": "lightTool.removeLight",
+      "namespace": "lightTool",
+      "method": "removeLight",
+      "signature": "removeLight(id?: string): number",
+      "params": [
+        {
+          "name": "id",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "returnType": "number",
+      "async": false,
+      "source": "src/ssp/light/lightTool.ts:85",
+      "declaredIn": "LightTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeLight"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeLight"
+      ]
+    },
+    {
+      "id": "modelTool.getFloorInfo",
+      "namespace": "modelTool",
+      "method": "getFloorInfo",
+      "signature": "getFloorInfo(floorName: string): FloorInfo | undefined",
+      "params": [
+        {
+          "name": "floorName",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "FloorInfo | undefined",
+      "async": false,
+      "source": "src/ssp/model/modelTool.ts:139",
+      "declaredIn": "ModelTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "fitScene",
+        "flyToObject"
+      ],
+      "appDependentTemplates": [
+        "flyToMainViewpoint",
+        "query-scene"
+      ],
+      "legacyReferences": [
+        "fitScene",
+        "flyToMainViewpoint",
+        "flyToObject",
+        "query-scene"
+      ]
+    },
+    {
+      "id": "modelTool.getFloorNameByLevel",
+      "namespace": "modelTool",
+      "method": "getFloorNameByLevel",
+      "signature": "getFloorNameByLevel(building: string, level: number): string | undefined",
+      "params": [
+        {
+          "name": "building",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "level",
+          "required": true,
+          "type": "number"
+        }
+      ],
+      "returnType": "string | undefined",
+      "async": false,
+      "source": "src/ssp/model/modelTool.ts:141",
+      "declaredIn": "ModelTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "modelTool.getFloorNamesByBuilding",
+      "namespace": "modelTool",
+      "method": "getFloorNamesByBuilding",
+      "signature": "getFloorNamesByBuilding(building: string): string[]",
+      "params": [
+        {
+          "name": "building",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "string[]",
+      "async": false,
+      "source": "src/ssp/model/modelTool.ts:140",
+      "declaredIn": "ModelTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "modelTool.getLoadedFloors",
+      "namespace": "modelTool",
+      "method": "getLoadedFloors",
+      "signature": "getLoadedFloors(): string[]",
+      "params": [],
+      "returnType": "string[]",
+      "async": false,
+      "source": "src/ssp/model/modelTool.ts:137",
+      "declaredIn": "ModelTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "fitScene",
+        "flyToObject",
+        "setVisibleByFloor",
+        "unloadAllModels",
+        "unloadFloor"
+      ],
+      "appDependentTemplates": [
+        "flyToMainViewpoint"
+      ],
+      "legacyReferences": [
+        "fitScene",
+        "flyToMainViewpoint",
+        "flyToObject",
+        "setVisibleByFloor",
+        "unloadAllModels",
+        "unloadFloor"
+      ]
+    },
+    {
+      "id": "modelTool.getLoadedSubcategories",
+      "namespace": "modelTool",
+      "method": "getLoadedSubcategories",
+      "signature": "getLoadedSubcategories(): string[]",
+      "params": [],
+      "returnType": "string[]",
+      "async": false,
+      "source": "src/ssp/model/modelTool.ts:138",
+      "declaredIn": "ModelTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "modelTool.getSubcategories",
+      "namespace": "modelTool",
+      "method": "getSubcategories",
+      "signature": "getSubcategories(): string[]",
+      "params": [],
+      "returnType": "string[]",
+      "async": false,
+      "source": "src/ssp/model/modelTool.ts:143",
+      "declaredIn": "ModelTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "modelTool.loadAll",
+      "namespace": "modelTool",
+      "method": "loadAll",
+      "signature": "loadAll(): Promise<FloorInfo[]>",
+      "params": [],
+      "returnType": "Promise<FloorInfo[]>",
+      "async": true,
+      "source": "src/ssp/model/modelTool.ts:130",
+      "declaredIn": "ModelTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "modelTool.loadFloor",
+      "namespace": "modelTool",
+      "method": "loadFloor",
+      "signature": "loadFloor(floorNameOrUrl: string): Promise<FloorInfo>",
+      "params": [
+        {
+          "name": "floorNameOrUrl",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "Promise<FloorInfo>",
+      "async": true,
+      "source": "src/ssp/model/modelTool.ts:120",
+      "declaredIn": "ModelTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "loadFloor"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "loadFloor"
+      ]
+    },
+    {
+      "id": "modelTool.loadSubcategory",
+      "namespace": "modelTool",
+      "method": "loadSubcategory",
+      "signature": "loadSubcategory(subcategory?: string): Promise<FloorInfo[]>",
+      "params": [
+        {
+          "name": "subcategory",
+          "required": false,
+          "type": "string"
+        }
+      ],
+      "returnType": "Promise<FloorInfo[]>",
+      "async": true,
+      "source": "src/ssp/model/modelTool.ts:126",
+      "declaredIn": "ModelTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "loadSubcategory"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "loadSubcategory"
+      ]
+    },
+    {
+      "id": "modelTool.unloadAll",
+      "namespace": "modelTool",
+      "method": "unloadAll",
+      "signature": "unloadAll(): void",
+      "params": [],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/model/modelTool.ts:136",
+      "declaredIn": "ModelTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "unloadAllModels"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "unloadAllModels"
+      ]
+    },
+    {
+      "id": "modelTool.unloadFloor",
+      "namespace": "modelTool",
+      "method": "unloadFloor",
+      "signature": "unloadFloor(floorName: string): void",
+      "params": [
+        {
+          "name": "floorName",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/model/modelTool.ts:132",
+      "declaredIn": "ModelTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "unloadFloor"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "unloadFloor"
+      ]
+    },
+    {
+      "id": "modelTool.unloadSubcategory",
+      "namespace": "modelTool",
+      "method": "unloadSubcategory",
+      "signature": "unloadSubcategory(subcategory: string): void",
+      "params": [
+        {
+          "name": "subcategory",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/model/modelTool.ts:134",
+      "declaredIn": "ModelTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "objectsTool.applyHighlight",
+      "namespace": "objectsTool",
+      "method": "applyHighlight",
+      "signature": "applyHighlight(objects: readonly THREE.Object3D[], options?: HighlightOptions): HighlightLease",
+      "params": [
+        {
+          "name": "objects",
+          "required": true,
+          "type": "readonly THREE.Object3D[]"
+        },
+        {
+          "name": "options",
+          "required": false,
+          "type": "HighlightOptions"
+        }
+      ],
+      "returnType": "HighlightLease",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:110",
+      "declaredIn": "ObjectsTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "objectsTool.clearAllHighlights",
+      "namespace": "objectsTool",
+      "method": "clearAllHighlights",
+      "signature": "clearAllHighlights(): void",
+      "params": [],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:109",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "host-only",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "clearAllHighlights"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "clearAllHighlights"
+      ]
+    },
+    {
+      "id": "objectsTool.collapseFloor",
+      "namespace": "objectsTool",
+      "method": "collapseFloor",
+      "signature": "collapseFloor(durationMs?: number): void",
+      "params": [
+        {
+          "name": "durationMs",
+          "required": false,
+          "type": "number"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:119",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "collapse-floor"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "collapse-floor"
+      ]
+    },
+    {
+      "id": "objectsTool.describe",
+      "namespace": "objectsTool",
+      "method": "describe",
+      "signature": "describe(objects: readonly THREE.Object3D[], options?: ObjectDescribeOptions): SceneObjectDescriptor[]",
+      "params": [
+        {
+          "name": "objects",
+          "required": true,
+          "type": "readonly THREE.Object3D[]"
+        },
+        {
+          "name": "options",
+          "required": false,
+          "type": "ObjectDescribeOptions"
+        }
+      ],
+      "returnType": "SceneObjectDescriptor[]",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:106",
+      "declaredIn": "ObjectsTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "objectsTool.explodeFloor",
+      "namespace": "objectsTool",
+      "method": "explodeFloor",
+      "signature": "explodeFloor(opts?: { gap?: number; axis?: 'x' | 'y' | 'z'; durationMs?: number }): void",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "{ gap?: number; axis?: 'x' | 'y' | 'z'; durationMs?: number }"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:117",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "explode-floor"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "explode-floor"
+      ]
+    },
+    {
+      "id": "objectsTool.getById",
+      "namespace": "objectsTool",
+      "method": "getById",
+      "signature": "getById(id: string, opts?: FindOptions): THREE.Object3D | null",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "opts",
+          "required": false,
+          "type": "FindOptions"
+        }
+      ],
+      "returnType": "THREE.Object3D | null",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:103",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "focus-on-object",
+        "getObjectById"
+      ],
+      "appDependentTemplates": [
+        "query-scene"
+      ],
+      "legacyReferences": [
+        "focus-on-object",
+        "getObjectById",
+        "query-scene"
+      ]
+    },
+    {
+      "id": "objectsTool.getByName",
+      "namespace": "objectsTool",
+      "method": "getByName",
+      "signature": "getByName(name: string, opts?: FindOptions): THREE.Object3D | null",
+      "params": [
+        {
+          "name": "name",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "opts",
+          "required": false,
+          "type": "FindOptions"
+        }
+      ],
+      "returnType": "THREE.Object3D | null",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:102",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "getObjectByName"
+      ],
+      "appDependentTemplates": [
+        "query-scene"
+      ],
+      "legacyReferences": [
+        "getObjectByName",
+        "query-scene"
+      ]
+    },
+    {
+      "id": "objectsTool.getByUserDataProperty",
+      "namespace": "objectsTool",
+      "method": "getByUserDataProperty",
+      "signature": "getByUserDataProperty(key: string, value: unknown, opts?: FindOptions): THREE.Object3D[]",
+      "params": [
+        {
+          "name": "key",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "value",
+          "required": true,
+          "type": "unknown"
+        },
+        {
+          "name": "opts",
+          "required": false,
+          "type": "FindOptions"
+        }
+      ],
+      "returnType": "THREE.Object3D[]",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:104",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "flash-alarm",
+        "floor",
+        "fly-to-floor",
+        "getObjectByUserDataProperty",
+        "highlight-objects",
+        "setObjectHighlight",
+        "setObjectVisible",
+        "unHighlightObject"
+      ],
+      "appDependentTemplates": [
+        "highlightIsolate",
+        "query-scene",
+        "surroundOnTarget"
+      ],
+      "legacyReferences": [
+        "flash-alarm",
+        "floor",
+        "fly-to-floor",
+        "getObjectByUserDataProperty",
+        "highlight-objects",
+        "highlightIsolate",
+        "query-scene",
+        "setObjectHighlight",
+        "setObjectVisible",
+        "surroundOnTarget",
+        "unHighlightObject"
+      ]
+    },
+    {
+      "id": "objectsTool.isExploded",
+      "namespace": "objectsTool",
+      "method": "isExploded",
+      "signature": "isExploded(): boolean",
+      "params": [],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:121",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "collapse-floor",
+        "explode-floor"
+      ],
+      "appDependentTemplates": [
+        "query-scene"
+      ],
+      "legacyReferences": [
+        "collapse-floor",
+        "explode-floor",
+        "query-scene"
+      ]
+    },
+    {
+      "id": "objectsTool.query",
+      "namespace": "objectsTool",
+      "method": "query",
+      "signature": "query(criteria: ObjectQueryCriteria, options: ObjectQueryOptions): THREE.Object3D[]",
+      "params": [
+        {
+          "name": "criteria",
+          "required": true,
+          "type": "ObjectQueryCriteria"
+        },
+        {
+          "name": "options",
+          "required": true,
+          "type": "ObjectQueryOptions"
+        }
+      ],
+      "returnType": "THREE.Object3D[]",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:105",
+      "declaredIn": "ObjectsTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "objectsTool.releaseHighlight",
+      "namespace": "objectsTool",
+      "method": "releaseHighlight",
+      "signature": "releaseHighlight(lease: HighlightLease): boolean",
+      "params": [
+        {
+          "name": "lease",
+          "required": true,
+          "type": "HighlightLease"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:111",
+      "declaredIn": "ObjectsTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "objectsTool.resetVisibility",
+      "namespace": "objectsTool",
+      "method": "resetVisibility",
+      "signature": "resetVisibility(): { restored: number; hiddenBefore: number }",
+      "params": [],
+      "returnType": "{ restored: number; hiddenBefore: number }",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:115",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Approved by a reviewed v3 machine contract; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "resetVisibility"
+      ],
+      "atomicContract": {
+        "templateIds": [
+          "resetVisibility"
+        ],
+        "args": [],
+        "result": {
+          "kind": "public-data",
+          "schema": {
+            "type": "object",
+            "required": [
+              "restored",
+              "hiddenBefore"
+            ],
+            "properties": {
+              "restored": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              },
+              "hiddenBefore": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "resetVisibility"
+      ]
+    },
+    {
+      "id": "objectsTool.setHighlight",
+      "namespace": "objectsTool",
+      "method": "setHighlight",
+      "signature": "setHighlight(obj: THREE.Object3D, color?: SceneColor, pulse?: boolean): void",
+      "params": [
+        {
+          "name": "obj",
+          "required": true,
+          "type": "THREE.Object3D"
+        },
+        {
+          "name": "color",
+          "required": false,
+          "type": "SceneColor"
+        },
+        {
+          "name": "pulse",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:107",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "flash-alarm",
+        "focus-on-object",
+        "highlight-objects",
+        "setObjectHighlight"
+      ],
+      "appDependentTemplates": [
+        "highlightIsolate",
+        "query-scene"
+      ],
+      "legacyReferences": [
+        "flash-alarm",
+        "focus-on-object",
+        "highlight-objects",
+        "highlightIsolate",
+        "query-scene",
+        "setObjectHighlight"
+      ]
+    },
+    {
+      "id": "objectsTool.setVisible",
+      "namespace": "objectsTool",
+      "method": "setVisible",
+      "signature": "setVisible(obj: THREE.Object3D, visible: boolean): void",
+      "params": [
+        {
+          "name": "obj",
+          "required": true,
+          "type": "THREE.Object3D"
+        },
+        {
+          "name": "visible",
+          "required": true,
+          "type": "boolean"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:112",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "setObjectVisible"
+      ],
+      "appDependentTemplates": [
+        "highlightIsolate",
+        "query-scene"
+      ],
+      "legacyReferences": [
+        "highlightIsolate",
+        "query-scene",
+        "setObjectVisible"
+      ]
+    },
+    {
+      "id": "objectsTool.setVisibleByFloor",
+      "namespace": "objectsTool",
+      "method": "setVisibleByFloor",
+      "signature": "setVisibleByFloor(floorName: string, visible?: boolean): void",
+      "params": [
+        {
+          "name": "floorName",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "visible",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:113",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "floor",
+        "setVisibleByFloor"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "floor",
+        "setVisibleByFloor"
+      ]
+    },
+    {
+      "id": "objectsTool.unHighlight",
+      "namespace": "objectsTool",
+      "method": "unHighlight",
+      "signature": "unHighlight(obj: THREE.Object3D): void",
+      "params": [
+        {
+          "name": "obj",
+          "required": true,
+          "type": "THREE.Object3D"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/objects/objectsTool.ts:108",
+      "declaredIn": "ObjectsTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "unHighlightObject"
+      ],
+      "appDependentTemplates": [
+        "query-scene"
+      ],
+      "legacyReferences": [
+        "query-scene",
+        "unHighlightObject"
+      ]
+    },
+    {
+      "id": "poiManager.add",
+      "namespace": "poiManager",
+      "method": "add",
+      "signature": "add(opts?: PoiOptions): PoiHandle",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "PoiOptions"
+        }
+      ],
+      "returnType": "PoiHandle",
+      "async": false,
+      "source": "src/ssp/poi/poiManager.ts:87",
+      "declaredIn": "PoiManager",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "createPoi",
+        "showHidePoi"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "createPoi",
+        "showHidePoi"
+      ]
+    },
+    {
+      "id": "poiManager.addNode",
+      "namespace": "poiManager",
+      "method": "addNode",
+      "signature": "addNode(opts?: PoiNodeOptions): PoiHandle",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "PoiNodeOptions"
+        }
+      ],
+      "returnType": "PoiHandle",
+      "async": false,
+      "source": "src/ssp/poi/poiManager.ts:88",
+      "declaredIn": "PoiManager",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "createPoiNode"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "createPoiNode"
+      ]
+    },
+    {
+      "id": "poiManager.getById",
+      "namespace": "poiManager",
+      "method": "getById",
+      "signature": "getById(id: string): PoiHandle | null",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "PoiHandle | null",
+      "async": false,
+      "source": "src/ssp/poi/poiManager.ts:93",
+      "declaredIn": "PoiManager",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "poiManager.hide",
+      "namespace": "poiManager",
+      "method": "hide",
+      "signature": "hide(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/poi/poiManager.ts:90",
+      "declaredIn": "PoiManager",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "hidePoi",
+        "showHidePoi"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "hidePoi",
+        "showHidePoi"
+      ]
+    },
+    {
+      "id": "poiManager.list",
+      "namespace": "poiManager",
+      "method": "list",
+      "signature": "list(): PoiHandle[]",
+      "params": [],
+      "returnType": "PoiHandle[]",
+      "async": false,
+      "source": "src/ssp/poi/poiManager.ts:94",
+      "declaredIn": "PoiManager",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "hidePoi",
+        "removePoi",
+        "showHidePoi",
+        "showPoi"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "hidePoi",
+        "removePoi",
+        "showHidePoi",
+        "showPoi"
+      ]
+    },
+    {
+      "id": "poiManager.remove",
+      "namespace": "poiManager",
+      "method": "remove",
+      "signature": "remove(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/poi/poiManager.ts:91",
+      "declaredIn": "PoiManager",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removePoi"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removePoi"
+      ]
+    },
+    {
+      "id": "poiManager.removeAll",
+      "namespace": "poiManager",
+      "method": "removeAll",
+      "signature": "removeAll(): number",
+      "params": [],
+      "returnType": "number",
+      "async": false,
+      "source": "src/ssp/poi/poiManager.ts:92",
+      "declaredIn": "PoiManager",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeAllPoi"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeAllPoi"
+      ]
+    },
+    {
+      "id": "poiManager.show",
+      "namespace": "poiManager",
+      "method": "show",
+      "signature": "show(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/poi/poiManager.ts:89",
+      "declaredIn": "PoiManager",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "showHidePoi",
+        "showPoi"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "showHidePoi",
+        "showPoi"
+      ]
+    },
+    {
+      "id": "sceneTool.clear",
+      "namespace": "sceneTool",
+      "method": "clear",
+      "signature": "clear(keepCameraLight?: boolean): void",
+      "params": [
+        {
+          "name": "keepCameraLight",
+          "required": false,
+          "type": "boolean"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/scene/sceneTool.ts:59",
+      "declaredIn": "SceneTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "clear"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "clear"
+      ]
+    },
+    {
+      "id": "sceneTool.dispose",
+      "namespace": "sceneTool",
+      "method": "dispose",
+      "signature": "dispose(): void",
+      "params": [],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/scene/sceneTool.ts:65",
+      "declaredIn": "SceneTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "dispose"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "dispose"
+      ]
+    },
+    {
+      "id": "sceneTool.setBackgroundColor",
+      "namespace": "sceneTool",
+      "method": "setBackgroundColor",
+      "signature": "setBackgroundColor(color: SceneColor): void",
+      "params": [
+        {
+          "name": "color",
+          "required": true,
+          "type": "SceneColor"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/scene/sceneTool.ts:53",
+      "declaredIn": "SceneTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Approved by a reviewed v3 machine contract; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "setBackgroundColor"
+      ],
+      "atomicContract": {
+        "templateIds": [
+          "setBackgroundColor"
+        ],
+        "args": [
+          {
+            "required": true,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 16777215
+                }
+              ]
+            }
+          }
+        ],
+        "result": {
+          "kind": "void"
+        }
+      },
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "setBackgroundColor"
+      ]
+    },
+    {
+      "id": "sceneTool.setFog",
+      "namespace": "sceneTool",
+      "method": "setFog",
+      "signature": "setFog(opts?: FogOptions): void",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "FogOptions"
+        }
+      ],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/scene/sceneTool.ts:54",
+      "declaredIn": "SceneTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Approved by a reviewed v3 machine contract; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "setFog"
+      ],
+      "atomicContract": {
+        "templateIds": [
+          "setFog"
+        ],
+        "args": [
+          {
+            "required": false,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "color": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    },
+                    {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 16777215
+                    }
+                  ]
+                },
+                "near": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "far": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "density": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "linear",
+                    "exp2"
+                  ]
+                },
+                "visible": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        ],
+        "result": {
+          "kind": "void"
+        }
+      },
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "setFog"
+      ]
+    },
+    {
+      "id": "sceneTool.update",
+      "namespace": "sceneTool",
+      "method": "update",
+      "signature": "update(): void",
+      "params": [],
+      "returnType": "void",
+      "async": false,
+      "source": "src/ssp/scene/sceneTool.ts:67",
+      "declaredIn": "SceneTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "update"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "update"
+      ]
+    },
+    {
+      "id": "topologyTool.create",
+      "namespace": "topologyTool",
+      "method": "create",
+      "signature": "create(opts: TopologyOptions): TopologyHandle",
+      "params": [
+        {
+          "name": "opts",
+          "required": true,
+          "type": "TopologyOptions"
+        }
+      ],
+      "returnType": "TopologyHandle",
+      "async": false,
+      "source": "src/ssp/topology/topologyTool.ts:146",
+      "declaredIn": "TopologyTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "createTopology",
+        "hideTopology",
+        "removeTopology",
+        "showTopology"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "createTopology",
+        "hideTopology",
+        "removeTopology",
+        "showTopology"
+      ]
+    },
+    {
+      "id": "topologyTool.createGraph",
+      "namespace": "topologyTool",
+      "method": "createGraph",
+      "signature": "createGraph(input: TopologyGraphInput): TopologyGraphSnapshot",
+      "params": [
+        {
+          "name": "input",
+          "required": true,
+          "type": "TopologyGraphInput"
+        }
+      ],
+      "returnType": "TopologyGraphSnapshot",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:384",
+      "declaredIn": "TopologyGraphApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "createGraph",
+        "findPath",
+        "getGraph",
+        "getRouteById",
+        "hideRoute",
+        "listGraphs",
+        "listRoutes",
+        "removeAllGraphs",
+        "removeAllRoutes",
+        "removeGraph",
+        "removeRoute",
+        "renderRoute",
+        "setEdgeRoutingState",
+        "setEdgeVisualState",
+        "setRouteVisualState",
+        "showRoute"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "createGraph",
+        "findPath",
+        "getGraph",
+        "getRouteById",
+        "hideRoute",
+        "listGraphs",
+        "listRoutes",
+        "removeAllGraphs",
+        "removeAllRoutes",
+        "removeGraph",
+        "removeRoute",
+        "renderRoute",
+        "setEdgeRoutingState",
+        "setEdgeVisualState",
+        "setRouteVisualState",
+        "showRoute"
+      ]
+    },
+    {
+      "id": "topologyTool.findPath",
+      "namespace": "topologyTool",
+      "method": "findPath",
+      "signature": "findPath(query: TopologyPathQuery): TopologyPathResult",
+      "params": [
+        {
+          "name": "query",
+          "required": true,
+          "type": "TopologyPathQuery"
+        }
+      ],
+      "returnType": "TopologyPathResult",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:401",
+      "declaredIn": "TopologyGraphApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "findPath",
+        "getRouteById",
+        "hideRoute",
+        "listRoutes",
+        "removeAllRoutes",
+        "removeRoute",
+        "renderRoute",
+        "setRouteVisualState",
+        "showRoute"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "findPath",
+        "getRouteById",
+        "hideRoute",
+        "listRoutes",
+        "removeAllRoutes",
+        "removeRoute",
+        "renderRoute",
+        "setRouteVisualState",
+        "showRoute"
+      ]
+    },
+    {
+      "id": "topologyTool.getById",
+      "namespace": "topologyTool",
+      "method": "getById",
+      "signature": "getById(id: string): TopologyHandle | null",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "TopologyHandle | null",
+      "async": false,
+      "source": "src/ssp/topology/topologyTool.ts:152",
+      "declaredIn": "TopologyTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "getTopologyById",
+        "hideTopology",
+        "removeTopology",
+        "showTopology"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "getTopologyById",
+        "hideTopology",
+        "removeTopology",
+        "showTopology"
+      ]
+    },
+    {
+      "id": "topologyTool.getGraph",
+      "namespace": "topologyTool",
+      "method": "getGraph",
+      "signature": "getGraph(id: string): TopologyGraphSnapshot | null",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "TopologyGraphSnapshot | null",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:385",
+      "declaredIn": "TopologyGraphApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "findPath",
+        "getGraph",
+        "getRouteById",
+        "hideRoute",
+        "listGraphs",
+        "listRoutes",
+        "removeAllRoutes",
+        "removeGraph",
+        "removeRoute",
+        "renderRoute",
+        "setEdgeRoutingState",
+        "setEdgeVisualState",
+        "setRouteVisualState",
+        "showRoute"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "findPath",
+        "getGraph",
+        "getRouteById",
+        "hideRoute",
+        "listGraphs",
+        "listRoutes",
+        "removeAllRoutes",
+        "removeGraph",
+        "removeRoute",
+        "renderRoute",
+        "setEdgeRoutingState",
+        "setEdgeVisualState",
+        "setRouteVisualState",
+        "showRoute"
+      ]
+    },
+    {
+      "id": "topologyTool.getRouteById",
+      "namespace": "topologyTool",
+      "method": "getRouteById",
+      "signature": "getRouteById(id: string): TopologyRouteHandle | null",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "TopologyRouteHandle | null",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:410",
+      "declaredIn": "TopologyRouteApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "getRouteById",
+        "hideRoute",
+        "setRouteVisualState",
+        "showRoute"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "getRouteById",
+        "hideRoute",
+        "setRouteVisualState",
+        "showRoute"
+      ]
+    },
+    {
+      "id": "topologyTool.hide",
+      "namespace": "topologyTool",
+      "method": "hide",
+      "signature": "hide(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/topology/topologyTool.ts:150",
+      "declaredIn": "TopologyTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "hideTopology"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "hideTopology"
+      ]
+    },
+    {
+      "id": "topologyTool.hideRoute",
+      "namespace": "topologyTool",
+      "method": "hideRoute",
+      "signature": "hideRoute(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:409",
+      "declaredIn": "TopologyRouteApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "hideRoute"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "hideRoute"
+      ]
+    },
+    {
+      "id": "topologyTool.list",
+      "namespace": "topologyTool",
+      "method": "list",
+      "signature": "list(): TopologyHandle[]",
+      "params": [],
+      "returnType": "TopologyHandle[]",
+      "async": false,
+      "source": "src/ssp/topology/topologyTool.ts:154",
+      "declaredIn": "TopologyTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "getTopologyById",
+        "hideTopology",
+        "listTopologies",
+        "removeTopology",
+        "showTopology"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "getTopologyById",
+        "hideTopology",
+        "listTopologies",
+        "removeTopology",
+        "showTopology"
+      ]
+    },
+    {
+      "id": "topologyTool.listGraphs",
+      "namespace": "topologyTool",
+      "method": "listGraphs",
+      "signature": "listGraphs(): TopologyGraphSnapshot[]",
+      "params": [],
+      "returnType": "TopologyGraphSnapshot[]",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:386",
+      "declaredIn": "TopologyGraphApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "listGraphs",
+        "removeAllGraphs"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "listGraphs",
+        "removeAllGraphs"
+      ]
+    },
+    {
+      "id": "topologyTool.listRoutes",
+      "namespace": "topologyTool",
+      "method": "listRoutes",
+      "signature": "listRoutes(): TopologyRouteHandle[]",
+      "params": [],
+      "returnType": "TopologyRouteHandle[]",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:411",
+      "declaredIn": "TopologyRouteApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "listRoutes",
+        "removeAllRoutes"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "listRoutes",
+        "removeAllRoutes"
+      ]
+    },
+    {
+      "id": "topologyTool.remove",
+      "namespace": "topologyTool",
+      "method": "remove",
+      "signature": "remove(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/topology/topologyTool.ts:156",
+      "declaredIn": "TopologyTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeTopology"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeTopology"
+      ]
+    },
+    {
+      "id": "topologyTool.removeAll",
+      "namespace": "topologyTool",
+      "method": "removeAll",
+      "signature": "removeAll(): number",
+      "params": [],
+      "returnType": "number",
+      "async": false,
+      "source": "src/ssp/topology/topologyTool.ts:158",
+      "declaredIn": "TopologyTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeAllTopologies"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeAllTopologies"
+      ]
+    },
+    {
+      "id": "topologyTool.removeAllGraphs",
+      "namespace": "topologyTool",
+      "method": "removeAllGraphs",
+      "signature": "removeAllGraphs(): number",
+      "params": [],
+      "returnType": "number",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:388",
+      "declaredIn": "TopologyGraphApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeAllGraphs"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeAllGraphs"
+      ]
+    },
+    {
+      "id": "topologyTool.removeAllRoutes",
+      "namespace": "topologyTool",
+      "method": "removeAllRoutes",
+      "signature": "removeAllRoutes(): number",
+      "params": [],
+      "returnType": "number",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:413",
+      "declaredIn": "TopologyRouteApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeAllRoutes"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeAllRoutes"
+      ]
+    },
+    {
+      "id": "topologyTool.removeGraph",
+      "namespace": "topologyTool",
+      "method": "removeGraph",
+      "signature": "removeGraph(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:387",
+      "declaredIn": "TopologyGraphApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeGraph"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeGraph"
+      ]
+    },
+    {
+      "id": "topologyTool.removeRoute",
+      "namespace": "topologyTool",
+      "method": "removeRoute",
+      "signature": "removeRoute(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:412",
+      "declaredIn": "TopologyRouteApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeRoute"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeRoute"
+      ]
+    },
+    {
+      "id": "topologyTool.renderRoute",
+      "namespace": "topologyTool",
+      "method": "renderRoute",
+      "signature": "renderRoute(options: TopologyRouteRenderOptions): TopologyRouteRenderResult",
+      "params": [
+        {
+          "name": "options",
+          "required": true,
+          "type": "TopologyRouteRenderOptions"
+        }
+      ],
+      "returnType": "TopologyRouteRenderResult",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:406",
+      "declaredIn": "TopologyRouteApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "getRouteById",
+        "hideRoute",
+        "listRoutes",
+        "removeAllRoutes",
+        "removeRoute",
+        "renderRoute",
+        "setRouteVisualState",
+        "showRoute"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "getRouteById",
+        "hideRoute",
+        "listRoutes",
+        "removeAllRoutes",
+        "removeRoute",
+        "renderRoute",
+        "setRouteVisualState",
+        "showRoute"
+      ]
+    },
+    {
+      "id": "topologyTool.setEdgeRoutingState",
+      "namespace": "topologyTool",
+      "method": "setEdgeRoutingState",
+      "signature": "setEdgeRoutingState( graphId: string, selector: TopologyEdgeSelector, patch: TopologyEdgeRoutingStatePatch, guard?: TopologyRevisionGuard, ): TopologyRoutingMutationResult",
+      "params": [
+        {
+          "name": "graphId",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "selector",
+          "required": true,
+          "type": "TopologyEdgeSelector"
+        },
+        {
+          "name": "patch",
+          "required": true,
+          "type": "TopologyEdgeRoutingStatePatch"
+        },
+        {
+          "name": "guard",
+          "required": false,
+          "type": "TopologyRevisionGuard"
+        }
+      ],
+      "returnType": "TopologyRoutingMutationResult",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:389",
+      "declaredIn": "TopologyGraphApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "setEdgeRoutingState"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "setEdgeRoutingState"
+      ]
+    },
+    {
+      "id": "topologyTool.setEdgeVisualState",
+      "namespace": "topologyTool",
+      "method": "setEdgeVisualState",
+      "signature": "setEdgeVisualState( graphId: string, selector: TopologyEdgeSelector, patch: TopologyEdgeVisualStatePatch, guard?: TopologyRevisionGuard, ): TopologyVisualMutationResult",
+      "params": [
+        {
+          "name": "graphId",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "selector",
+          "required": true,
+          "type": "TopologyEdgeSelector"
+        },
+        {
+          "name": "patch",
+          "required": true,
+          "type": "TopologyEdgeVisualStatePatch"
+        },
+        {
+          "name": "guard",
+          "required": false,
+          "type": "TopologyRevisionGuard"
+        }
+      ],
+      "returnType": "TopologyVisualMutationResult",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:395",
+      "declaredIn": "TopologyGraphApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "setEdgeVisualState"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "setEdgeVisualState"
+      ]
+    },
+    {
+      "id": "topologyTool.setRouteVisualState",
+      "namespace": "topologyTool",
+      "method": "setRouteVisualState",
+      "signature": "setRouteVisualState(id: string, patch: TopologyRouteVisualStatePatch): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "patch",
+          "required": true,
+          "type": "TopologyRouteVisualStatePatch"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:407",
+      "declaredIn": "TopologyRouteApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "setRouteVisualState"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "setRouteVisualState"
+      ]
+    },
+    {
+      "id": "topologyTool.show",
+      "namespace": "topologyTool",
+      "method": "show",
+      "signature": "show(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/topology/topologyTool.ts:148",
+      "declaredIn": "TopologyTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "showTopology"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "showTopology"
+      ]
+    },
+    {
+      "id": "topologyTool.showRoute",
+      "namespace": "topologyTool",
+      "method": "showRoute",
+      "signature": "showRoute(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/topology/types.ts:408",
+      "declaredIn": "TopologyRouteApi",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "showRoute"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "showRoute"
+      ]
+    },
+    {
+      "id": "viewerTool.createCanvas",
+      "namespace": "viewerTool",
+      "method": "createCanvas",
+      "signature": "createCanvas(opts?: SubCanvasOptions): SubCanvasHandle",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "SubCanvasOptions"
+        }
+      ],
+      "returnType": "SubCanvasHandle",
+      "async": false,
+      "source": "src/ssp/viewer/viewerTool.ts:85",
+      "declaredIn": "ViewerTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "createCanvas3D"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "createCanvas3D"
+      ]
+    },
+    {
+      "id": "viewerTool.getById",
+      "namespace": "viewerTool",
+      "method": "getById",
+      "signature": "getById(id: string): SubCanvasHandle | null",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "SubCanvasHandle | null",
+      "async": false,
+      "source": "src/ssp/viewer/viewerTool.ts:86",
+      "declaredIn": "ViewerTool",
+      "classification": "host-only",
+      "templatePolicy": "host-only",
+      "classificationReason": "No current legacy v2 template code reference; keep host-only until a reviewed v3 atomic mapping exists.",
+      "mappedTemplates": [],
+      "appDependentTemplates": [],
+      "legacyReferences": []
+    },
+    {
+      "id": "viewerTool.list",
+      "namespace": "viewerTool",
+      "method": "list",
+      "signature": "list(): SubCanvasHandle[]",
+      "params": [],
+      "returnType": "SubCanvasHandle[]",
+      "async": false,
+      "source": "src/ssp/viewer/viewerTool.ts:89",
+      "declaredIn": "ViewerTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeCanvas3D"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeCanvas3D"
+      ]
+    },
+    {
+      "id": "viewerTool.remove",
+      "namespace": "viewerTool",
+      "method": "remove",
+      "signature": "remove(id: string): boolean",
+      "params": [
+        {
+          "name": "id",
+          "required": true,
+          "type": "string"
+        }
+      ],
+      "returnType": "boolean",
+      "async": false,
+      "source": "src/ssp/viewer/viewerTool.ts:87",
+      "declaredIn": "ViewerTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeCanvas3D"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeCanvas3D"
+      ]
+    },
+    {
+      "id": "viewerTool.removeAll",
+      "namespace": "viewerTool",
+      "method": "removeAll",
+      "signature": "removeAll(): number",
+      "params": [],
+      "returnType": "number",
+      "async": false,
+      "source": "src/ssp/viewer/viewerTool.ts:88",
+      "declaredIn": "ViewerTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "removeAllCanvases"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "removeAllCanvases"
+      ]
+    },
+    {
+      "id": "viewerTool.screenshot",
+      "namespace": "viewerTool",
+      "method": "screenshot",
+      "signature": "screenshot(opts?: ScreenshotOptions): Promise<string>",
+      "params": [
+        {
+          "name": "opts",
+          "required": false,
+          "type": "ScreenshotOptions"
+        }
+      ],
+      "returnType": "Promise<string>",
+      "async": true,
+      "source": "src/ssp/viewer/viewerTool.ts:95",
+      "declaredIn": "ViewerTool",
+      "classification": "mapped",
+      "templatePolicy": "allowed",
+      "classificationReason": "Referenced by current atomic/composite legacy v2 code; this does not imply AI exposure.",
+      "mappedTemplates": [
+        "screenshot"
+      ],
+      "appDependentTemplates": [],
+      "legacyReferences": [
+        "screenshot"
+      ]
+    }
+  ],
+  "templateInventory": {
+    "total": 79,
+    "classifications": {
+      "atomic": 33,
+      "composite": 40,
+      "non-SSP": 1,
+      "app-dependent": 5
+    },
+    "duplicateAtomicBindings": [
+      {
+        "capability": "lightTool.createAmbientLight",
+        "templates": [
+          "createAmbientLight",
+          "setAmbientLight"
+        ]
+      }
+    ],
+    "templates": [
+      {
+        "id": "captureMainViewpoint",
+        "file": "camera/captureMainViewpoint.json",
+        "category": "camera",
+        "aiEnabled": true,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "app-dependent",
+        "actualSspCalls": [
+          "cameraController.getViewpoint"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.getViewpoint"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [
+          "window"
+        ],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "15a6178f775399a3baeed533f97284a862b5fc0792119e649ae5e97829fd8c5f",
+        "codeSha256": "d18a0d5c7320b8d8079c62fad51321f82a5444f63874329bc56b6f7a4648b17f"
+      },
+      {
+        "id": "fitScene",
+        "file": "camera/fitScene.json",
+        "category": "camera",
+        "aiEnabled": true,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "cameraController.fitScene",
+          "modelTool.getFloorInfo",
+          "modelTool.getLoadedFloors"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.fitScene"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "animate",
+          "maxSafeDistance",
+          "padding",
+          "view"
+        ],
+        "consumedParams": [
+          "animate",
+          "maxSafeDistance",
+          "padding",
+          "view"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "3b07fe76633a108538283572ee2acb631dcc0f342f81a6c7ee82097ff9cb6e7b",
+        "codeSha256": "29c7e6a23cd5b3d2a9740feb977c691b207e4e393019f357603495fceecada73"
+      },
+      {
+        "id": "flyTo",
+        "file": "camera/flyTo.json",
+        "category": "camera",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "cameraController.flyTo"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.flyTo"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "opt.done",
+          "opt.enableTransition",
+          "position"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "opt.done",
+          "opt.enableTransition",
+          "position"
+        ],
+        "contentSha256": "bd9efc0537d294d02c583d458a01388adb87844bebddca89a3e7d5e03164c363",
+        "codeSha256": "627d9d0684655c1119b05bed4837efbb051d8ac21b05ed7e85ba765ae6aa38f7"
+      },
+      {
+        "id": "flyToMainViewpoint",
+        "file": "camera/flyToMainViewpoint.json",
+        "category": "camera",
+        "aiEnabled": true,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "app-dependent",
+        "actualSspCalls": [
+          "cameraController.fitScene",
+          "cameraController.setViewpoint",
+          "modelTool.getFloorInfo",
+          "modelTool.getLoadedFloors"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.setViewpoint"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [
+          "window"
+        ],
+        "declaredParams": [
+          "viewpoint"
+        ],
+        "consumedParams": [
+          "viewpoint"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "5203b8054c79ea7f12ba795b0f15a2de1c6ecbceb5abae64ed66d17288866581",
+        "codeSha256": "0783e2fcda4e7e45ac87944d4af9731d64288d3f22478d873f995eeabfe2a7ee"
+      },
+      {
+        "id": "flyToObject",
+        "file": "camera/flyToObject.json",
+        "category": "camera",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "cameraController.flyToObject",
+          "modelTool.getFloorInfo",
+          "modelTool.getLoadedFloors"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.flyToObject"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "enableTransition",
+          "idOrObj"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "enableTransition",
+          "idOrObj"
+        ],
+        "contentSha256": "5e9477d3413695855868e2478f549b13ae313581f46e9fdaa383000b20cc8dbc",
+        "codeSha256": "a92ecd5e74b224a2d3d921de3a39c5eb04116fe26139cf69c263019a3493db32"
+      },
+      {
+        "id": "getViewpoint",
+        "file": "camera/getViewpoint.json",
+        "category": "camera",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "cameraController.getViewpoint"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.getViewpoint"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "f9d1650b990d5b2adc6e59b8ef9803c07a00e02f3843be3c36e47055c92f43fd",
+        "codeSha256": "1b56e8e007b3ded5041bb38af60ee5bcc00ac3c19c274e92e47bfc10ad62e69d"
+      },
+      {
+        "id": "setViewpoint",
+        "file": "camera/setViewpoint.json",
+        "category": "camera",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "cameraController.setViewpoint"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.setViewpoint"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "data"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "data"
+        ],
+        "contentSha256": "918c9a7b5ce7efebc43eec55a91ee76d76ad8ea4ee3372762c232956632393a7",
+        "codeSha256": "4ea020c86e360b197b37fd40f3bd5ba5f6cc8351c371a18684715f187f169082"
+      },
+      {
+        "id": "surroundOnTarget",
+        "file": "camera/surroundOnTarget.json",
+        "category": "camera",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "app-dependent",
+        "actualSspCalls": [
+          "cameraController.surroundOnTarget",
+          "objectsTool.getByUserDataProperty"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.surroundOnTarget"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [
+          "timer"
+        ],
+        "declaredParams": [
+          "opts.heightOffset",
+          "opts.radius",
+          "opts.speed",
+          "target"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "opts.heightOffset",
+          "opts.radius",
+          "opts.speed",
+          "target"
+        ],
+        "contentSha256": "e5c60a9a504b9f7bcba6dba6eb9cf79d56e1c7cb04b854f09a5994ceef16a3a7",
+        "codeSha256": "4334c3af57f871b45af8521a2af12afb0b6440b7fab460915a76973d04b5ede1"
+      },
+      {
+        "id": "css2dLabel",
+        "file": "css/css2dLabel.json",
+        "category": "css",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "cssTool.createCSS2DObject"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cssTool.createCSS2DObject"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "opts.bgColor",
+          "opts.color",
+          "opts.fontSize",
+          "opts.position",
+          "opts.size",
+          "opts.text"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "opts.bgColor",
+          "opts.color",
+          "opts.fontSize",
+          "opts.position",
+          "opts.size",
+          "opts.text"
+        ],
+        "contentSha256": "81ba9f9251ea06531b6757252a0dec7e78e566ea2683716d251aa85d34fc94aa",
+        "codeSha256": "89035744aa6253e3841cb6a03a64800cffc34ca0df5e35d68fec11fb40a666c9"
+      },
+      {
+        "id": "removeAllLabels",
+        "file": "css/removeAllLabels.json",
+        "category": "css",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "cssTool.removeAll"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cssTool.removeAll"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "71e81a9a41864173b0a12db7ad948ffc62a973bd920d886c1d067fc930b4dc9d",
+        "codeSha256": "4affde1f8d0b91d925e05ef86f0346af2fa3b0d7ce9d1a8061f984813a3e8f4e"
+      },
+      {
+        "id": "addAxes",
+        "file": "helper/addAxes.json",
+        "category": "helper",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "helperTool.addAxes"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "helperTool.addAxes"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "options"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "options"
+        ],
+        "contentSha256": "f514adf09c06853d06a736d795f6ee568933d8a7ecaf2533c5b9b179c9853aea",
+        "codeSha256": "12b1cfb9091b8703af1ae82a4169343c10aa4161f4dd393821a796fb023c79d1"
+      },
+      {
+        "id": "addGrid",
+        "file": "helper/addGrid.json",
+        "category": "helper",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "helperTool.addGrid"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "helperTool.addGrid"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "options.color",
+          "options.divisions",
+          "options.position",
+          "options.size"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "options.color",
+          "options.divisions",
+          "options.position",
+          "options.size"
+        ],
+        "contentSha256": "1ad17ecc9a564deb382832a7126883363816751df1dffef0cc911c8636f17e2f",
+        "codeSha256": "0343b908527476efff3a8436a9395ad9818bae48ac9056c2416305e4769888dd"
+      },
+      {
+        "id": "removeHelpers",
+        "file": "helper/removeHelpers.json",
+        "category": "helper",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "helperTool.removeAll"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "helperTool.removeAll"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "ad79c877cbd57991953defc6ae4e4bfc7ad4ec1fed7fe756a76e14cdb5a20607",
+        "codeSha256": "1bdc6483a5d3624de18c84a1d6f07d965dfdac4352f672e2aa902844903a5a3a"
+      },
+      {
+        "id": "createAmbientLight",
+        "file": "light/createAmbientLight.json",
+        "category": "light",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "lightTool.createAmbientLight"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "lightTool.createAmbientLight"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "options.color",
+          "options.intensity"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "options.color",
+          "options.intensity"
+        ],
+        "contentSha256": "1bb148f647d031edacc9006e323ed9e5bebaca33442c7c8d03fd090aab462be4",
+        "codeSha256": "e7436d2dcc5ab855eb43954f1ef4eef896a14808c2b91e0a28c299a18c3b3f5f"
+      },
+      {
+        "id": "createDirectionalLight",
+        "file": "light/createDirectionalLight.json",
+        "category": "light",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "lightTool.createDirectionalLight"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "lightTool.createDirectionalLight"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "options.color",
+          "options.intensity",
+          "options.position",
+          "options.target"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "options.color",
+          "options.intensity",
+          "options.position",
+          "options.target"
+        ],
+        "contentSha256": "2e947e2563cb36c26939affb9590c4d252cce7ee53c43be02efe284237d63c82",
+        "codeSha256": "899767b2d004a6e8dda9c3db104f245c1f17d86337c9e2388c28b3b5ae9a5c65"
+      },
+      {
+        "id": "removeLight",
+        "file": "light/removeLight.json",
+        "category": "light",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "lightTool.createAmbientLight",
+          "lightTool.removeLight"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "lightTool.removeLight"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "id"
+        ],
+        "contentSha256": "6083fb659d4eddcbcf5fe482348f34d200f97f1a4b251b1883a8539bfa2c5e89",
+        "codeSha256": "7b08bd7e087f33464fbf932b666e0b133307bc10da4c6e27466dcddbcdba40d3"
+      },
+      {
+        "id": "setAmbientLight",
+        "file": "light/setAmbientLight.json",
+        "category": "light",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "lightTool.createAmbientLight"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "lightTool.createAmbientLight"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "options.color",
+          "options.id",
+          "options.intensity"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "options.color",
+          "options.id",
+          "options.intensity"
+        ],
+        "contentSha256": "a23a60c18480885dc6c2c343dd5514d2a8ea24a599338719cb168c2222181409",
+        "codeSha256": "d6fb47afe1f66de96763a67e8fbd9f4c7e5c7c5c2e2707291e76035faf7a93c8"
+      },
+      {
+        "id": "loadFloor",
+        "file": "model/loadFloor.json",
+        "category": "model",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "modelTool.loadFloor"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "modelTool.loadFloor"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "floorNameOrUrl"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "floorNameOrUrl"
+        ],
+        "contentSha256": "b6073aa97009c8e7a20c5f6eee0751347374c675629cf6f650e5c75d4be85f90",
+        "codeSha256": "d8c4a967368a26abc1760322d5c35a8a89ddd893c92993682e3c9d6a44b5afb1"
+      },
+      {
+        "id": "loadSubcategory",
+        "file": "model/loadSubcategory.json",
+        "category": "model",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "modelTool.loadSubcategory"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "modelTool.loadSubcategory"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "subcategory"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "subcategory"
+        ],
+        "contentSha256": "fc70670eff04c5589f5030e821c46c93011986e984d9b18a22feedcbcd9b0963",
+        "codeSha256": "c00ce6a1483e0a27511d82d17f13637ba74d0f9ef95f4b6d5b87666003fc6264"
+      },
+      {
+        "id": "unloadAllModels",
+        "file": "model/unloadAllModels.json",
+        "category": "model",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "modelTool.getLoadedFloors",
+          "modelTool.unloadAll"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "modelTool.unloadAll"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "3fb6cec165e18c616a3987f7cf03bce393d143b9bf551f7e0143a25479a52f28",
+        "codeSha256": "55ef2b38a0934507486facc62676c60cf63c2f3224548befde23fccb4040f7cc"
+      },
+      {
+        "id": "unloadFloor",
+        "file": "model/unloadFloor.json",
+        "category": "model",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "modelTool.getLoadedFloors",
+          "modelTool.unloadFloor"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "modelTool.unloadFloor"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "floorName"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "floorName"
+        ],
+        "contentSha256": "875150a41255cfa18b7cc35a9668debd2c2f97a7eaf109301c356a0ab52c5621",
+        "codeSha256": "28ed152c4c5623d376cf8bd9530b99dd04e74f5373e75326cfa5a507b52d04aa"
+      },
+      {
+        "id": "clearAllHighlights",
+        "file": "objects/clearAllHighlights.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "objectsTool.clearAllHighlights"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.clearAllHighlights"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "b482786cd3e41ef75525912da388421afb0baeba358f0c7ee9ea341a2fe898b4",
+        "codeSha256": "599de9386d67614a7eb6c3f193d27108b1d63863146b0e4151407a8e041d8780"
+      },
+      {
+        "id": "collapse-floor",
+        "file": "objects/collapse-floor.json",
+        "category": "objects",
+        "aiEnabled": true,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "objectsTool.collapseFloor",
+          "objectsTool.isExploded"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.collapseFloor"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "durationMs"
+        ],
+        "consumedParams": [
+          "durationMs"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "fda10eae56dc336dbec7cae84bc44dd2e0bee01cfb47b952b0bcfb8cd8398e03",
+        "codeSha256": "f242ea97972c83378546d34ac737a967666314870848d9ad467f6b94dfe23c14"
+      },
+      {
+        "id": "explode-floor",
+        "file": "objects/explode-floor.json",
+        "category": "objects",
+        "aiEnabled": true,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "objectsTool.explodeFloor",
+          "objectsTool.isExploded"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.explodeFloor"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "axis",
+          "durationMs",
+          "gap"
+        ],
+        "consumedParams": [
+          "axis",
+          "durationMs",
+          "gap"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "dfb6ee5eb189cde7a27df90def0a7a2dc5d9b44972b3bb9b9ea62530ea6608af",
+        "codeSha256": "a2e1603c7318ae29d2595e18971a217911d6a5c7687781b0cb40ed91db5da8b6"
+      },
+      {
+        "id": "flash-alarm",
+        "file": "objects/flash-alarm.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": true,
+        "stepsCount": 2,
+        "classification": "composite",
+        "actualSspCalls": [
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.setHighlight"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.setHighlight"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "color",
+          "renderType"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "color",
+          "renderType"
+        ],
+        "contentSha256": "7aeeea719192b0329db3c27be856fd893fda7d5786e8fd01c44c9ef300045063",
+        "codeSha256": "aae8648240d05547d7384d067c5156c16f1095f07d6e31a60872956d8ad1e8e2"
+      },
+      {
+        "id": "floor",
+        "file": "objects/floor.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": true,
+        "stepsCount": 3,
+        "classification": "composite",
+        "actualSspCalls": [
+          "cameraController.flyToObject",
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.setVisibleByFloor"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.flyToObject",
+          "objectsTool.setVisibleByFloor"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "floorName",
+          "options.flyTo"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "floorName",
+          "options.flyTo"
+        ],
+        "contentSha256": "efb8733e04ef6598b9b8c8718a202dfff094fb134816609a19929dc774c3cec8",
+        "codeSha256": "d7e04c609f3fb70c8bab40236ca6ee2ac8646fd611c1420ced6d77f82e84015e"
+      },
+      {
+        "id": "fly-to-floor",
+        "file": "objects/fly-to-floor.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "cameraController.flyToObject",
+          "objectsTool.getByUserDataProperty"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.flyToObject",
+          "objectsTool.getByUserDataProperty"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "floorName",
+          "options.done",
+          "options.enableTransition",
+          "options.scope"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "floorName",
+          "options.done",
+          "options.enableTransition",
+          "options.scope"
+        ],
+        "contentSha256": "f6973b5f4b4ba8e50059da2ee79d05677ee94d6d35e0e223932ee6741a6a06bf",
+        "codeSha256": "f3b09e4bb3991cf961536463d44ff2e320c9b41b38d9ed066f8d0d3f65982653"
+      },
+      {
+        "id": "focus-on-object",
+        "file": "objects/focus-on-object.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": true,
+        "stepsCount": 3,
+        "classification": "composite",
+        "actualSspCalls": [
+          "cameraController.flyToObject",
+          "objectsTool.getById",
+          "objectsTool.setHighlight"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.flyToObject",
+          "objectsTool.getById",
+          "objectsTool.setHighlight"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "color",
+          "id"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "color",
+          "id"
+        ],
+        "contentSha256": "676b1c1035287303ce56edaf454530f11a27b9271ea73ac4e9740cbc049ef108",
+        "codeSha256": "1d1dcf8cde33751c48d05ac8a820164be13af660162fbd4856f974424aa8a12c"
+      },
+      {
+        "id": "getObjectById",
+        "file": "objects/getObjectById.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "objectsTool.getById"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.getById"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "id"
+        ],
+        "contentSha256": "6f631bf051782d09532a4e84ad5f4d08877d26336eebdfc4b30d845b3fbfd750",
+        "codeSha256": "33cc2722d8a1c857c7d7161976413e6da09a69caf394930606aa0687327950c3"
+      },
+      {
+        "id": "getObjectByName",
+        "file": "objects/getObjectByName.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "objectsTool.getByName"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.getByName"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "fuzzy",
+          "name"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "fuzzy",
+          "name"
+        ],
+        "contentSha256": "c4aed31c3ebbb378a1b1913c6dd88cdd8728de90fcab2b5dc63480fe858741f4",
+        "codeSha256": "c468a7009f76b85931c0f84eddbc9956c7edb50d7e60eb052308b2c0b6c045e5"
+      },
+      {
+        "id": "getObjectByUserDataProperty",
+        "file": "objects/getObjectByUserDataProperty.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "objectsTool.getByUserDataProperty"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.getByUserDataProperty"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "key",
+          "opts.scope",
+          "value"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "key",
+          "opts.scope",
+          "value"
+        ],
+        "contentSha256": "e043b82d35b784c31d0abb7f26876cf846ba7ce8084273a07de5c21f4223950b",
+        "codeSha256": "d3944286aa615c719bffeb0c889d8b3906612d87b1e057b02fe216c24010366b"
+      },
+      {
+        "id": "highlight-objects",
+        "file": "objects/highlight-objects.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": true,
+        "stepsCount": 2,
+        "classification": "composite",
+        "actualSspCalls": [
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.setHighlight"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.setHighlight"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "color",
+          "key",
+          "value"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "color",
+          "key",
+          "value"
+        ],
+        "contentSha256": "bebb18fed1e4c1248b3a456b8f967cdbdd95e4c0eb7dd4844291e8bb450768b2",
+        "codeSha256": "28975f45b02e2b94459d77e70be39cab08307a2bad89668d4a9127b926d6e1e1"
+      },
+      {
+        "id": "highlightIsolate",
+        "file": "objects/highlightIsolate.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "app-dependent",
+        "actualSspCalls": [
+          "cameraController.flyToObject",
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.setHighlight",
+          "objectsTool.setVisible"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "cameraController.flyToObject",
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.setHighlight",
+          "objectsTool.setVisible"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [
+          "scene-traverse",
+          "ssp-context"
+        ],
+        "declaredParams": [
+          "color",
+          "key",
+          "value"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "color",
+          "key",
+          "value"
+        ],
+        "contentSha256": "cd7acfdf4316ff51df09311aeb12b740238bdd4b1ba32b04438b8dc82b7937b6",
+        "codeSha256": "2e4767e2f502caf82ad12d5b3688f73bcfbb2765bc3fa11a229a793c6ca1b583"
+      },
+      {
+        "id": "query-scene",
+        "file": "objects/query-scene.json",
+        "category": "objects",
+        "aiEnabled": true,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "app-dependent",
+        "actualSspCalls": [
+          "cameraController.fitScene",
+          "cameraController.flyToObject",
+          "modelTool.getFloorInfo",
+          "objectsTool.getById",
+          "objectsTool.getByName",
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.isExploded",
+          "objectsTool.setHighlight",
+          "objectsTool.setVisible",
+          "objectsTool.unHighlight"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [],
+        "methodMatchesCode": false,
+        "dependencies": [
+          "scene-traverse",
+          "ssp-context",
+          "timer"
+        ],
+        "declaredParams": [
+          "entity",
+          "groupBy",
+          "operation",
+          "output",
+          "scope",
+          "target",
+          "visual"
+        ],
+        "consumedParams": [
+          "entity",
+          "groupBy",
+          "operation",
+          "output",
+          "scope",
+          "target",
+          "visual"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "e85732d0bbd1cad1fa35d8f0925ae3efdfa7b20ef0b0c60a664620dfc9f48cc6",
+        "codeSha256": "1e6af80717a459f7869c93876c086205135f2be93f566e868385cd583c0dcf48"
+      },
+      {
+        "id": "resetVisibility",
+        "file": "objects/resetVisibility.json",
+        "category": "objects",
+        "aiEnabled": true,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "objectsTool.resetVisibility"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.resetVisibility"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "95470e90565cc196798e081c5b43749c731d21b5b6269241d9c7dce679aec8e9",
+        "codeSha256": "5060e6c11cdc512ca9de9968d516ddcde31291a57ef758152c2650f452e581d9"
+      },
+      {
+        "id": "setObjectHighlight",
+        "file": "objects/setObjectHighlight.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.setHighlight"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.setHighlight"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "color",
+          "pulse",
+          "sid"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "color",
+          "pulse",
+          "sid"
+        ],
+        "contentSha256": "1be89247da8ec3e05381f34642aaeffbcb79a713695151d2a41014e05223f584",
+        "codeSha256": "39599422eb24f47f218b85289e4fd9484c493100ea850d7fe6156f0755e49356"
+      },
+      {
+        "id": "setObjectVisible",
+        "file": "objects/setObjectVisible.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.setVisible"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.setVisible"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "sid",
+          "visible"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "sid",
+          "visible"
+        ],
+        "contentSha256": "4ae2a4cbc44ce56015dbe03f42b9718dda18d82f117c611eb51ed4466642c1ec",
+        "codeSha256": "1204dd507eea51efb7264b6ba385ec7677ffc046b9ef4bf5648c73675fe03539"
+      },
+      {
+        "id": "setVisibleByFloor",
+        "file": "objects/setVisibleByFloor.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "modelTool.getLoadedFloors",
+          "objectsTool.setVisibleByFloor"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.setVisibleByFloor"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "floorName",
+          "visible"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "floorName",
+          "visible"
+        ],
+        "contentSha256": "75c2c0f040eaa219b5ca43f954bb48ca180f28b8bad37a4534112ba2726156d7",
+        "codeSha256": "94bea8161edb3cd1e7ae01dfc34e9c441dd5d52beae0c7f50221d76e36351272"
+      },
+      {
+        "id": "unHighlightObject",
+        "file": "objects/unHighlightObject.json",
+        "category": "objects",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "objectsTool.getByUserDataProperty",
+          "objectsTool.unHighlight"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "objectsTool.unHighlight"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "sid"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "sid"
+        ],
+        "contentSha256": "409d2f49c49b88da6bb955a1e5f1e0c69c51da5e122f77ab3e2994976bc90c24",
+        "codeSha256": "98e130f4ee558d60e8cda173184fdf2c4ae915cf12597be0f185aba09dc9bc65"
+      },
+      {
+        "id": "createPoi",
+        "file": "poi/createPoi.json",
+        "category": "poi",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "poiManager.add"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "poiManager.add"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "opts.attachTo",
+          "opts.color",
+          "opts.fontSize",
+          "opts.iconSize",
+          "opts.position",
+          "opts.text",
+          "opts.textColor",
+          "opts.visible"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "opts.attachTo",
+          "opts.color",
+          "opts.fontSize",
+          "opts.iconSize",
+          "opts.position",
+          "opts.text",
+          "opts.textColor",
+          "opts.visible"
+        ],
+        "contentSha256": "3142d3c0278ce6ee301d11fee74bb80d97f95a217f359ae0adbd498dff5a1bb6",
+        "codeSha256": "fc548a17377285eb5ead76f0ea735465f40af6eed8f4cc3282a0cd708ee254de"
+      },
+      {
+        "id": "createPoiNode",
+        "file": "poi/createPoiNode.json",
+        "category": "poi",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "poiManager.addNode"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "poiManager.addNode"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "opts",
+          "opts.onClick",
+          "opts.onHover"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "opts",
+          "opts.onClick",
+          "opts.onHover"
+        ],
+        "contentSha256": "24a8dab1434d6637a842dc75bb24877123aefe36824730a26fadadc86f9f6d6a",
+        "codeSha256": "7fba32c46c019156da5b34b8b462a9db3446b2a15b821bb849b6e7756c2793d7"
+      },
+      {
+        "id": "hidePoi",
+        "file": "poi/hidePoi.json",
+        "category": "poi",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "poiManager.hide",
+          "poiManager.list"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "poiManager.hide"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "id"
+        ],
+        "contentSha256": "acbe9e867d1571a653d327b0e04c623103264183471236646d685458e95e558a",
+        "codeSha256": "acd39e6105a1bddcd0f8c6e1c6b8b10535304827c6194e5e2f72c5f965bee269"
+      },
+      {
+        "id": "removeAllPoi",
+        "file": "poi/removeAllPoi.json",
+        "category": "poi",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "poiManager.removeAll"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "poiManager.removeAll"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "e7b2a976ce9f53a2b2950df4214d9e68c361b14b0fa8ced17d893a0fe9e72ef5",
+        "codeSha256": "51a685770c05e22a36b8ca2adcc67b455d93fbda0474fb9a2fdadfb3a5e32bce"
+      },
+      {
+        "id": "removePoi",
+        "file": "poi/removePoi.json",
+        "category": "poi",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "poiManager.list",
+          "poiManager.remove"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "poiManager.remove"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "id"
+        ],
+        "contentSha256": "a5e39e17c8436f0341badbfea6f05a8ee2b012e8a8f391d30ac88ea699e56270",
+        "codeSha256": "8eca8c1f5d72dcf0ef507c2bcb18c65d16ec28b3a596fda8fbb431c3fa313fb1"
+      },
+      {
+        "id": "showHidePoi",
+        "file": "poi/showHidePoi.json",
+        "category": "poi",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "poiManager.add",
+          "poiManager.hide",
+          "poiManager.list",
+          "poiManager.show"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "poiManager.hide",
+          "poiManager.show"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "id"
+        ],
+        "contentSha256": "e60d33665e4a5c9f3d91a8782a9a378f7d5432da83d708786884bf908d6b702a",
+        "codeSha256": "6bdc964f06ba5a61cda2048beae0c25cabff7f0933518222f0f2e091792189b0"
+      },
+      {
+        "id": "showPoi",
+        "file": "poi/showPoi.json",
+        "category": "poi",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "poiManager.list",
+          "poiManager.show"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "poiManager.show"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "id"
+        ],
+        "contentSha256": "179554d65718e2768f2b0db4a008f95d437e80df91f31c76cdb507120cde7943",
+        "codeSha256": "062646814f5825a9efd1ede25284e4fe400b09c85e87ac69f3b2e3b84019bef3"
+      },
+      {
+        "id": "clear",
+        "file": "scene/clear.json",
+        "category": "scene",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "sceneTool.clear"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "sceneTool.clear"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "keepCameraLight"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "keepCameraLight"
+        ],
+        "contentSha256": "d4ad241ed299c7bf18730b17fc69ea5735b0e102a30086630d024fd510db12ca",
+        "codeSha256": "71fc243b56076269f4ba9deeb88afaa489c0e908225a5d9a3e9bc0b0393b98e8"
+      },
+      {
+        "id": "dispose",
+        "file": "scene/dispose.json",
+        "category": "scene",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "sceneTool.dispose"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "sceneTool.dispose"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "9513d825b89c7d283b2cba8340d1e64790db1d20cbc10717e4284d381e353bdc",
+        "codeSha256": "a48c99433914bf623b08a8636a23a701b46be61d5eba03c01f8901284c9ed229"
+      },
+      {
+        "id": "help",
+        "file": "scene/help.json",
+        "category": "scene",
+        "aiEnabled": true,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "non-SSP",
+        "actualSspCalls": [],
+        "invalidSspCalls": [],
+        "metadataMethods": [],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "cb6b73a9ee799a73e460ab8a6ab9c7af540c101d54d055d69a8242e0f73a6e7e",
+        "codeSha256": "def6ee85f14342e00e160370acc8b547e7d169dd1996334a0441b14929e66702"
+      },
+      {
+        "id": "setBackgroundColor",
+        "file": "scene/setBackgroundColor.json",
+        "category": "scene",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "sceneTool.setBackgroundColor"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "sceneTool.setBackgroundColor"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "color"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "color"
+        ],
+        "contentSha256": "8fa5cfaaabb2c447d699138e840a5b3127aa12274d803277f19e30a0b666d1ee",
+        "codeSha256": "96e2a5d5e6ce60191d35c8075d45955207d4192869f8743aa7d86dbd68a009c6"
+      },
+      {
+        "id": "setFog",
+        "file": "scene/setFog.json",
+        "category": "scene",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "sceneTool.setFog"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "sceneTool.setFog"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "options"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "options"
+        ],
+        "contentSha256": "cfb99c412d2ef4846cff83f1b496be46dbd7124e8da6d54a1133d34e0592113e",
+        "codeSha256": "499641d6c82ac804b9f5f01fcd0587e90078717189741682612ed453d77dd6ab"
+      },
+      {
+        "id": "update",
+        "file": "scene/update.json",
+        "category": "scene",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "sceneTool.update"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "sceneTool.update"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "1dd7ee74a04e7e26d54296c6f8fe1ea36ac719c26df83ce2f5675d96d65680ca",
+        "codeSha256": "9899eee889aad9c698aa8762fff830eb73cd46829369ab482dc28262249e29eb"
+      },
+      {
+        "id": "createGraph",
+        "file": "topology/createGraph.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "topologyTool.createGraph"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.createGraph"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "input"
+        ],
+        "consumedParams": [
+          "input"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "15d2b8d8c7a77a4b7a8358c6eff088bddeb0207dbbcd02fc465d7a53022336d7",
+        "codeSha256": "5941df6b13b2e76bcf610e13112d2a5ff8ce2434f466261c265b364ce462eb61"
+      },
+      {
+        "id": "createTopology",
+        "file": "topology/createTopology.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "topologyTool.create"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.create"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "opts"
+        ],
+        "consumedParams": [
+          "opts"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "6a582282db41e0ac88f6ea9112ad5fad0105a0194b40435dc03e44bcb01fc5df",
+        "codeSha256": "513d26bd2f9820ea6413927f225cd01a1a08ca44af8a38b4be49a925825d63e8"
+      },
+      {
+        "id": "findPath",
+        "file": "topology/findPath.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.findPath",
+          "topologyTool.getGraph"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.findPath"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "query"
+        ],
+        "consumedParams": [
+          "query"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "e5534553f6d514d82f91766d824e334defbc6fec12063dc4196bd720f889d77e",
+        "codeSha256": "c05478ef8ccde6bbf27cf623fe608fe48105ad2ad85cf517f747bb96f6f2780b"
+      },
+      {
+        "id": "getGraph",
+        "file": "topology/getGraph.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.getGraph"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.getGraph"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "graphId"
+        ],
+        "consumedParams": [
+          "graphId"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "2c8dfa0d24d213aed29a7e0c09257455b4e39c62a4f313386f091b75ba5102c9",
+        "codeSha256": "4ae989b2ff3e5de9c0bf8f11f1aa2a8764aec598a135e761e3f25524b005b1f2"
+      },
+      {
+        "id": "getRouteById",
+        "file": "topology/getRouteById.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.findPath",
+          "topologyTool.getGraph",
+          "topologyTool.getRouteById",
+          "topologyTool.renderRoute"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.getRouteById"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "routeId"
+        ],
+        "consumedParams": [
+          "routeId"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "5bd8fe2f2a79637d28816f4cba8fd508f515e85eb758b22c8e1256bf0dfb0ca3",
+        "codeSha256": "7d57490a73f069de4918fc9f783cc13608709eca56d8b6ae745f1d5b83f07115"
+      },
+      {
+        "id": "getTopologyById",
+        "file": "topology/getTopologyById.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.getById",
+          "topologyTool.list"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.getById"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [
+          "id"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "9fb4e6d973b83ed27f05e02c88e268862e698f106afb2437aa4a538fba8a4f69",
+        "codeSha256": "14c022d875742ab1cc96c337d700a1657e5954bd83d152110c5ee7220451451b"
+      },
+      {
+        "id": "hideRoute",
+        "file": "topology/hideRoute.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.findPath",
+          "topologyTool.getGraph",
+          "topologyTool.getRouteById",
+          "topologyTool.hideRoute",
+          "topologyTool.renderRoute"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.hideRoute"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "routeId"
+        ],
+        "consumedParams": [
+          "routeId"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "1c7d7750bed94b7c8c66aa5b6cd0cd76dce690b051a3c750cc6e055860985770",
+        "codeSha256": "c9823b12cc25f1b76f4a36568621cbddae3845f3c112b538ea9dfea07d53194b"
+      },
+      {
+        "id": "hideTopology",
+        "file": "topology/hideTopology.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.create",
+          "topologyTool.getById",
+          "topologyTool.hide",
+          "topologyTool.list"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.hide"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [
+          "id"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "cb042b4df8b8aef69c7175df4b6d5d2938b491a29397056b74bba0879865b045",
+        "codeSha256": "12de73350695fc9b28b966360188c3695208d73f3a647fed7bd3ced49d58607a"
+      },
+      {
+        "id": "listGraphs",
+        "file": "topology/listGraphs.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.getGraph",
+          "topologyTool.listGraphs"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.listGraphs"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "460e2c28d47f6e811c2207ebd05d48492f1d875f69ff564d04d748dc3f137eea",
+        "codeSha256": "e929a74acf1e18463a8bc611f5731b7019cddcdbd17b6138b55d85fc539ecfbf"
+      },
+      {
+        "id": "listRoutes",
+        "file": "topology/listRoutes.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.findPath",
+          "topologyTool.getGraph",
+          "topologyTool.listRoutes",
+          "topologyTool.renderRoute"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.listRoutes"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "b8bafcbc4e54fae5608a600bf81f6953a0838b25ba421983f6777914716a69ca",
+        "codeSha256": "b0a1503607a16f78b858430111001be6c7718361cc6e8f29c372ed6ecf43398e"
+      },
+      {
+        "id": "listTopologies",
+        "file": "topology/listTopologies.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "topologyTool.list"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.list"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "366a68dea2a49c101da4e6a57e6c214a067676c9394725044221c0cb12415a29",
+        "codeSha256": "3657f38ac196636700be650e1292af9f800be7f13455c3c89a33c6fa6759c5cd"
+      },
+      {
+        "id": "removeAllGraphs",
+        "file": "topology/removeAllGraphs.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.listGraphs",
+          "topologyTool.removeAllGraphs"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.removeAllGraphs"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "00aa58d9a3641485dc1c63fe231813d1b4f1d0e6c06315b1cb2a41a92f3a82cd",
+        "codeSha256": "dd480abdc22d7530009a7966dc8c83ee74547111ec6ccd8dc12116d82d14a728"
+      },
+      {
+        "id": "removeAllRoutes",
+        "file": "topology/removeAllRoutes.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.findPath",
+          "topologyTool.getGraph",
+          "topologyTool.listRoutes",
+          "topologyTool.removeAllRoutes",
+          "topologyTool.renderRoute"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.removeAllRoutes"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "f6ece80a7b8e064348f8f62f110a066a44b1ca288709aa027640ed718bcfa0c8",
+        "codeSha256": "1c6595b2b2a4e3330f7736ad252117a505ae4fb8c0e85e5314996631b8bb3f83"
+      },
+      {
+        "id": "removeAllTopologies",
+        "file": "topology/removeAllTopologies.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "topologyTool.removeAll"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.removeAll"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "27f1804a9e094aebc23cc1c6afa5460f2856d8b3aa3bde3e74d58a740a4a23e1",
+        "codeSha256": "597a0e276531eed94ba84414e667f49959392ca72859f4817c1c1271dc64563a"
+      },
+      {
+        "id": "removeGraph",
+        "file": "topology/removeGraph.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.getGraph",
+          "topologyTool.removeGraph"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.removeGraph"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "graphId"
+        ],
+        "consumedParams": [
+          "graphId"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "cc1d87d0e7af328f158609e8baa2912f9bd0f17f7d000213db089d164898423c",
+        "codeSha256": "a672f32297b064b6481f4f18d340028ba8bcff222e92d1743e9f12ce63ed010b"
+      },
+      {
+        "id": "removeRoute",
+        "file": "topology/removeRoute.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.findPath",
+          "topologyTool.getGraph",
+          "topologyTool.removeRoute",
+          "topologyTool.renderRoute"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.removeRoute"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "routeId"
+        ],
+        "consumedParams": [
+          "routeId"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "083d4a568ce10ce0233fe900b753b42b71b10c7e8eaa1c962509b9d39772d224",
+        "codeSha256": "6e434c12599bfa6c653a4c689749a788e4dcfa0a61aaca5765324081db0f8d13"
+      },
+      {
+        "id": "removeTopology",
+        "file": "topology/removeTopology.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.create",
+          "topologyTool.getById",
+          "topologyTool.list",
+          "topologyTool.remove"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.remove"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [
+          "id"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "e4713c3abf2aa9e2e3599552939bb4c3c4a11dabd324a9d99b9fb06bc9c38900",
+        "codeSha256": "e566b0cb68a1e1c8dfd645feb68c6c6a9a12d9b821cf7e29627e55c660053217"
+      },
+      {
+        "id": "renderRoute",
+        "file": "topology/renderRoute.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.findPath",
+          "topologyTool.getGraph",
+          "topologyTool.renderRoute"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.renderRoute"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "options"
+        ],
+        "consumedParams": [
+          "options"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "882e966d5ec1b6e018389da9391fa3a4eeb35a88cee2fefceb8c0ce260feda94",
+        "codeSha256": "420b0e215f862de82d0d72bbea2be2463fc17495558251243d107ded0225740d"
+      },
+      {
+        "id": "setEdgeRoutingState",
+        "file": "topology/setEdgeRoutingState.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.getGraph",
+          "topologyTool.setEdgeRoutingState"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.setEdgeRoutingState"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "graphId",
+          "guard",
+          "patch",
+          "selector"
+        ],
+        "consumedParams": [
+          "graphId",
+          "guard",
+          "patch",
+          "selector"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "40d528acc3d6a40b5979bb0a5d67de7a6498dbf9c2e077924b8efd41ba4de31b",
+        "codeSha256": "053f75b92d57d96ffe8c6910915d95f18c9d0e8942d997703b6de451426c7734"
+      },
+      {
+        "id": "setEdgeVisualState",
+        "file": "topology/setEdgeVisualState.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.getGraph",
+          "topologyTool.setEdgeVisualState"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.setEdgeVisualState"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "graphId",
+          "guard",
+          "patch",
+          "selector"
+        ],
+        "consumedParams": [
+          "graphId",
+          "guard",
+          "patch",
+          "selector"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "df715c78699210329454e87947ca76b3999f68af516e6432f030c3ecc698a509",
+        "codeSha256": "12fe98d7169239ee27da2459cd1ca3be57e60b01001bd90a3053c9bed5d45512"
+      },
+      {
+        "id": "setRouteVisualState",
+        "file": "topology/setRouteVisualState.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.findPath",
+          "topologyTool.getGraph",
+          "topologyTool.getRouteById",
+          "topologyTool.renderRoute",
+          "topologyTool.setRouteVisualState"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.setRouteVisualState"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "patch",
+          "routeId"
+        ],
+        "consumedParams": [
+          "patch",
+          "routeId"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "8540f2a8aa16fe746a77edfa10ab9d3b2d85b599d5da54f289df9039cf09d67a",
+        "codeSha256": "ab340335807adde5507a2a09d2cf37e0bec693b2d2f89cf47577d1f8f721e36b"
+      },
+      {
+        "id": "showRoute",
+        "file": "topology/showRoute.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.createGraph",
+          "topologyTool.findPath",
+          "topologyTool.getGraph",
+          "topologyTool.getRouteById",
+          "topologyTool.renderRoute",
+          "topologyTool.showRoute"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.showRoute"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "routeId"
+        ],
+        "consumedParams": [
+          "routeId"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "f803971aff46479e6d18e614c6b267bbae20f6f1cc626efa9abed85cf22b8d47",
+        "codeSha256": "47a1c28e7001f71bacba7c2a7d8c624a75815939e947a96253c30f72aca599e5"
+      },
+      {
+        "id": "showTopology",
+        "file": "topology/showTopology.json",
+        "category": "topology",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "topologyTool.create",
+          "topologyTool.getById",
+          "topologyTool.list",
+          "topologyTool.show"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "topologyTool.show"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [
+          "id"
+        ],
+        "ignoredParams": [],
+        "contentSha256": "aa471df4d6d63cd7da56f092a5d864f0e7ff56829bb52b772500c2d0b9322393",
+        "codeSha256": "4550010764db0ff480b6e952b28b497b846485043ebf65d2556e7b1bbab593e0"
+      },
+      {
+        "id": "createCanvas3D",
+        "file": "viewer/createCanvas3D.json",
+        "category": "viewer",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "viewerTool.createCanvas"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "viewerTool.createCanvas"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "opts.cameraPosition",
+          "opts.cameraTarget",
+          "opts.label",
+          "opts.position",
+          "opts.size"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "opts.cameraPosition",
+          "opts.cameraTarget",
+          "opts.label",
+          "opts.position",
+          "opts.size"
+        ],
+        "contentSha256": "7e0f44ca88bd57f3a278e56bbc9ca78ee29e473fb5349e5b106d84bca191426a",
+        "codeSha256": "0ed5ca262411b3052cc796b5ed54184fdfded9c66a3381286293bd51efd59441"
+      },
+      {
+        "id": "removeAllCanvases",
+        "file": "viewer/removeAllCanvases.json",
+        "category": "viewer",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "viewerTool.removeAll"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "viewerTool.removeAll"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [],
+        "consumedParams": [],
+        "ignoredParams": [],
+        "contentSha256": "e256d1a14dff49a581966c3d40bf1593e9caf1ab09b950faeab6f765e49f317f",
+        "codeSha256": "d1d6f469232de2e742004f8aa34bf7b94eeec33483aefacfe3e44899f3c9645a"
+      },
+      {
+        "id": "removeCanvas3D",
+        "file": "viewer/removeCanvas3D.json",
+        "category": "viewer",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "composite",
+        "actualSspCalls": [
+          "viewerTool.list",
+          "viewerTool.remove"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "viewerTool.remove"
+        ],
+        "methodMatchesCode": false,
+        "dependencies": [],
+        "declaredParams": [
+          "id"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "id"
+        ],
+        "contentSha256": "1a82b6fef13b06aefca70f0c5626ed523452a7eacf34f054b011679292c5df86",
+        "codeSha256": "1e0e83de58bbf017bc20dd44281fe19f3dceb74ebd029ad06ae6ea5e6263cbba"
+      },
+      {
+        "id": "screenshot",
+        "file": "viewer/screenshot.json",
+        "category": "viewer",
+        "aiEnabled": false,
+        "status": "active",
+        "hasCode": true,
+        "hasSteps": false,
+        "stepsCount": 0,
+        "classification": "atomic",
+        "actualSspCalls": [
+          "viewerTool.screenshot"
+        ],
+        "invalidSspCalls": [],
+        "metadataMethods": [
+          "viewerTool.screenshot"
+        ],
+        "methodMatchesCode": true,
+        "dependencies": [],
+        "declaredParams": [
+          "opts.download",
+          "opts.filename",
+          "opts.format",
+          "opts.height",
+          "opts.quality",
+          "opts.width"
+        ],
+        "consumedParams": [],
+        "ignoredParams": [
+          "opts.download",
+          "opts.filename",
+          "opts.format",
+          "opts.height",
+          "opts.quality",
+          "opts.width"
+        ],
+        "contentSha256": "3345baa98cdba59f81d98b4d6df83f1bac83cae8736921d8b51edc75b43149d9",
+        "codeSha256": "3ab985aaed6da332054a28c9903a6237bde9fda9d1fa168994b9132e268d66c1"
+      }
+    ]
+  }
+}

@@ -2,12 +2,13 @@
 
 > AI 友好的 Three.js 能力平台：把 Three.js 能力封装成 ssp-shim controller，再通过结构化 JSON 模板提供给 LLM 和业务代码。
 
-## 当前状态（2026-08-14）
+## 当前状态（2026-08-17）
 
 - SSP 暴露 10 个 controller，共 85 个 controller 方法；`cameraController.controls` 是一个底层实例属性，不计入方法数。
 - 顶层 context 工具 4 个（`setContext` / `getContext` / `hasContext` / `clearContext`），合计 89 个可调用函数。
-- 模板位于 `src/templates/ssp_templates/`：79 个 active、0 个 placeholder、4 个组合模板、9 个 `aiEnabled` 模板。
-- AI 的模型面能力仅是模板目录；AI 运行时不会直接导入或调用 `src/ssp`。
+- v2 兼容目录 `src/templates/ssp_templates/` 有 79 个 active、0 个 placeholder、4 个组合模板、8 个 `aiEnabled` 模板；`clearAllHighlights` 已改为 host-only。
+- v3 已落地 4 个 Manifest 约束的一一映射原子模板；独立 machine contract 同时锁定模板 allow-list、参数 schema 和返回 schema，其中 `resetVisibility` 面向 AI；同 ID 由 v3 优先遮蔽 v2。
+- AI 的模型面能力仅来自统一模板目录；纯目录构建不导入 SSP，执行时由应用层注入 SSP。
 - `topologyTool` 提供 23 个 API（legacy 图、v2 图与路线）；通用 GLB metadata 到 world-space topology graph 的适配层尚未实现，现有医院模型仅作测试 fixture。
 
 ## SSP API
@@ -45,7 +46,11 @@ npm run dev            # http://localhost:5173/
 | `npm run build` | 类型检查并执行生产构建（会先运行 `list-models`） |
 | `npm run list-models` | 扫描 `public/models/`，生成 `src/model-manifest.json` |
 | `npm run audit:templates` | 只报告模板 schema、数量和引用问题，不修改文件 |
+| `npm run phase0:generate` | 从当前 SSP 与模板事实重新生成 Capability Manifest 和 Phase 0 文档 |
+| `npm run audit:phase0` | 校验生成清单没有漂移且 SSP 方法全部完成策略分类 |
+| `npm run audit:v3` | 校验 v3 schema、Manifest 映射、策略与封闭调用语法 |
 | `npm run audit:ai-boundary` | 只报告 AI → 模板边界违规，不修改文件 |
+| `npm run test:templates-v3` | 运行 v3 原子 Runtime、ObjectRef、结果投影与宿主边界契约测试 |
 | `npm run test:objects` | objectsTool 有界查询、租约重叠与资源回收回归 |
 | `npm run test:topology` | topology 纯图、寻路和路线生命周期回归 |
 | `npm run audit:topology-boundary` | 检查 topology 依赖边界 |
@@ -54,7 +59,7 @@ npm run dev            # http://localhost:5173/
 
 ## 模板
 
-模板目录名与 controller 模块对应，当前只使用以下 10 个目录：
+v2 兼容模板目录名与 controller 模块对应，当前只使用以下 10 个目录：
 
 ```
 src/templates/ssp_templates/
@@ -62,7 +67,7 @@ src/templates/ssp_templates/
 ├── objects/ poi/ css/ viewer/ topology/
 ```
 
-所有 79 个 JSON 均为 active；4 个组合模板是 `flash-alarm`、`floor`、`focus-on-object`、`highlight-objects`；9 个 AI 模板由 registry 显式许可。模板 schema 见 [src/templates/_SCHEMA.md](./src/templates/_SCHEMA.md)。
+所有 79 个 v2 JSON 均为 active；4 个组合模板是 `flash-alarm`、`floor`、`focus-on-object`、`highlight-objects`；8 个 AI 模板由 registry 显式许可。v3 原子模板位于 `src/templates/v3/atomic/`，当前迁移 `getViewpoint`、`setBackgroundColor`、`setFog`、`resetVisibility`。统一 Registry 采用 v3-first，同 ID 的隐藏 v3 不回退 v2。模板 schema 见 [src/templates/_SCHEMA.md](./src/templates/_SCHEMA.md)。
 
 ## 模型与拓扑边界
 
@@ -72,11 +77,12 @@ src/templates/ssp_templates/
 
 ## 开发约束
 
-1. SSP 统一以 `ssp.xxxTool.xxx()` 调用；AI 只能选择 AI-enabled 模板。
-2. 模板代码在受控 runtime 中执行，模板之间相互隔离。
+1. SSP 统一以 `ssp.xxxTool.xxx()` 调用；AI 只能选择统一 Registry 中显式开放的模板。
+2. 新增模板必须使用 v3 声明式 schema 和 Manifest 静态映射；v2 `code` 编译器只保留为未迁移模板的隔离兼容路径。
 3. `cameraController` 使用 `useThreeScene` 注入的同一个 CameraControls 实例。
 4. 审计命令只报告；`src/ssp/**` 检查默认不修改，需要变更时必须先报告范围并取得用户对本轮的明确确认。
 5. 仓库通过多个 worktree 并行开发。不要清理、重置、移动或提交不属于当前任务的改动；提交前按精确路径核对 staged 文件。
+6. `clearAllHighlights` 只允许宿主紧急恢复，AI、组合模板和补偿流程均不得调用。
 
 ## 技术栈与许可
 

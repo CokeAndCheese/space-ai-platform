@@ -1,18 +1,19 @@
 # Space AI Platform — 项目总结
 
-> 更新：2026-08-14。本文只记录当前仓库事实；具体签名以源码和 API catalog 为准。
+> 更新：2026-08-17。本文只记录当前仓库事实；具体签名以源码和 API catalog 为准。
 
 ## 规模与分层
 
 - 10 个 SSP controller，85 个 controller 方法；`cameraController.controls` 为属性。
 - `src/ssp/core/context.ts` 另外提供 4 个 context 函数，顶层共 89 个可调用函数。
-- `src/templates/ssp_templates/` 有 79 个 active JSON、0 个 placeholder、4 个 combo、9 个 AI-enabled。
-- AI 层只选择并执行模板；`src/ai` 不直接导入 SSP。模板 runtime 是 AI 触达 SSP 的唯一入口。
+- v2 兼容目录有 79 个 active JSON、0 个 placeholder、4 个 combo、8 个 AI-enabled；v3 有 4 个 Manifest 约束的 atomic 模板，其中 1 个向 AI 开放。
+- AI 层只选择并执行统一模板目录；纯 Registry 不导入 SSP，应用 Runtime 是 AI 触达 SSP 的唯一入口。
 
 ```
 src/
 ├── ssp/                         ← 10 个 controller + core/context
-├── templates/ssp_templates/     ← 79 个模板（10 个实际模块目录）
+├── templates/ssp_templates/     ← 79 个 v2 兼容模板（10 个实际模块目录）
+├── templates/v3/atomic/         ← 4 个 v3 一一映射原子模板
 ├── ai/                          ← 解析、规划、模板执行与审计
 ├── composables/                 ← Three.js 场景初始化
 └── test/                        ← 沙盒和回归脚本
@@ -44,11 +45,11 @@ camera/ scene/ light/ helper/ model/
 objects/ poi/ css/ viewer/ topology/
 ```
 
-审计基线：79 active、0 placeholder、4 combo（`flash-alarm`、`floor`、`focus-on-object`、`highlight-objects`）、9 AI-enabled。AI-enabled 名单当前为 `captureMainViewpoint`、`fitScene`、`flyToMainViewpoint`、`clearAllHighlights`、`collapse-floor`、`explode-floor`、`query-scene`、`resetVisibility`、`help`。
+v2 审计基线：79 active、0 placeholder、4 combo（`flash-alarm`、`floor`、`focus-on-object`、`highlight-objects`）、8 AI-enabled。统一 AI 目录当前为 `captureMainViewpoint`、`fitScene`、`flyToMainViewpoint`、`collapse-floor`、`explode-floor`、`query-scene`、`resetVisibility`、`help`；其中 `resetVisibility` 走同 ID v3 路径。`clearAllHighlights` 仅保留为宿主紧急恢复动作。
 
 ## AI 边界
 
-`src/ai/parser/prompts.ts` 给模型展示的是 registry 的模板目录；`PlanExecutor` 以 `aiOnly: true`、参数校验调用 `templateRuntime`。因此 AI 不能直接调用 `window.ssp` 或编写 SSP 方法。模板默认可在 Sandbox 执行，是否暴露给 AI 由每个 JSON 的 `aiEnabled` 显式控制。
+`src/ai/parser/prompts.ts` 给模型展示的是 v3-first 统一目录；`PlanExecutor` 以 `aiOnly: true` 和参数校验调用模板 Runtime。v3 原子调用由 Manifest 静态绑定，未迁移 ID 才进入隔离的 v2 兼容编译器，因此 AI 不能直接调用 `window.ssp` 或编写 SSP 方法。`clearAllHighlights` 通过显式宿主适配器执行，不进入 Intent 或 AI fallback。
 
 ## topologyTool 边界
 
@@ -60,12 +61,15 @@ topology v2 由纯数据 graph API、约束寻路和 Three.js 路线生命周期
 - 模板 registry、runtime、AI 参数校验和边界审计已落地。
 - topology legacy + v2 graph/route API 及回归脚本已落地。
 - objectsTool 有界查询/描述、高亮租约、context/model 回收及回归脚本已落地。
+- Phase 0 Capability Manifest 与 v2 冻结审计已落地。
+- Phase 1 v3 原子 Runtime、4 个首批迁移、独立参数/返回 machine contract、ObjectRef 与有界公共结果投影已落地。
 - Sandbox 支持 Templates、Models、ssp 三个 tab。
 
-## 待办（需用户确认后再改）
+## 后续阶段
 
 - 实现通用 GLB metadata 到 world-space 显式 topology graph 的适配层；不得绑定某个行业或示例模型。
-- 按产品需求扩充并审核 AI-enabled 模板；默认保持 opt-in。
+- Phase 2 实现封闭组合 Runtime，迁移 4 个 v2 combo 与 `query-scene`，并接入 execution-local HighlightLease capability table、取消/超时/finally 释放。
+- 继续将 v2 一一映射迁移到 v3；AI 暴露默认保持 opt-in。
 - 继续完善性能观测、模型 metadata 与应用层业务组合。
 
 ## 工作区注意事项

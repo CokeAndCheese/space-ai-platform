@@ -12,12 +12,13 @@
   "sdk": "ssp-shim",
   "method": "ssp.objectsTool.clearAllHighlights",
   "signature": "clearAllHighlights(): void",
-  "aiEnabled": true,
+  "aiEnabled": false,
   "params": [],
   "returns": "{ message, cleared }",
   "code": "ssp.objectsTool.clearAllHighlights(); return { message: '已清除全部高亮', cleared: true };",
   "example": "/* 清全部高亮 */\nssp.objectsTool.clearAllHighlights();",
   "guard": [
+    "仅供宿主紧急全局恢复，AI/template 组合不得直接调用",
     "不影响 visible (只清 emissive)",
     "多次调用安全 (没有高亮也无害)"
   ],

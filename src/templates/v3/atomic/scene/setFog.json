@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 3,
+  "id": "setFog",
+  "version": "1.0.0",
+  "kind": "atomic",
+  "title": "设置雾效",
+  "description": "设置场景雾效的颜色、范围、密度、类型和可见性。",
+  "intents": ["设置雾效", "调整场景雾化", "控制雾的可见性"],
+  "input": {
+    "type": "object",
+    "properties": {
+      "options": {
+        "type": "object",
+        "properties": {
+          "color": {
+            "anyOf": [
+              { "type": "string", "minLength": 1, "maxLength": 64 },
+              { "type": "integer", "minimum": 0, "maximum": 16777215 }
+            ]
+          },
+          "near": { "type": "number", "minimum": 0, "maximum": 1000000 },
+          "far": { "type": "number", "minimum": 0, "maximum": 1000000 },
+          "density": { "type": "number", "minimum": 0, "maximum": 1000000 },
+          "type": { "type": "string", "enum": ["linear", "exp2"] },
+          "visible": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "type": "object",
+    "required": ["ok"],
+    "properties": {
+      "ok": { "const": true }
+    },
+    "additionalProperties": false
+  },
+  "effects": ["scene.write"],
+  "risk": "visual",
+  "ai": { "exposed": false },
+  "call": {
+    "method": "sceneTool.setFog",
+    "args": [{ "$input": "options", "default": {} }],
+    "result": { "kind": "receipt", "value": { "ok": true } }
+  }
+}

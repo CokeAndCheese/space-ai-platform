@@ -1,9 +1,9 @@
 /** Three-layer prompt. The model-facing capability surface is templates only. */
 
 import type { Intent } from '../types/Intent'
-import { templateRegistry } from '@/templates/registry'
+import { templateCatalog } from '@/templates/catalog'
 
-const TEMPLATE_CATALOG = templateRegistry.toAiPromptSection()
+const TEMPLATE_CATALOG = templateCatalog.toAiPromptSection()
 
 export const STABLE_PROMPT = `你是 3D 建筑场景助手。你的唯一能力边界是“可用模板”。
 你不能直接调用或编写 SSP API，不能输出 skill，也不能创造模板名。

@@ -14,6 +14,7 @@
 import { ref, computed } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { intentLogger } from '@/ai/audit/IntentLogger'
+import { executeHostTemplateAction } from '@/templates/hostActions'
 
 const chat = useChatStore()
 const input = ref('')
@@ -126,12 +127,17 @@ async function send() {
  * 严格遵守 narrow waist 原则:
  *   - 应用层不能直接调 ssp-shim
  *   - 所有场景调用必须经过 templates 层
- *   - UI 控件通过特殊 query 字符串 (如 __clear_highlight__) 生成模板调用
+ *   - AI 可见动作通过特殊 query 字符串生成模板调用
+ *   - 宿主紧急恢复动作走显式 host-only 模板适配器，不进入 Intent
  */
 async function quickAction(action: typeof QUICK_ACTIONS[number]) {
   // ⚙️ 设置: 纯 UI 操作,不走 AI
   if (action.query === '__settings__') {
     showSettings.value = !showSettings.value
+    return
+  }
+  if (action.query === '__clear_highlight__') {
+    await executeHostTemplateAction('clearAllHighlights')
     return
   }
   // 系统 Quick Actions 强制走本地 fallback 规则，避免 LLM 改写模板名。

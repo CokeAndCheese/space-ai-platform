@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod'
-import { resolveAiTemplateId, templateRegistry } from '@/templates/registry'
+import { resolveAiTemplateId, templateCatalog } from '@/templates/catalog'
 
 export const RENDER_TYPES = [
   'WINDOW', 'DOOR', 'ELEVATOR', 'STAIR',
@@ -109,7 +109,7 @@ const IntentSchema = RawIntentSchema.superRefine((value, ctx) => {
     return
   }
   try {
-    templateRegistry.prepareParams(templateRegistry.require(canonicalId), value.params, true)
+    templateCatalog.prepareParams(canonicalId, value.params, true)
   } catch (error) {
     ctx.addIssue({
       code: 'custom',
@@ -119,11 +119,7 @@ const IntentSchema = RawIntentSchema.superRefine((value, ctx) => {
   }
 }).transform((value) => {
   const canonicalId = resolveAiTemplateId(value.templateId)!
-  const params = templateRegistry.prepareParams(
-    templateRegistry.require(canonicalId),
-    value.params,
-    true,
-  )
+  const params = templateCatalog.prepareParams(canonicalId, value.params, true)
   return {
     action: 'template' as const,
     templateId: canonicalId,

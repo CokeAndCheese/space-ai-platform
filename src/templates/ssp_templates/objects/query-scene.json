@@ -78,6 +78,6 @@
     "show 只恢复可见性；炸开状态下不得自动收回楼层",
     "只允许使用模板参数声明的 operation"
   ],
-  "seeAlso": ["clearAllHighlights", "resetVisibility", "focus-on-object"],
+  "seeAlso": ["resetVisibility", "focus-on-object"],
   "tags": ["ai", "query", "composite"]
 }

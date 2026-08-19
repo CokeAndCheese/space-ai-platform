@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "capabilities": {
+    "cameraController.getViewpoint": {
+      "templateIds": ["getViewpoint"],
+      "args": [],
+      "result": {
+        "kind": "public-data",
+        "schema": {
+          "type": "object",
+          "required": ["position", "target", "fov"],
+          "properties": {
+            "position": {
+              "type": "object",
+              "required": ["x", "y", "z"],
+              "properties": {
+                "x": { "type": "number", "minimum": -1000000, "maximum": 1000000 },
+                "y": { "type": "number", "minimum": -1000000, "maximum": 1000000 },
+                "z": { "type": "number", "minimum": -1000000, "maximum": 1000000 }
+              },
+              "additionalProperties": false
+            },
+            "target": {
+              "type": "object",
+              "required": ["x", "y", "z"],
+              "properties": {
+                "x": { "type": "number", "minimum": -1000000, "maximum": 1000000 },
+                "y": { "type": "number", "minimum": -1000000, "maximum": 1000000 },
+                "z": { "type": "number", "minimum": -1000000, "maximum": 1000000 }
+              },
+              "additionalProperties": false
+            },
+            "fov": { "type": "number", "minimum": 0, "maximum": 180 }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "objectsTool.resetVisibility": {
+      "templateIds": ["resetVisibility"],
+      "args": [],
+      "result": {
+        "kind": "public-data",
+        "schema": {
+          "type": "object",
+          "required": ["restored", "hiddenBefore"],
+          "properties": {
+            "restored": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+            "hiddenBefore": { "type": "integer", "minimum": 0, "maximum": 1000000 }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "sceneTool.setBackgroundColor": {
+      "templateIds": ["setBackgroundColor"],
+      "args": [
+        {
+          "required": true,
+          "schema": {
+            "anyOf": [
+              { "type": "string", "minLength": 1, "maxLength": 64 },
+              { "type": "integer", "minimum": 0, "maximum": 16777215 }
+            ]
+          }
+        }
+      ],
+      "result": { "kind": "void" }
+    },
+    "sceneTool.setFog": {
+      "templateIds": ["setFog"],
+      "args": [
+        {
+          "required": false,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "color": {
+                "anyOf": [
+                  { "type": "string", "minLength": 1, "maxLength": 64 },
+                  { "type": "integer", "minimum": 0, "maximum": 16777215 }
+                ]
+              },
+              "near": { "type": "number", "minimum": 0, "maximum": 1000000 },
+              "far": { "type": "number", "minimum": 0, "maximum": 1000000 },
+              "density": { "type": "number", "minimum": 0, "maximum": 1000000 },
+              "type": { "type": "string", "enum": ["linear", "exp2"] },
+              "visible": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        }
+      ],
+      "result": { "kind": "void" }
+    }
+  }
+}

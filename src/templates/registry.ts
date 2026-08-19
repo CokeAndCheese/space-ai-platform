@@ -95,7 +95,6 @@ const TEMPLATE_PARAM_SCHEMAS: Readonly<Record<string, z.ZodType>> = Object.freez
   }).strict(),
   flyToMainViewpoint: z.object({ viewpoint: z.record(z.string(), z.unknown()).optional() }).strict(),
   captureMainViewpoint: z.object({}).strict(),
-  clearAllHighlights: z.object({}).strict(),
   resetVisibility: z.object({}).strict(),
   help: z.object({}).strict(),
 })
@@ -351,8 +350,8 @@ export class TemplateRegistry {
     return params
   }
 
-  toAiPromptSection(): string {
-    return this.aiEnabled().map((definition) => {
+  toAiPromptSection(excludedIds: ReadonlySet<string> = new Set()): string {
+    return this.aiEnabled().filter((definition) => !excludedIds.has(definition.id)).map((definition) => {
       const lines = [`### ${definition.id}`]
       lines.push(`用途: ${definition.intent.join('；')}`)
       const params = definition.params ?? []
@@ -375,8 +374,12 @@ export class TemplateRegistry {
 
 export const templateRegistry = new TemplateRegistry(importedTemplates)
 
+export function normalizeTemplateAlias(id: string): string {
+  return TEMPLATE_ALIASES[id] ?? id
+}
+
 export function resolveAiTemplateId(id: string): string | null {
-  const candidate = TEMPLATE_ALIASES[id] ?? id
+  const candidate = normalizeTemplateAlias(id)
   const canonicalId = templateRegistry.canonicalId(candidate)
   if (!canonicalId || !templateRegistry.isAiEnabled(canonicalId)) return null
   return canonicalId

@@ -235,7 +235,7 @@ flow、同 connector 跨层边、最多 4 组必经节点的精确约束 Dijkstr
 | viewer | 4 |
 | **合计** | **79** |
 
-其中组合模板（含 `steps`）4 个，`aiEnabled:true` 9 个；topology 目录的 23 个
+其中组合模板（含 `steps`）4 个，`aiEnabled:true` 8 个；topology 目录的 23 个
 原子模板全部 `aiEnabled:false`，高层业务流程应通过组合模板承接。
 
 ## 6. 占位模板统计

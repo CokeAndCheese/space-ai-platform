@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 3,
+  "id": "setBackgroundColor",
+  "version": "1.0.0",
+  "kind": "atomic",
+  "title": "设置背景颜色",
+  "description": "设置场景背景颜色。",
+  "intents": ["设置背景颜色", "修改场景背景", "更换背景色"],
+  "input": {
+    "type": "object",
+    "required": ["color"],
+    "properties": {
+      "color": {
+        "anyOf": [
+          { "type": "string", "minLength": 1, "maxLength": 64 },
+          { "type": "integer", "minimum": 0, "maximum": 16777215 }
+        ]
+      }
+    },
+    "additionalProperties": false
+  },
+  "output": {
+    "type": "object",
+    "required": ["ok"],
+    "properties": {
+      "ok": { "const": true }
+    },
+    "additionalProperties": false
+  },
+  "effects": ["scene.write"],
+  "risk": "visual",
+  "ai": { "exposed": false },
+  "call": {
+    "method": "sceneTool.setBackgroundColor",
+    "args": [{ "$input": "color" }],
+    "result": { "kind": "receipt", "value": { "ok": true } }
+  }
+}

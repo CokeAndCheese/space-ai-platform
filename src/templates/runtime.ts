@@ -1,12 +1,19 @@
 import * as THREE from 'three'
 import { ssp } from '@/ssp'
+import { topologyOverrideTool } from '@/adapters/glbTopology'
 import { templateRegistry } from './registry'
 import type { TemplateDefinition } from './types'
+
+export interface TopologyOverrideTemplateApi {
+  query(request: Record<string, unknown>): unknown
+  mutate(request: Record<string, unknown>): unknown
+}
 
 type CompiledTemplate = (
   sspNamespace: typeof ssp,
   threeNamespace: typeof THREE,
   params: Readonly<Record<string, unknown>>,
+  topologyOverrides: TopologyOverrideTemplateApi,
 ) => Promise<unknown>
 
 export interface ExecuteTemplateOptions {
@@ -27,6 +34,7 @@ function compileTemplate(definition: Readonly<TemplateDefinition>): CompiledTemp
     'ssp',
     'THREE',
     'params',
+    'topologyOverrides',
     `"use strict"; return (async () => { ${definition.code}\n})();`,
   ) as CompiledTemplate
   compiledTemplates.set(definition.id, factory)
@@ -50,7 +58,11 @@ export async function executeTemplate(
     : { ...params }
 
   try {
-    return await compileTemplate(definition)(ssp, THREE, Object.freeze(prepared))
+    const topologyOverrides: TopologyOverrideTemplateApi = Object.freeze({
+      query: (request: Record<string, unknown>) => topologyOverrideTool.query(request as never),
+      mutate: (request: Record<string, unknown>) => topologyOverrideTool.mutate(request as never),
+    })
+    return await compileTemplate(definition)(ssp, THREE, Object.freeze(prepared), topologyOverrides)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     throw new Error(`[template:${definition.id}] ${message}`)

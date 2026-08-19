@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-08-07T01:29:51.685Z",
+  "generatedAt": "2026-08-14T08:56:32.415Z",
   "modelsDir": "public/models",
-  "count": 58,
+  "count": 60,
   "models": [
     {
       "kind": "scene",
@@ -12,6 +12,16 @@
       "sizeBytes": 211689724,
       "sizeMB": 201.88,
       "mtime": 1785307400626.7673
+    },
+    {
+      "kind": "scene",
+      "subcategory": "",
+      "filename": "topology-test",
+      "url": "/models/topology-test",
+      "displayName": "Topology-test (1 GLB · 整个场景)",
+      "sizeBytes": 3415536,
+      "sizeMB": 3.26,
+      "mtime": 1786697639874.6665
     },
     {
       "kind": "file",
@@ -565,6 +575,16 @@
     },
     {
       "kind": "file",
+      "subcategory": "topology-test",
+      "filename": "A_1F-space-enriched.topology.glb",
+      "url": "/models/topology-test/A_1F-space-enriched.topology.glb",
+      "displayName": "A 1F Space Enriched.Topology",
+      "sizeBytes": 3415536,
+      "sizeMB": 3.26,
+      "mtime": 1786697639874.6665
+    },
+    {
+      "kind": "file",
       "subcategory": "",
       "filename": "hospital.glb",
       "url": "/models/hospital.glb",
@@ -584,5 +604,5 @@
       "mtime": 1784775914519.6882
     }
   ],
-  "__fingerprint": "1785307400626.7673|57|58"
+  "__fingerprint": "1786697639874.6665|1|60"
 }

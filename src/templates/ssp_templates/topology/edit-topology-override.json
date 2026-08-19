@@ -1,0 +1,62 @@
+{
+  "id": "edit-topology-override",
+  "category": "topology",
+  "subcategory": "manual override",
+  "intent": ["编辑人工拓扑覆盖", "为有效路网增加或恢复节点边", "修改或重置拓扑边路径"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "topologyOverrides.mutate",
+  "signature": "mutate(request: TopologyOverrideMutation): TopologyOverrideMutationResult",
+  "aiEnabled": true,
+  "params": [
+    {
+      "name": "action",
+      "type": "string",
+      "required": true,
+      "enum": ["ADD_NODE", "REMOVE_NODE", "RESTORE_NODE", "ADD_EDGE", "REMOVE_EDGE", "RESTORE_EDGE", "OVERRIDE_EDGE_PATH", "RESET_EDGE_PATH"],
+      "desc": "一次只执行一个严格定义的 V2 操作"
+    },
+    {
+      "name": "target",
+      "type": "object",
+      "required": false,
+      "desc": "可选目标；包含 assetId 和/或 graphId，省略仅在目标唯一时允许"
+    },
+    {
+      "name": "node",
+      "type": "object",
+      "required": false,
+      "desc": "ADD_NODE 使用的完整节点"
+    },
+    {
+      "name": "nodeId",
+      "type": "string",
+      "required": false,
+      "desc": "REMOVE_NODE 或 RESTORE_NODE 使用的节点 ID"
+    },
+    {
+      "name": "edge",
+      "type": "object",
+      "required": false,
+      "desc": "ADD_EDGE 使用的完整边，relation/direction 必须是受限枚举"
+    },
+    {
+      "name": "edgeId",
+      "type": "string",
+      "required": false,
+      "desc": "边操作使用的边 ID"
+    },
+    {
+      "name": "path",
+      "type": "object",
+      "required": false,
+      "desc": "OVERRIDE_EDGE_PATH 使用的标准 { type: 'POLYLINE', via } 路径"
+    }
+  ],
+  "returns": "紧凑的目标、追加 operation、有效节点/边 ID 与覆盖摘要",
+  "code": "const result = topologyOverrides.mutate(params); const graph = result.effectiveTopology.graphs.find((candidate) => candidate.id === result.target.graphId); return { target: result.target, action: params.action, summary: result.summary, effective: { graphId: graph.id, layerCount: graph.layers.length, nodeCount: graph.nodes.length, edgeCount: graph.edges.length } };",
+  "example": "return await templateRuntime.execute('edit-topology-override', { action: 'OVERRIDE_EDGE_PATH', target: { assetId: 'asset-a', graphId: 'model-topology:A_1F' }, edgeId: 'edge-1', path: { type: 'POLYLINE', via: [{ x: 1, y: 2, z: 3 }] } });",
+  "guard": ["remove/restore/path 的 expect 由服务从 baseline/effective 图推导", "ADD_NODE/ADD_EDGE 只接受白名单字段，不接受任意 data", "RESET_EDGE_PATH 不接受 path，服务会恢复 baseline 路径", "单目标最多保留 128 条 canonical operation", "服务先验证有效拓扑并通知回调，回调成功后才提交 operation log"],
+  "seeAlso": ["query-topology-override", "getGraph"],
+  "tags": ["ai", "topology", "override", "mutation"]
+}

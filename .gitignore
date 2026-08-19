@@ -14,6 +14,8 @@ glb_cleaned/
 
 # 大型 GLB 模型暂不进入普通 Git
 public/models/**/*.glb
+# Studio 生成并嵌入 sspTopology 的兼容性夹具保留进仓库，用于跨产品回归
+!public/models/topology-test/A_1F-space-enriched.topology.glb
 
 # macOS
 .DS_Store

@@ -69,15 +69,51 @@ async function main() {
     }
   }
 
+  // worktree 通常不复制被 Git 忽略的大模型。默认保留 manifest 中暂时不可见的记录，
+  // 避免普通 dev/build 把生产模型误判为已删除；完整资产维护时可显式 --allow-prune。
+  let existingManifest = null
+  try {
+    existingManifest = JSON.parse(await fs.readFile(MANIFEST_PATH, 'utf8'))
+  } catch {
+    // 首次生成时没有现有 manifest。
+  }
+  const allowPrune = process.argv.includes('--allow-prune')
+  if (!allowPrune && Array.isArray(existingManifest?.models)) {
+    const recordKeys = new Set(records.map((record) => `${record.kind}:${record.url}`))
+    for (const record of existingManifest.models) {
+      const key = `${record?.kind}:${record?.url}`
+      if (!recordKeys.has(key)) {
+        records.push(record)
+        recordKeys.add(key)
+      }
+    }
+
+    // 用可见 + 保留的文件记录重算场景汇总，避免部分 checkout 显示错误的文件数和大小。
+    const filesBySubcategory = new Map()
+    for (const record of records) {
+      if (record.kind !== 'file' || !record.subcategory) continue
+      const entries = filesBySubcategory.get(record.subcategory) ?? []
+      entries.push(record)
+      filesBySubcategory.set(record.subcategory, entries)
+    }
+    for (const [subcategory, files] of filesBySubcategory) {
+      const totalSize = files.reduce((sum, record) => sum + record.sizeBytes, 0)
+      const subMaxMtime = files.reduce((maximum, record) => Math.max(maximum, record.mtime), 0)
+      const scene = buildSceneRecord(subcategory, files.length, totalSize, subMaxMtime)
+      const sceneIndex = records.findIndex((record) => record.kind === 'scene' && record.url === scene.url)
+      if (sceneIndex >= 0) records[sceneIndex] = scene
+      else records.push(scene)
+    }
+  }
+
   // 缓存检查: 读现有 manifest, 如果 fingerprint 一致且未过期则跳过
   // 强制跳过检查: --force (CIRCLE_NODE_LOG_INDEX 没设的话)
   const force = process.argv.includes('--force')
   const fingerprint = `${maxMtime}|${fileCount}|${records.length}`
   if (!force) {
     try {
-      const existing = JSON.parse(await fs.readFile(MANIFEST_PATH, 'utf8'))
-      const existingFp = existing.__fingerprint
-      const generatedAt = existing.generatedAt
+      const existingFp = existingManifest?.__fingerprint
+      const generatedAt = existingManifest?.generatedAt
       const ageMs = generatedAt ? Date.now() - new Date(generatedAt).getTime() : Infinity
       // fingerprint 一致 且 不超过 7 天, 跳过写
       if (existingFp === fingerprint && ageMs < 7 * 24 * 60 * 60 * 1000) {

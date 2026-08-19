@@ -1,0 +1,63 @@
+{
+  "id": "query-topology-override",
+  "category": "topology",
+  "subcategory": "manual override",
+  "intent": ["查询人工拓扑覆盖目标", "读取拓扑覆盖文档", "查看覆盖后的有效路网摘要"],
+  "scene": "3D",
+  "sdk": "ssp-shim",
+  "method": "topologyOverrides.query",
+  "signature": "query(request: TopologyOverrideQuery): TopologyOverrideQueryResult",
+  "aiEnabled": true,
+  "params": [
+    {
+      "name": "operation",
+      "type": "string",
+      "required": true,
+      "enum": ["listTargets", "getDocument", "getEffectiveGraph", "getEffectiveTopology"],
+      "desc": "查询目标列表、覆盖文档、有效图或有效拓扑"
+    },
+    {
+      "name": "target",
+      "type": "object",
+      "required": false,
+      "desc": "可选目标；包含 assetId 和/或 graphId，省略仅在目标唯一时允许"
+    },
+    {
+      "name": "include",
+      "type": "string",
+      "required": false,
+      "enum": ["summary", "nodes", "edges", "both"],
+      "desc": "有效图返回范围；默认只返回计数，节点或边明细必须显式请求"
+    },
+    {
+      "name": "offset",
+      "type": "number",
+      "required": false,
+      "desc": "节点、边或 operation 的分页起点"
+    },
+    {
+      "name": "limit",
+      "type": "number",
+      "required": false,
+      "desc": "单类结果页大小，最大 100"
+    },
+    {
+      "name": "nodeIds",
+      "type": "string[]",
+      "required": false,
+      "desc": "可选节点 ID 白名单，最多 100 个"
+    },
+    {
+      "name": "edgeIds",
+      "type": "string[]",
+      "required": false,
+      "desc": "可选边 ID 白名单，最多 100 个"
+    }
+  ],
+  "returns": "受限分页的 operation、节点或边；默认只返回目标和计数，不透传任意 data",
+  "code": "const result = topologyOverrides.query(params); const text = (value) => typeof value === 'string' ? value : null; const texts = (value) => Array.isArray(value) ? value.filter((item) => typeof item === 'string') : []; const cleanExpect = (expect) => expect ? ({ layerId: text(expect.layerId), source: text(expect.source), target: text(expect.target) }) : null; if (params.operation === 'listTargets') return { targets: result.map((target) => ({ assetId: target.assetId, graphId: target.graphId, operationCount: target.operationCount })) }; const offset = params.offset || 0; const limit = params.limit || 50; const cleanNode = (node) => node ? ({ id: node.id, layerId: node.layerId, position: node.position, connectorId: text(node.connectorId), label: text(node.label), kind: text(node.kind), subtype: text(node.subtype), tags: texts(node.tags) }) : null; const cleanEdge = (edge) => edge ? ({ id: edge.id, source: edge.source, target: edge.target, relation: edge.relation, direction: edge.direction, path: edge.path || null, weight: Number.isFinite(edge.weight) ? edge.weight : null, initialState: edge.initialState ? { enabled: typeof edge.initialState.enabled === 'boolean' ? edge.initialState.enabled : null, weightOverride: Number.isFinite(edge.initialState.weightOverride) ? edge.initialState.weightOverride : null, blockerIds: texts(edge.initialState.blockerIds) } : null, mode: text(edge.mode), tags: texts(edge.tags) }) : null; if (params.operation === 'getDocument') { const operations = result.operations.slice(offset, offset + limit).map((operation) => ({ seq: operation.seq, type: operation.type, nodeId: text(operation.nodeId), edgeId: text(operation.edgeId), expect: cleanExpect(operation.expect), node: cleanNode(operation.node), edge: cleanEdge(operation.edge), path: operation.path || null })); return { overrideSchemaVersion: result.overrideSchemaVersion, coordinateSpace: result.coordinateSpace, target: result.target, operationCount: result.operations.length, operations, page: { offset, limit, returned: operations.length, hasMore: offset + operations.length < result.operations.length } }; } const graph = result.graph || (result.topology && result.topology.graphs.find((candidate) => candidate.id === result.target.graphId)); const include = params.include || 'summary'; const nodeIds = params.nodeIds ? new Set(params.nodeIds) : null; const edgeIds = params.edgeIds ? new Set(params.edgeIds) : null; const nodePool = nodeIds ? graph.nodes.filter((node) => nodeIds.has(node.id)) : graph.nodes; const edgePool = edgeIds ? graph.edges.filter((edge) => edgeIds.has(edge.id)) : graph.edges; const nodePage = include === 'nodes' || include === 'both' ? nodePool.slice(offset, offset + limit) : []; const edgePage = include === 'edges' || include === 'both' ? edgePool.slice(offset, offset + limit) : []; const nodes = nodePage.map((node) => { const data = node.data || {}; const extras = data.sourceExtras && typeof data.sourceExtras === 'object' ? data.sourceExtras : {}; const traversal = data.traversal && typeof data.traversal === 'object' ? data.traversal : {}; return { ...cleanNode(node), attributes: { sourceSid: text(data.sourceSid), renderType: text(data.renderType), role: text(data.role), sourceLabel: text(data.sourceLabel), sourceSubtype: text(data.sourceSubtype), building: text(extras.building), floorName: text(extras.floorName), level: Number.isFinite(extras.level) ? extras.level : null, spaceType: text(extras.spaceType), fireType: text(extras.fireType), traversal: { mode: text(traversal.mode), walkable: typeof traversal.walkable === 'boolean' ? traversal.walkable : null } } }; }); const edges = edgePage.map((edge) => { const data = edge.data || {}; return { ...cleanEdge(edge), attributes: { generated: data.generated === true, origin: text(data.origin), topologyOverride: data.topologyOverride === true, inference: text(data.inference), inferenceTypes: texts(data.inferenceTypes), routingDistance: Number.isFinite(data.routingDistance) ? data.routingDistance : null, geometricDistance: Number.isFinite(data.geometricDistance) ? data.geometricDistance : null } }; }); return { target: result.target, summary: result.summary, graph: { id: graph.id, layers: graph.layers.map((layer) => ({ id: layer.id, label: text(layer.label), order: Number.isFinite(layer.order) ? layer.order : null, elevation: Number.isFinite(layer.elevation) ? layer.elevation : null, tags: texts(layer.tags) })), totals: { nodes: nodePool.length, edges: edgePool.length }, nodes, edges, page: { offset, limit, returnedNodes: nodes.length, returnedEdges: edges.length, hasMoreNodes: (include === 'nodes' || include === 'both') && offset + nodes.length < nodePool.length, hasMoreEdges: (include === 'edges' || include === 'both') && offset + edges.length < edgePool.length } } };",
+  "example": "return await templateRuntime.execute('query-topology-override', { operation: 'listTargets' });",
+  "guard": ["assetId 或 graphId 缺省仅在目标唯一时允许", "默认 include=summary；节点和边明细最多每类 100 条并通过 offset 分页", "只返回白名单属性，不透传任意 data", "有效图来自 baseline 加 V2 override operation log"],
+  "seeAlso": ["edit-topology-override", "listGraphs"],
+  "tags": ["ai", "topology", "override", "query"]
+}

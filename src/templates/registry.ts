@@ -41,6 +41,102 @@ const QueryScopeSchema = z.object({
   directions: z.array(z.enum(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'])).optional(),
 }).strict()
 
+const TopologyPointSchema = z.object({
+  x: z.number().finite().min(-1e7).max(1e7),
+  y: z.number().finite().min(-1e7).max(1e7),
+  z: z.number().finite().min(-1e7).max(1e7),
+}).strict()
+
+const TopologyPathSchema = z.object({
+  type: z.literal('POLYLINE'),
+  via: z.array(TopologyPointSchema).max(64),
+}).strict()
+
+const TopologyTargetSchema = z.object({
+  assetId: z.string().min(1).optional(),
+  graphId: z.string().min(1).optional(),
+}).strict()
+
+const TopologyNodeSchema = z.object({
+  id: z.string().min(1),
+  layerId: z.string().min(1),
+  position: TopologyPointSchema,
+  connectorId: z.string().min(1).optional(),
+  label: z.string().min(1).optional(),
+  kind: z.string().min(1).optional(),
+  subtype: z.string().min(1).optional(),
+  tags: z.array(z.string().min(1)).optional(),
+}).strict()
+
+const TopologyEdgeSchema = z.object({
+  id: z.string().min(1),
+  source: z.string().min(1),
+  target: z.string().min(1),
+  relation: z.enum(['LINK', 'CONNECTOR']),
+  direction: z.enum(['FORWARD', 'BIDIRECTIONAL']),
+  path: TopologyPathSchema.optional(),
+  weight: z.number().finite().min(0).max(1e12).optional(),
+  initialState: z.object({
+    enabled: z.boolean().optional(),
+    weightOverride: z.number().finite().min(0).max(1e12).nullable().optional(),
+    blockerIds: z.array(z.string().min(1)).optional(),
+  }).strict().optional(),
+  mode: z.string().min(1).optional(),
+  tags: z.array(z.string().min(1)).optional(),
+}).strict()
+
+const TopologyQuerySchema = z.object({
+  operation: z.enum(['listTargets', 'getDocument', 'getEffectiveGraph', 'getEffectiveTopology']),
+  target: TopologyTargetSchema.optional(),
+  include: z.enum(['summary', 'nodes', 'edges', 'both']).optional(),
+  offset: z.number().int().min(0).max(10_000).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+  nodeIds: z.array(z.string().min(1)).max(100).optional(),
+  edgeIds: z.array(z.string().min(1)).max(100).optional(),
+}).strict().superRefine((value, ctx) => {
+  if (value.operation === 'listTargets') {
+    for (const key of ['target', 'include', 'offset', 'limit', 'nodeIds', 'edgeIds'] as const) {
+      if (value[key] !== undefined) {
+        ctx.addIssue({ code: 'custom', path: [key], message: `listTargets does not accept ${key}` })
+      }
+    }
+  }
+  if (value.operation === 'getDocument' && (
+    value.include !== undefined || value.nodeIds !== undefined || value.edgeIds !== undefined
+  )) {
+    ctx.addIssue({ code: 'custom', path: ['include'], message: 'getDocument only accepts offset and limit' })
+  }
+})
+
+const TopologyMutationSchema = z.object({
+  action: z.enum([
+    'ADD_NODE', 'REMOVE_NODE', 'RESTORE_NODE', 'ADD_EDGE', 'REMOVE_EDGE', 'RESTORE_EDGE',
+    'OVERRIDE_EDGE_PATH', 'RESET_EDGE_PATH',
+  ]),
+  target: TopologyTargetSchema.optional(),
+  node: TopologyNodeSchema.optional(),
+  nodeId: z.string().min(1).optional(),
+  edge: TopologyEdgeSchema.optional(),
+  edgeId: z.string().min(1).optional(),
+  path: TopologyPathSchema.optional(),
+}).strict().superRefine((value, ctx) => {
+  const nodeAction = value.action === 'ADD_NODE'
+  const nodeIdAction = value.action === 'REMOVE_NODE' || value.action === 'RESTORE_NODE'
+  const edgeAction = value.action === 'ADD_EDGE'
+  const edgeIdAction = value.action === 'REMOVE_EDGE' || value.action === 'RESTORE_EDGE'
+    || value.action === 'OVERRIDE_EDGE_PATH' || value.action === 'RESET_EDGE_PATH'
+  if (nodeAction && value.node === undefined) ctx.addIssue({ code: 'custom', path: ['node'], message: 'ADD_NODE requires node' })
+  if (nodeIdAction && value.nodeId === undefined) ctx.addIssue({ code: 'custom', path: ['nodeId'], message: `${value.action} requires nodeId` })
+  if (edgeAction && value.edge === undefined) ctx.addIssue({ code: 'custom', path: ['edge'], message: 'ADD_EDGE requires edge' })
+  if (edgeIdAction && value.edgeId === undefined) ctx.addIssue({ code: 'custom', path: ['edgeId'], message: `${value.action} requires edgeId` })
+  if (value.action === 'OVERRIDE_EDGE_PATH' && value.path === undefined) ctx.addIssue({ code: 'custom', path: ['path'], message: 'OVERRIDE_EDGE_PATH requires path' })
+  if (value.action !== 'OVERRIDE_EDGE_PATH' && value.path !== undefined) ctx.addIssue({ code: 'custom', path: ['path'], message: 'path is only valid for OVERRIDE_EDGE_PATH' })
+  if (value.action !== 'ADD_NODE' && value.node !== undefined) ctx.addIssue({ code: 'custom', path: ['node'], message: 'node is only valid for ADD_NODE' })
+  if (!nodeIdAction && value.nodeId !== undefined) ctx.addIssue({ code: 'custom', path: ['nodeId'], message: 'nodeId is only valid for node removal/restoration' })
+  if (!edgeAction && value.edge !== undefined) ctx.addIssue({ code: 'custom', path: ['edge'], message: 'edge is only valid for ADD_EDGE' })
+  if (!edgeIdAction && value.edgeId !== undefined) ctx.addIssue({ code: 'custom', path: ['edgeId'], message: 'edgeId is only valid for edge operations' })
+})
+
 const TEMPLATE_PARAM_SCHEMAS: Readonly<Record<string, z.ZodType>> = Object.freeze({
   'query-scene': z.object({
     entity: z.enum(['object', 'floor']).optional(),
@@ -98,6 +194,8 @@ const TEMPLATE_PARAM_SCHEMAS: Readonly<Record<string, z.ZodType>> = Object.freez
   clearAllHighlights: z.object({}).strict(),
   resetVisibility: z.object({}).strict(),
   help: z.object({}).strict(),
+  'query-topology-override': TopologyQuerySchema,
+  'edit-topology-override': TopologyMutationSchema,
 })
 
 function unwrapTemplate(value: ImportedTemplate): TemplateDefinition {

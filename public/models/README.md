@@ -8,6 +8,13 @@
 扫描本目录所有 `.glb` 文件,生成 `src/model-manifest.json`,
 然后在 UI 里 (Home 右上角 / Sandbox 顶部) 以下拉框形式出现。
 
+普通扫描会保留 manifest 中暂时不在当前 worktree 的大模型记录，避免把未复制的
+Git 忽略资产误判为删除。只有在完整模型目录中确认需要裁剪旧记录时，才执行：
+
+```bash
+npm run list-models -- --allow-prune
+```
+
 ## 命名规范
 
 - 文件名必须 **英文** + 数字,不要中文 / 空格 / 括号 (Three.js / Draco 都不友好)

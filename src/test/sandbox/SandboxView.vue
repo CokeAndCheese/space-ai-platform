@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, type WatchStopHandle } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, type WatchStopHandle } from 'vue'
 import * as THREE from 'three'
 import { useThreeScene } from '@/composables/useThreeScene'
 import { useModelLibrary } from '@/composables/useModelLibrary'
@@ -8,6 +8,34 @@ import { getSspContext, hasSspContext } from '@/ssp/core/context'
 import { useChatStore } from '@/stores/chat'
 import { runRegisteredTemplate, formatLog, type LogEntry } from './runner'
 import { templateRegistry, type TemplateDefinition } from '@/templates/registry'
+import {
+  createGlbTopologyRuntime,
+  extractEmbeddedTopology,
+  topologyOverrideTool,
+  type GlbTopologyDocument,
+  type GlbTopologyAssetMount,
+  type TopologyOverrideChangeEvent,
+} from '@/adapters/glbTopology'
+import {
+  validateTopologyOverrideDocument,
+  type TopologyOverrideDocument,
+  type TopologyOverrideV2Document,
+} from '@/adapters/glbTopology/override.js'
+import {
+  clonePoints,
+  createEmptyOverrideDocument,
+  deterministicStringify,
+  edgeEndpoints,
+  findOverrideRecord,
+  findNonSameLayerOverrideEdgeIds,
+  getEdge,
+  getGraph,
+  modelToWorld,
+  readOverrideRecords,
+  sameLayer,
+  worldToModel,
+  type TopologyEditorPoint,
+} from './topologyEditor'
 import ChatPanel from '@/views/ChatPanel.vue'
 
 // 把 THREE 挂到 window,方便 console 里直接调试 (沙盒环境不挂会 ReferenceError)
@@ -536,9 +564,992 @@ async function execute() {
 // 模型库
 const lib = useModelLibrary()
 const chat = useChatStore()
+const embeddedTopologyRuntime = createGlbTopologyRuntime(ssp.topologyTool)
+
+interface EmbeddedTopologySummary {
+  assetId: string
+  graphIds: readonly string[]
+  graphCount: number
+  nodeCount: number
+  edgeCount: number
+  componentCount: number
+  isolatedCount: number
+  unresolvedCount: number
+  error?: string
+}
+
+const embeddedTopologySummaries = ref<EmbeddedTopologySummary[]>([])
+const embeddedTopologyMessage = ref('')
+
+interface TopologyEditorAsset {
+  assetId: string
+  root: THREE.Object3D
+  originalTopology: GlbTopologyDocument
+}
+
+const topologyEditorEnabled = ref(false)
+const topologyEditorSearch = ref('')
+const topologyEditorAssets = ref<TopologyEditorAsset[]>([])
+const topologyEditorAssetId = ref('')
+const topologyEditorGraphId = ref('')
+const topologyEditorEdgeId = ref('')
+const topologyEditorVia = ref<TopologyEditorPoint[]>([])
+const topologyEditorViaIndex = ref(-1)
+const topologyEditorError = ref('')
+const topologyEditorMessage = ref('')
+const topologyOverrideFileInput = ref<HTMLInputElement | null>(null)
+const topologyOverrideRevision = ref(0)
+const topologyEditorNodeId = ref('')
+const topologyEditorRemovedNodeId = ref('')
+const topologyEditorRemovedEdgeId = ref('')
+const topologyEditorNewNodeId = ref('')
+const topologyEditorNewNodeLayerId = ref('')
+const topologyEditorNewNodeKind = ref('SPACE')
+const topologyEditorNewNodeX = ref(0)
+const topologyEditorNewNodeY = ref(0)
+const topologyEditorNewNodeZ = ref(0)
+const topologyEditorNewEdgeId = ref('')
+const topologyEditorNewEdgeSource = ref('')
+const topologyEditorNewEdgeTarget = ref('')
+const topologyEditorOverlay = new THREE.Group()
+topologyEditorOverlay.name = 'sandbox_topology_path_editor_overlay'
+const editorRaycaster = new THREE.Raycaster()
+let editorCanvas: HTMLCanvasElement | null = null
+let editorBindTimer: number | null = null
+let activeViaDrag: {
+  index: number
+  plane: THREE.Plane
+  localY: number
+  controlsEnabled: boolean
+} | null = null
+
+const topologyEditorAsset = computed(() =>
+  topologyEditorAssets.value.find((asset) => asset.assetId === topologyEditorAssetId.value),
+)
+const topologyEditorBaselineGraph = computed(() =>
+  topologyEditorAsset.value
+    ? getGraph(topologyEditorAsset.value.originalTopology, topologyEditorGraphId.value)
+    : undefined,
+)
+const topologyEditorEffectiveTopology = computed(() => {
+  void topologyOverrideRevision.value
+  const asset = topologyEditorAsset.value
+  const graphId = topologyEditorGraphId.value
+  if (!asset || !graphId) return asset?.originalTopology
+  try {
+    return topologyOverrideTool.getEffectiveTopology({ assetId: asset.assetId, graphId })
+  } catch {
+    return asset.originalTopology
+  }
+})
+const topologyEditorGraph = computed(() => (
+  topologyEditorEffectiveTopology.value
+    ? getGraph(topologyEditorEffectiveTopology.value, topologyEditorGraphId.value)
+    : undefined
+))
+const topologyEditorEdge = computed(() => getEdge(topologyEditorGraph.value, topologyEditorEdgeId.value))
+const topologyEditorGraphOptions = computed(() => topologyEditorAsset.value?.originalTopology.graphs ?? [])
+const topologyEditorEdgeOptions = computed(() => {
+  const query = topologyEditorSearch.value.trim().toLowerCase()
+  return (topologyEditorGraph.value?.edges ?? []).filter((edge) => {
+    if (!query) return true
+    return [edge.id, edge.source, edge.target].some((value) => value.toLowerCase().includes(query))
+  })
+})
+const topologyEditorCanEdit = computed(() => topologyEditorEnabled.value && Boolean(topologyEditorEdge.value))
+const topologyEditorIsSameLayer = computed(() => sameLayer(topologyEditorGraph.value, topologyEditorEdge.value))
+const topologyEditorNodeOptions = computed(() => topologyEditorGraph.value?.nodes ?? [])
+const topologyEditorRemovedNodeOptions = computed(() => {
+  const effectiveIds = new Set(topologyEditorGraph.value?.nodes.map((node) => node.id) ?? [])
+  return (topologyEditorBaselineGraph.value?.nodes ?? []).filter((node) => !effectiveIds.has(node.id))
+})
+const topologyEditorRemovedEdgeOptions = computed(() => {
+  const effectiveIds = new Set(topologyEditorGraph.value?.edges.map((edge) => edge.id) ?? [])
+  return (topologyEditorBaselineGraph.value?.edges ?? []).filter((edge) => !effectiveIds.has(edge.id))
+})
+
+function topologySourceAsset(asset: TopologyEditorAsset | undefined, graphId: string): string | undefined {
+  if (!asset) return undefined
+  const graph = getGraph(asset.originalTopology, graphId)
+  const graphSourceAsset = graph?.data?.sourceAsset
+  if (typeof graphSourceAsset === 'string' && graphSourceAsset.length > 0) return graphSourceAsset
+  const diagnosticSource = asset.originalTopology.diagnostics?.source
+  if (diagnosticSource && typeof diagnosticSource === 'object') {
+    const sourceAsset = (diagnosticSource as Record<string, unknown>).asset
+    if (typeof sourceAsset === 'string' && sourceAsset.length > 0) return sourceAsset
+  }
+  return undefined
+}
+
+const topologyOverrideDocument = computed<TopologyOverrideV2Document>(() => {
+  void topologyOverrideRevision.value
+  const assetId = topologyEditorAssetId.value
+  const graphId = topologyEditorGraphId.value
+  if (!assetId || !graphId) {
+    return createEmptyOverrideDocument(graphId, topologySourceAsset(topologyEditorAsset.value, graphId))
+  }
+  try {
+    return topologyOverrideTool.getDocument({ assetId, graphId }) as TopologyOverrideV2Document
+  } catch {
+    return createEmptyOverrideDocument(graphId, topologySourceAsset(topologyEditorAsset.value, graphId))
+  }
+})
+
+function topologyEditorTarget(): { assetId: string; graphId: string } | null {
+  const assetId = topologyEditorAssetId.value
+  const graphId = topologyEditorGraphId.value
+  return assetId && graphId ? { assetId, graphId } : null
+}
+
+function readSelectedViaFromDocument(): TopologyEditorPoint[] {
+  const record = findOverrideRecord(
+    topologyOverrideDocument.value,
+    topologyEditorGraphId.value,
+    topologyEditorEdgeId.value,
+  )
+  if (record) return clonePoints(record.path.via)
+  return clonePoints(topologyEditorEdge.value?.path?.via ?? [])
+}
+
+function syncTopologyEditorSelection(): void {
+  topologyEditorVia.value = readSelectedViaFromDocument()
+  topologyEditorViaIndex.value = -1
+  topologyEditorError.value = ''
+  updateTopologyEditorOverlay()
+}
+
+function upsertSelectedTopologyOverride(): boolean {
+  const target = topologyEditorTarget()
+  const edgeId = topologyEditorEdgeId.value
+  const edge = topologyEditorEdge.value
+  if (!target || !edgeId || !edge) return false
+  try {
+    topologyOverrideTool.mutate({
+      action: 'OVERRIDE_EDGE_PATH',
+      target,
+      edgeId,
+      path: { type: 'POLYLINE', via: clonePoints(topologyEditorVia.value) },
+    })
+    topologyEditorError.value = ''
+    return true
+  } catch (error) {
+    topologyEditorError.value = error instanceof Error ? error.message : String(error)
+    return false
+  }
+}
+
+function removeSelectedTopologyOverride(): boolean {
+  const target = topologyEditorTarget()
+  const edgeId = topologyEditorEdgeId.value
+  if (!target || !edgeId) return false
+  try {
+    topologyOverrideTool.mutate({
+      action: 'RESET_EDGE_PATH',
+      target,
+      edgeId,
+    })
+    topologyEditorError.value = ''
+    return true
+  } catch (error) {
+    topologyEditorError.value = error instanceof Error ? error.message : String(error)
+    return false
+  }
+}
+
+function replaceTopologyEditorSummary(assetId: string, topology: GlbTopologyDocument, mount: GlbTopologyAssetMount): void {
+  const index = embeddedTopologySummaries.value.findIndex((summary) => summary.assetId === assetId)
+  if (index < 0) return
+  const summary = embeddedTopologySummaries.value[index]
+  const next: EmbeddedTopologySummary = {
+    ...summary,
+    graphIds: mount.graphIds,
+    graphCount: topology.graphs.length,
+    nodeCount: topology.graphs.reduce((sum, graph) => sum + graph.nodes.length, 0),
+    edgeCount: topology.graphs.reduce((sum, graph) => sum + graph.edges.length, 0),
+    componentCount: topology.diagnostics?.components?.length ?? 0,
+    isolatedCount: topology.graphs.reduce((sum, graph) => {
+      const endpointIds = new Set(graph.edges.flatMap((edge) => [edge.source, edge.target]))
+      return sum + graph.nodes.filter((node) => !endpointIds.has(node.id)).length
+    }, 0),
+    unresolvedCount: topology.diagnostics?.unresolvedNodes?.length ?? 0,
+    error: undefined,
+  }
+  embeddedTopologySummaries.value = embeddedTopologySummaries.value.map((item, itemIndex) =>
+    itemIndex === index ? next : item,
+  )
+}
+
+function applyTopologyEditorPreview(): void {
+  const asset = topologyEditorAsset.value
+  const target = topologyEditorTarget()
+  if (!asset || !target) return
+  try {
+    const errors = validateTopologyOverrideDocument(topologyOverrideDocument.value)
+    if (errors.length > 0) throw new Error(errors.join('\n'))
+    const nonSameLayerEdges = findNonSameLayerOverrideEdgeIds(
+      asset.originalTopology,
+      topologyOverrideDocument.value,
+    )
+    if (nonSameLayerEdges.length > 0) {
+      throw new Error(`路径编辑器只支持同层边：${nonSameLayerEdges.join('、')}`)
+    }
+    const editedTopology = topologyOverrideTool.getEffectiveTopology(target)
+    const mount = embeddedTopologyRuntime.attach({ assetId: asset.assetId, root: asset.root, topology: editedTopology })
+    replaceTopologyEditorSummary(asset.assetId, editedTopology, mount)
+    setEmbeddedGraphVisible(true)
+    topologyEditorMessage.value = `已应用 ${topologyOverrideDocument.value.operations.length} 条人工覆盖操作`
+    topologyEditorError.value = ''
+    updateTopologyEditorOverlay()
+  } catch (error) {
+    topologyEditorError.value = error instanceof Error ? error.message : String(error)
+  }
+}
+
+function runTopologyMutation(
+  mutation: Parameters<typeof topologyOverrideTool.mutate>[0],
+  successMessage: string,
+): boolean {
+  try {
+    topologyOverrideTool.mutate(mutation)
+    topologyOverrideRevision.value += 1
+    topologyEditorMessage.value = successMessage
+    topologyEditorError.value = ''
+    return true
+  } catch (error) {
+    topologyEditorError.value = error instanceof Error ? error.message : String(error)
+    return false
+  }
+}
+
+function addTopologyEditorNode(): void {
+  const target = topologyEditorTarget()
+  const id = topologyEditorNewNodeId.value.trim()
+  const layerId = topologyEditorNewNodeLayerId.value || topologyEditorGraph.value?.layers[0]?.id || ''
+  if (!target || !id || !layerId) {
+    topologyEditorError.value = '新增节点需要 node ID 和 layer ID'
+    return
+  }
+  const kind = topologyEditorNewNodeKind.value.trim()
+  if (runTopologyMutation({
+    action: 'ADD_NODE',
+    target,
+    node: {
+      id,
+      layerId,
+      position: {
+        x: topologyEditorNewNodeX.value,
+        y: topologyEditorNewNodeY.value,
+        z: topologyEditorNewNodeZ.value,
+      },
+      ...(kind ? { kind } : {}),
+    },
+  }, `已新增人工节点 ${id}`)) {
+    topologyEditorNodeId.value = id
+    topologyEditorNewNodeId.value = ''
+  }
+}
+
+function removeTopologyEditorNode(): void {
+  const target = topologyEditorTarget()
+  const nodeId = topologyEditorNodeId.value
+  if (!target || !nodeId) return
+  if (runTopologyMutation({ action: 'REMOVE_NODE', target, nodeId }, `已删除节点 ${nodeId}；关联边已级联删除`)) {
+    topologyEditorNodeId.value = topologyEditorGraph.value?.nodes[0]?.id ?? ''
+    topologyEditorRemovedNodeId.value = nodeId
+  }
+}
+
+function restoreTopologyEditorNode(): void {
+  const target = topologyEditorTarget()
+  const nodeId = topologyEditorRemovedNodeId.value
+  if (!target || !nodeId) return
+  if (runTopologyMutation({ action: 'RESTORE_NODE', target, nodeId }, `已恢复基线节点 ${nodeId}；关联边需单独恢复`)) {
+    topologyEditorNodeId.value = nodeId
+    topologyEditorRemovedNodeId.value = ''
+  }
+}
+
+function addTopologyEditorEdge(): void {
+  const target = topologyEditorTarget()
+  const graph = topologyEditorGraph.value
+  const id = topologyEditorNewEdgeId.value.trim()
+  const source = graph?.nodes.find((node) => node.id === topologyEditorNewEdgeSource.value)
+  const endpoint = graph?.nodes.find((node) => node.id === topologyEditorNewEdgeTarget.value)
+  if (!target || !graph || !id || !source || !endpoint) {
+    topologyEditorError.value = '新增边需要 edge ID、source 和 target'
+    return
+  }
+  const crossesLayer = source.layerId !== endpoint.layerId
+  if (runTopologyMutation({
+    action: 'ADD_EDGE',
+    target,
+    edge: {
+      id,
+      source: source.id,
+      target: endpoint.id,
+      relation: crossesLayer ? 'CONNECTOR' : 'LINK',
+      direction: 'BIDIRECTIONAL',
+      mode: crossesLayer ? 'CONNECTOR' : 'WALK',
+    },
+  }, `已新增人工边 ${id}`)) {
+    topologyEditorEdgeId.value = id
+    topologyEditorNewEdgeId.value = ''
+  }
+}
+
+function removeTopologyEditorEdge(): void {
+  const target = topologyEditorTarget()
+  const edgeId = topologyEditorEdgeId.value
+  if (!target || !edgeId) return
+  if (runTopologyMutation({ action: 'REMOVE_EDGE', target, edgeId }, `已删除边 ${edgeId}`)) {
+    topologyEditorEdgeId.value = topologyEditorGraph.value?.edges[0]?.id ?? ''
+    topologyEditorRemovedEdgeId.value = edgeId
+  }
+}
+
+function restoreTopologyEditorEdge(): void {
+  const target = topologyEditorTarget()
+  const edgeId = topologyEditorRemovedEdgeId.value
+  if (!target || !edgeId) return
+  if (runTopologyMutation({ action: 'RESTORE_EDGE', target, edgeId }, `已恢复基线边 ${edgeId}`)) {
+    topologyEditorEdgeId.value = edgeId
+    topologyEditorRemovedEdgeId.value = ''
+  }
+}
+
+function addTopologyEditorMidpoint(): void {
+  const graph = topologyEditorGraph.value
+  const edge = topologyEditorEdge.value
+  if (!graph || !edge) return
+  if (!topologyEditorIsSameLayer.value) {
+    topologyEditorError.value = '仅支持同层边的水平路径微调'
+    return
+  }
+  if (topologyEditorVia.value.length >= 64) {
+    topologyEditorError.value = '单条边最多 64 个 via 点'
+    return
+  }
+  const endpoints = edgeEndpoints(graph, edge)
+  if (!endpoints) return
+  const points = [endpoints[0], ...topologyEditorVia.value, endpoints[1]]
+  let segmentIndex = 0
+  let longest = -1
+  for (let index = 0; index < points.length - 1; index++) {
+    const distance = new THREE.Vector3(points[index + 1].x, points[index + 1].y, points[index + 1].z)
+      .distanceTo(new THREE.Vector3(points[index].x, points[index].y, points[index].z))
+    if (distance > longest) {
+      longest = distance
+      segmentIndex = index
+    }
+  }
+  const start = points[segmentIndex]
+  const end = points[segmentIndex + 1]
+  const midpoint = { x: (start.x + end.x) / 2, y: start.y, z: (start.z + end.z) / 2 }
+  topologyEditorVia.value.splice(segmentIndex, 0, midpoint)
+  topologyEditorVia.value = [...topologyEditorVia.value]
+  topologyEditorViaIndex.value = segmentIndex
+  if (!upsertSelectedTopologyOverride()) topologyEditorVia.value.splice(segmentIndex, 1)
+  updateTopologyEditorOverlay()
+}
+
+function deleteTopologyEditorVia(): void {
+  const index = topologyEditorViaIndex.value
+  if (index < 0 || index >= topologyEditorVia.value.length) return
+  const removed = topologyEditorVia.value.splice(index, 1)[0]
+  topologyEditorVia.value = [...topologyEditorVia.value]
+  topologyEditorViaIndex.value = -1
+  if (!upsertSelectedTopologyOverride()) {
+    topologyEditorVia.value.splice(index, 0, removed)
+    topologyEditorVia.value = [...topologyEditorVia.value]
+  }
+  updateTopologyEditorOverlay()
+}
+
+function resetTopologyEditorEdge(): void {
+  if (!removeSelectedTopologyOverride()) return
+  topologyEditorVia.value = readSelectedViaFromDocument()
+  topologyEditorViaIndex.value = -1
+  topologyEditorMessage.value = '已恢复原始边路径并更新生效图'
+  updateTopologyEditorOverlay()
+}
+
+function disposeTopologyEditorOverlay(): void {
+  while (topologyEditorOverlay.children.length > 0) {
+    const child = topologyEditorOverlay.children.pop()!
+    child.traverse((object: THREE.Object3D) => {
+      const mesh = object as THREE.Mesh
+      mesh.geometry?.dispose()
+      const material = mesh.material
+      if (Array.isArray(material)) material.forEach((item) => item.dispose())
+      else material?.dispose()
+    })
+  }
+}
+
+function updateTopologyEditorOverlay(): void {
+  disposeTopologyEditorOverlay()
+  const asset = topologyEditorAsset.value
+  const graph = topologyEditorGraph.value
+  const edge = topologyEditorEdge.value
+  if (!topologyEditorEnabled.value || !asset || !graph || !edge) return
+  const endpoints = edgeEndpoints(graph, edge)
+  if (!endpoints) return
+  const localPoints = [endpoints[0], ...topologyEditorVia.value, endpoints[1]]
+  const worldPoints = localPoints.map((point) => modelToWorld(point, asset.root))
+  const line = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(worldPoints),
+    new THREE.LineBasicMaterial({
+      color: 0xff8a00,
+      transparent: true,
+      opacity: 1,
+      depthTest: false,
+      depthWrite: false,
+    }),
+  )
+  line.renderOrder = 1000
+  line.userData.topologyEditorLine = true
+  line.userData.topologyEditorOverlay = true
+  topologyEditorOverlay.add(line)
+  topologyEditorVia.value.forEach((point, index) => {
+    const handle = new THREE.Mesh(
+      new THREE.SphereGeometry(0.18, 20, 12),
+      new THREE.MeshBasicMaterial({
+        color: index === topologyEditorViaIndex.value ? 0xfff176 : 0xff8a00,
+        depthTest: false,
+        depthWrite: false,
+      }),
+    )
+    handle.position.copy(modelToWorld(point, asset.root))
+    handle.renderOrder = 1001
+    handle.userData.topologyEditorViaIndex = index
+    handle.userData.topologyEditorOverlay = true
+    topologyEditorOverlay.add(handle)
+  })
+  if (topologyEditorOverlay.parent !== threeScene.scene) threeScene.scene.add(topologyEditorOverlay)
+}
+
+function updateTopologyEditorOverlayPositions(): void {
+  const asset = topologyEditorAsset.value
+  const graph = topologyEditorGraph.value
+  const edge = topologyEditorEdge.value
+  if (!asset || !graph || !edge) return
+  const endpoints = edgeEndpoints(graph, edge)
+  if (!endpoints) return
+  const worldPoints = [endpoints[0], ...topologyEditorVia.value, endpoints[1]]
+    .map((point) => modelToWorld(point, asset.root))
+  const line = topologyEditorOverlay.children.find((child) => child.userData.topologyEditorLine) as THREE.Line | undefined
+  line?.geometry.setFromPoints(worldPoints)
+  for (const child of topologyEditorOverlay.children) {
+    const index = child.userData.topologyEditorViaIndex
+    if (typeof index === 'number' && topologyEditorVia.value[index]) {
+      child.position.copy(modelToWorld(topologyEditorVia.value[index], asset.root))
+    }
+  }
+}
+
+async function focusTopologyEditorEdge(): Promise<void> {
+  updateTopologyEditorOverlay()
+  if (topologyEditorOverlay.children.length === 0) return
+  try {
+    const box = new THREE.Box3().setFromObject(topologyEditorOverlay)
+    const center = box.getCenter(new THREE.Vector3())
+    const size = box.getSize(new THREE.Vector3())
+    const maxDimension = Math.max(size.x, size.y, size.z)
+    const fov = THREE.MathUtils.degToRad(threeScene.camera.fov)
+    const distance = Math.max(3, (maxDimension / 2) / Math.tan(fov / 2) * 2.4)
+    const position = center.clone().add(
+      new THREE.Vector3(1, 1.25, 1).normalize().multiplyScalar(distance),
+    )
+    await threeScene.controls.setLookAt(
+      position.x, position.y, position.z,
+      center.x, center.y, center.z,
+      true,
+    )
+    topologyEditorError.value = ''
+  } catch (error) {
+    topologyEditorError.value = error instanceof Error ? error.message : String(error)
+  }
+}
+
+function pointerRay(event: PointerEvent): THREE.Ray | null {
+  if (!editorCanvas) return null
+  const bounds = editorCanvas.getBoundingClientRect()
+  const ndc = new THREE.Vector2(
+    ((event.clientX - bounds.left) / bounds.width) * 2 - 1,
+    -((event.clientY - bounds.top) / bounds.height) * 2 + 1,
+  )
+  editorRaycaster.setFromCamera(ndc, threeScene.camera)
+  return editorRaycaster.ray.clone()
+}
+
+function findRenderedTopologySelection(object: THREE.Object3D): { assetId: string; graphId: string; edgeId: string } | null {
+  let current: THREE.Object3D | null = object
+  while (current) {
+    const runtimeGraphId = current.userData.__sspTopologyGraphId
+    const edgeId = current.userData.__sspTopologyEdgeId
+    if (typeof runtimeGraphId === 'string' && typeof edgeId === 'string') {
+      for (const asset of topologyEditorAssets.value) {
+        const summary = embeddedTopologySummaries.value.find((item) => item.assetId === asset.assetId)
+        const graphIndex = summary?.graphIds.indexOf(runtimeGraphId) ?? -1
+        const graph = graphIndex >= 0 ? asset.originalTopology.graphs[graphIndex] : undefined
+        if (graph?.edges.some((edge) => edge.id === edgeId)) {
+          return { assetId: asset.assetId, graphId: graph.id ?? '', edgeId }
+        }
+      }
+    }
+    for (const asset of topologyEditorAssets.value) {
+      const summary = embeddedTopologySummaries.value.find((item) => item.assetId === asset.assetId)
+      if (!summary) continue
+      for (const graphId of summary.graphIds) {
+        const graph = asset.originalTopology.graphs.find((candidate) =>
+          graphId.endsWith(`:${candidate.id}`) || graphId.includes(`:${candidate.id}~`),
+        )
+        if (!graph) continue
+        const edge = graph.edges.find((candidate) => current!.name === `topology_edge_${graphId}_${candidate.id}`)
+        if (edge) return { assetId: asset.assetId, graphId: graph.id ?? '', edgeId: edge.id }
+      }
+    }
+    current = current.parent
+  }
+  return null
+}
+
+function renderedTopologyPickTargets(): THREE.Object3D[] {
+  const graphIds = new Set(embeddedTopologySummaries.value.flatMap((summary) => summary.graphIds))
+  const targets: THREE.Object3D[] = []
+  threeScene.scene.traverse((object) => {
+    if (
+      typeof object.userData.__sspTopologyEdgeId === 'string'
+      && graphIds.has(object.userData.__sspTopologyGraphId)
+    ) {
+      targets.push(object)
+    }
+  })
+  return targets
+}
+
+function handleTopologyEditorPointerDown(event: PointerEvent): void {
+  if (!topologyEditorEnabled.value || event.button !== 0) return
+  const ray = pointerRay(event)
+  if (!ray) return
+  const hits = editorRaycaster.intersectObjects(topologyEditorOverlay.children, true)
+  const handle = hits.find((hit) => typeof hit.object.userData.topologyEditorViaIndex === 'number')
+  if (handle) {
+    if (!topologyEditorIsSameLayer.value) {
+      topologyEditorError.value = '跨层边仅可查看；V1 编辑器只允许同层水平微调'
+      return
+    }
+    topologyEditorViaIndex.value = handle.object.userData.topologyEditorViaIndex as number
+    const asset = topologyEditorAsset.value
+    const point = topologyEditorVia.value[topologyEditorViaIndex.value]
+    if (!asset || !point) return
+    const normal = new THREE.Vector3(0, 1, 0).transformDirection(asset.root.matrixWorld)
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, modelToWorld(point, asset.root))
+    activeViaDrag = {
+      index: topologyEditorViaIndex.value,
+      plane,
+      localY: point.y,
+      controlsEnabled: threeScene.controls.enabled,
+    }
+    threeScene.controls.enabled = false
+    updateTopologyEditorOverlay()
+    event.preventDefault()
+    return
+  }
+  const sceneHits = editorRaycaster.intersectObjects(renderedTopologyPickTargets(), true)
+  const selectionHit = sceneHits[0]
+  const selection = selectionHit ? findRenderedTopologySelection(selectionHit.object) : null
+  if (selection) {
+    topologyEditorAssetId.value = selection.assetId
+    topologyEditorGraphId.value = selection.graphId
+    topologyEditorEdgeId.value = selection.edgeId
+  }
+}
+
+function handleTopologyEditorPointerMove(event: PointerEvent): void {
+  if (!activeViaDrag) return
+  const ray = pointerRay(event)
+  if (!ray) return
+  const worldPoint = ray.intersectPlane(activeViaDrag.plane, new THREE.Vector3())
+  if (!worldPoint) return
+  const asset = topologyEditorAsset.value
+  if (!asset) return
+  const next = worldToModel(worldPoint, asset.root)
+  next.y = activeViaDrag.localY
+  if (![next.x, next.y, next.z].every(Number.isFinite)) return
+  topologyEditorVia.value[activeViaDrag.index] = next
+  topologyEditorVia.value = [...topologyEditorVia.value]
+  updateTopologyEditorOverlayPositions()
+  event.preventDefault()
+}
+
+function finishTopologyEditorDrag(): void {
+  if (!activeViaDrag) return
+  threeScene.controls.enabled = activeViaDrag.controlsEnabled
+  activeViaDrag = null
+  if (!upsertSelectedTopologyOverride()) {
+    topologyEditorVia.value = readSelectedViaFromDocument()
+    topologyEditorViaIndex.value = -1
+    updateTopologyEditorOverlay()
+  }
+}
+
+function bindTopologyEditorCanvas(): void {
+  if (editorCanvas || viewDisposed) return
+  if (!hasSspContext()) {
+    editorBindTimer = window.setTimeout(bindTopologyEditorCanvas, 50)
+    return
+  }
+  const canvas = threeScene.renderer?.domElement
+  if (!canvas) {
+    editorBindTimer = window.setTimeout(bindTopologyEditorCanvas, 50)
+    return
+  }
+  editorCanvas = canvas
+  canvas.addEventListener('pointerdown', handleTopologyEditorPointerDown)
+  window.addEventListener('pointermove', handleTopologyEditorPointerMove)
+  window.addEventListener('pointerup', finishTopologyEditorDrag)
+  window.addEventListener('pointercancel', finishTopologyEditorDrag)
+}
+
+function unbindTopologyEditorCanvas(): void {
+  finishTopologyEditorDrag()
+  if (editorCanvas) editorCanvas.removeEventListener('pointerdown', handleTopologyEditorPointerDown)
+  window.removeEventListener('pointermove', handleTopologyEditorPointerMove)
+  window.removeEventListener('pointerup', finishTopologyEditorDrag)
+  window.removeEventListener('pointercancel', finishTopologyEditorDrag)
+  editorCanvas = null
+  if (editorBindTimer !== null) window.clearTimeout(editorBindTimer)
+  editorBindTimer = null
+}
+
+function importTopologyOverrideFile(event: Event): void {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(String(reader.result))
+      const errors = validateTopologyOverrideDocument(parsed)
+      if (errors.length > 0) throw new Error(errors.join('\n'))
+      const document = parsed as TopologyOverrideDocument | TopologyOverrideV2Document
+      const assets = topologyEditorAssets.value.filter((candidate) => {
+        if (!getGraph(candidate.originalTopology, document.target.graphId)) return false
+        const sourceAsset = topologySourceAsset(candidate, document.target.graphId)
+        return document.target.sourceAsset === undefined || document.target.sourceAsset === sourceAsset
+      })
+      if (assets.length === 0) throw new Error(`找不到 override 目标图：${document.target.graphId}`)
+      if (assets.length > 1) {
+        throw new Error(`override 目标图不唯一：${document.target.graphId}；请提供 target.sourceAsset`)
+      }
+      const asset = assets[0]
+      const nonSameLayerEdges = findNonSameLayerOverrideEdgeIds(asset.originalTopology, document)
+      if (nonSameLayerEdges.length > 0) {
+        throw new Error(`路径编辑器只支持同层边：${nonSameLayerEdges.join('、')}`)
+      }
+      topologyEditorAssetId.value = asset.assetId
+      topologyEditorGraphId.value = document.target.graphId
+      topologyEditorEdgeId.value = readOverrideRecords(document)[0]?.edgeId
+        ?? getGraph(asset.originalTopology, document.target.graphId)?.edges[0]?.id
+        ?? ''
+      const normalized = topologyOverrideTool.replaceDocument(
+        { assetId: asset.assetId, graphId: document.target.graphId },
+        document,
+      )
+      topologyOverrideRevision.value += 1
+      topologyEditorMessage.value = `已导入 ${normalized.operations.length} 条人工覆盖操作`
+      topologyEditorError.value = ''
+      syncTopologyEditorSelection()
+    } catch (error) {
+      topologyEditorError.value = error instanceof Error ? error.message : String(error)
+    } finally {
+      input.value = ''
+    }
+  }
+  reader.onerror = () => {
+    topologyEditorError.value = '无法读取 override JSON'
+    input.value = ''
+  }
+  reader.readAsText(file)
+}
+
+function exportTopologyOverride(): void {
+  const errors = validateTopologyOverrideDocument(topologyOverrideDocument.value)
+  if (errors.length > 0) {
+    topologyEditorError.value = errors.join('\n')
+    return
+  }
+  const blob = new Blob([deterministicStringify(topologyOverrideDocument.value)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'topology-overrides.json'
+  link.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 0)
+  topologyEditorMessage.value = '已导出确定性 override JSON'
+}
+
+watch(topologyEditorAssetId, () => {
+  const asset = topologyEditorAsset.value
+  if (!asset?.originalTopology.graphs.some((graph) => graph.id === topologyEditorGraphId.value)) {
+    topologyEditorGraphId.value = asset?.originalTopology.graphs[0]?.id ?? ''
+  }
+})
+watch(topologyEditorGraphId, () => {
+  if (!topologyEditorGraph.value?.edges.some((edge) => edge.id === topologyEditorEdgeId.value)) {
+    topologyEditorEdgeId.value = topologyEditorGraph.value?.edges[0]?.id ?? ''
+  }
+  if (!topologyEditorGraph.value?.nodes.some((node) => node.id === topologyEditorNodeId.value)) {
+    topologyEditorNodeId.value = topologyEditorGraph.value?.nodes[0]?.id ?? ''
+  }
+  topologyEditorNewNodeLayerId.value = topologyEditorGraph.value?.layers[0]?.id ?? ''
+  topologyEditorNewEdgeSource.value = topologyEditorGraph.value?.nodes[0]?.id ?? ''
+  topologyEditorNewEdgeTarget.value = topologyEditorGraph.value?.nodes[1]?.id
+    ?? topologyEditorGraph.value?.nodes[0]?.id
+    ?? ''
+  topologyEditorRemovedNodeId.value = topologyEditorRemovedNodeOptions.value[0]?.id ?? ''
+  topologyEditorRemovedEdgeId.value = topologyEditorRemovedEdgeOptions.value[0]?.id ?? ''
+})
+watch(topologyEditorEdgeId, syncTopologyEditorSelection)
+watch(topologyOverrideRevision, () => {
+  if (!topologyEditorGraph.value?.edges.some((edge) => edge.id === topologyEditorEdgeId.value)) {
+    topologyEditorEdgeId.value = topologyEditorGraph.value?.edges[0]?.id ?? ''
+  }
+  if (!topologyEditorGraph.value?.nodes.some((node) => node.id === topologyEditorNodeId.value)) {
+    topologyEditorNodeId.value = topologyEditorGraph.value?.nodes[0]?.id ?? ''
+  }
+  if (!topologyEditorRemovedNodeOptions.value.some((node) => node.id === topologyEditorRemovedNodeId.value)) {
+    topologyEditorRemovedNodeId.value = topologyEditorRemovedNodeOptions.value[0]?.id ?? ''
+  }
+  if (!topologyEditorRemovedEdgeOptions.value.some((edge) => edge.id === topologyEditorRemovedEdgeId.value)) {
+    topologyEditorRemovedEdgeId.value = topologyEditorRemovedEdgeOptions.value[0]?.id ?? ''
+  }
+  syncTopologyEditorSelection()
+})
+watch(topologyEditorEnabled, (enabled) => {
+  if (!enabled) {
+    finishTopologyEditorDrag()
+    disposeTopologyEditorOverlay()
+    topologyEditorViaIndex.value = -1
+  } else {
+    updateTopologyEditorOverlay()
+  }
+})
+
+function handleTopologyOverrideChange(event: TopologyOverrideChangeEvent): void {
+  const asset = topologyEditorAssets.value.find((candidate) => candidate.assetId === event.target.assetId)
+  if (!asset) throw new Error(`找不到人工覆盖目标模型：${event.target.assetId}`)
+  const mount = embeddedTopologyRuntime.attach({
+    assetId: asset.assetId,
+    root: asset.root,
+    topology: event.effectiveTopology,
+  })
+  replaceTopologyEditorSummary(asset.assetId, event.effectiveTopology, mount)
+  setEmbeddedGraphVisible(true)
+  if (topologyEditorAssetId.value === asset.assetId) {
+    topologyEditorMessage.value = `人工覆盖已生效：${event.summary.count} 条操作`
+  }
+  // The service commits its document only after this synchronous mount
+  // callback succeeds. Refresh reactive reads in the next microtask so AI
+  // mutations cannot leave the editor caching the pre-commit document.
+  queueMicrotask(() => {
+    topologyOverrideRevision.value += 1
+    if (topologyEditorAssetId.value === asset.assetId) updateTopologyEditorOverlay()
+  })
+}
+
+function clearEmbeddedTopology(): void {
+  disposeTopologyEditorOverlay()
+  topologyEditorOverlay.removeFromParent()
+  embeddedTopologyRuntime.clear()
+  for (const asset of topologyEditorAssets.value) topologyOverrideTool.unregisterAsset(asset.assetId)
+  embeddedTopologySummaries.value = []
+  topologyEditorAssets.value = []
+  topologyEditorAssetId.value = ''
+  topologyEditorGraphId.value = ''
+  topologyEditorEdgeId.value = ''
+  topologyEditorNodeId.value = ''
+  topologyEditorRemovedNodeId.value = ''
+  topologyEditorRemovedEdgeId.value = ''
+  topologyEditorNewNodeId.value = ''
+  topologyEditorNewEdgeId.value = ''
+  topologyEditorNewEdgeSource.value = ''
+  topologyEditorNewEdgeTarget.value = ''
+  topologyEditorVia.value = []
+  topologyEditorViaIndex.value = -1
+  topologyOverrideRevision.value += 1
+  embeddedTopologyMessage.value = ''
+}
+
+function attachEmbeddedTopology(infos: readonly { floorName: string; root: THREE.Object3D }[]): void {
+  const summaries: EmbeddedTopologySummary[] = []
+  for (const info of infos) {
+    let registeredOverrideAsset = false
+    try {
+      const topology = extractEmbeddedTopology(info.root)
+      if (!topology) continue
+      topologyOverrideTool.registerAsset({
+        assetId: info.floorName,
+        topology,
+        onChange: handleTopologyOverrideChange,
+      })
+      registeredOverrideAsset = true
+      const mount = embeddedTopologyRuntime.attach({
+        assetId: info.floorName,
+        root: info.root,
+        topology,
+      })
+      topologyEditorAssets.value.push({
+        assetId: info.floorName,
+        root: info.root,
+        originalTopology: topology,
+      })
+      summaries.push({
+        assetId: info.floorName,
+        graphIds: mount.graphIds,
+        graphCount: topology.graphs.length,
+        nodeCount: topology.graphs.reduce((sum, graph) => sum + graph.nodes.length, 0),
+        edgeCount: topology.graphs.reduce((sum, graph) => sum + graph.edges.length, 0),
+        componentCount: topology.diagnostics?.components?.length ?? 0,
+        isolatedCount: topology.graphs.reduce((sum, graph) => {
+          const endpointIds = new Set(graph.edges.flatMap((edge) => [edge.source, edge.target]))
+          return sum + graph.nodes.filter((node) => !endpointIds.has(node.id)).length
+        }, 0),
+        unresolvedCount: topology.diagnostics?.unresolvedNodes?.length ?? 0,
+      })
+    } catch (error) {
+      if (registeredOverrideAsset) topologyOverrideTool.unregisterAsset(info.floorName)
+      embeddedTopologyRuntime.detach(info.floorName)
+      const message = error instanceof Error ? error.message : String(error)
+      summaries.push({
+        assetId: info.floorName,
+        graphIds: [],
+        graphCount: 0,
+        nodeCount: 0,
+        edgeCount: 0,
+        componentCount: 0,
+        isolatedCount: 0,
+        unresolvedCount: 0,
+        error: message,
+      })
+      console.warn(`[Sandbox] embedded topology rejected for ${info.floorName}:`, error)
+    }
+  }
+  embeddedTopologySummaries.value = summaries
+  if (!topologyEditorAssetId.value && topologyEditorAssets.value.length > 0) {
+    topologyEditorAssetId.value = topologyEditorAssets.value[0].assetId
+    topologyEditorGraphId.value = topologyEditorAssets.value[0].originalTopology.graphs[0]?.id ?? ''
+    topologyEditorEdgeId.value = topologyEditorAssets.value[0].originalTopology.graphs[0]?.edges[0]?.id ?? ''
+    topologyEditorNodeId.value = topologyEditorAssets.value[0].originalTopology.graphs[0]?.nodes[0]?.id ?? ''
+    topologyEditorNewNodeLayerId.value = topologyEditorAssets.value[0].originalTopology.graphs[0]?.layers[0]?.id ?? ''
+    topologyEditorNewEdgeSource.value = topologyEditorAssets.value[0].originalTopology.graphs[0]?.nodes[0]?.id ?? ''
+    topologyEditorNewEdgeTarget.value = topologyEditorAssets.value[0].originalTopology.graphs[0]?.nodes[1]?.id
+      ?? topologyEditorNewEdgeSource.value
+  }
+  updateTopologyEditorOverlay()
+  embeddedTopologyMessage.value = summaries.length > 0
+    ? `已加载 ${summaries.reduce((sum, item) => sum + item.graphCount, 0)} 张嵌入路径图`
+    : '当前模型没有 scene.extras.sspTopology'
+}
+
+function ownedTopologyMounts(): GlbTopologyAssetMount[] {
+  return embeddedTopologySummaries.value
+    .map((summary) => embeddedTopologyRuntime.get(summary.assetId))
+    .filter((mount): mount is GlbTopologyAssetMount => mount !== null)
+}
+
+function setEmbeddedGraphVisible(visible: boolean): void {
+  for (const summary of embeddedTopologySummaries.value) {
+    for (const graphId of summary.graphIds) {
+      ssp.topologyTool.setEdgeVisualState(
+        graphId,
+        { all: true },
+        {
+          visible,
+          color: '#00e5ff',
+          width: 0.06,
+          opacity: 0.82,
+          depthTest: false,
+          flow: null,
+        },
+      )
+    }
+  }
+  embeddedTopologyMessage.value = visible ? '已显示嵌入路径图' : '已隐藏嵌入路径图'
+}
+
+function sampleConnectedPair(graphId: string): readonly [string, string] | null {
+  const graph = ssp.topologyTool.getGraph(graphId)
+  if (!graph) return null
+  const groups = new Map<string, typeof graph.nodes[number][]>()
+  for (const node of graph.nodes) {
+    const componentId = typeof node.data?.componentId === 'string'
+      ? node.data.componentId
+      : '__unknown__'
+    const entries = groups.get(componentId) ?? []
+    entries.push(node)
+    groups.set(componentId, entries)
+  }
+  const candidates = [...groups.values()].filter((entries) => entries.length >= 2)
+  candidates.sort((left, right) => right.length - left.length)
+  const nodes = candidates[0]
+  if (!nodes) return null
+  const seed = nodes.reduce((best, node) => node.id.localeCompare(best.id) < 0 ? node : best)
+  const farthestFrom = (anchor: typeof seed): typeof seed | null => {
+    let best: typeof seed | null = null
+    let bestDistance = -1
+    for (const candidate of nodes) {
+      if (candidate.id === anchor.id) continue
+      const a = anchor.position
+      const b = candidate.position
+      const distance = (a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2
+      if (distance > bestDistance || (distance === bestDistance && candidate.id.localeCompare(best?.id ?? '') < 0)) {
+        bestDistance = distance
+        best = candidate
+      }
+    }
+    return best
+  }
+  const first = farthestFrom(seed)
+  if (!first) return null
+  const second = farthestFrom(first)
+  return second ? [first.id, second.id] : null
+}
+
+function renderEmbeddedSampleRoute(): void {
+  for (const mount of ownedTopologyMounts()) {
+    for (const routeId of mount.routeIds) mount.removeRoute(routeId)
+  }
+  for (const summary of embeddedTopologySummaries.value) {
+    const mount = embeddedTopologyRuntime.get(summary.assetId)
+    if (!mount) continue
+    for (const graphId of summary.graphIds) {
+      const pair = sampleConnectedPair(graphId)
+      if (!pair) continue
+      const result = ssp.topologyTool.findPath({
+        graphId,
+        startNodeId: pair[0],
+        goalNodeId: pair[1],
+      })
+      if (!result.ok) continue
+      const rendered = mount.renderRoute({
+        route: result.route,
+        style: { color: '#ff3b30', width: 0.14, opacity: 0.96, depthTest: false },
+        flow: { active: true, speed: 2.2, spacing: 0.9, color: '#fff176', size: 0.07 },
+      })
+      if (rendered.rendered) {
+        embeddedTopologyMessage.value = `示例路径：${pair[0]} → ${pair[1]}，长度 ${result.route.totalLength.toFixed(2)}`
+        return
+      }
+    }
+  }
+  embeddedTopologyMessage.value = '没有找到可渲染的连通节点对'
+}
 
 function unloadManagedModels(): void {
   if (!ssp.hasContext()) return
+  clearEmbeddedTopology()
   ssp.topologyTool.removeAll()
   ssp.modelTool.unloadAll()
 }
@@ -547,15 +1558,17 @@ function unloadManagedModels(): void {
 // 这里只需要 watch lib.url 触发加载, 不再需要 onChangeModel / modelsByGroup.
 
 // 3D 场景 — modelUrl 用空字符串(不自动加载), 由 modelTool 完全接管
+const threeScene = useThreeScene({
+  modelUrl: computed(() => ''),
+  onModelUnload: unloadManagedModels,
+})
+
 const {
   containerRef,
   loading: rendererLoading,
   errorMsg: rendererError,
   currentModelUrl: rendererModelUrl,
-} = useThreeScene({
-  modelUrl: computed(() => ''),
-  onModelUnload: unloadManagedModels,
-})
+} = threeScene
 
 const modelLoading = ref(false)
 const modelError = ref('')
@@ -569,8 +1582,6 @@ const currentModelUrl = computed(() => requestedModelUrl.value || rendererModelU
  *   触发时机: onMounted (确保 ssp context 已初始化)
  *   之后: lib.selectModel 触发
  */
-import { watch } from 'vue'
-
 let modelLoadRequest = 0
 let viewDisposed = false
 let contextRetryTimer: number | null = null
@@ -600,6 +1611,7 @@ async function handleUrlChange(url: string): Promise<void> {
       console.log(`[Sandbox] loading scene '${rec.filename}' (${rec.sizeMB} MB)...`)
       const infos = await ssp.modelTool.loadSubcategory(rec.filename)
       if (request !== modelLoadRequest) return
+      attachEmbeddedTopology(infos)
       console.log(`[Sandbox] loaded ${infos.length} GLB in '${rec.filename}'`)
       await chat.fitScene('iso')
       if (request !== modelLoadRequest) return
@@ -607,6 +1619,7 @@ async function handleUrlChange(url: string): Promise<void> {
     } else {
       const info = await ssp.modelTool.loadFloor(rec.url)
       if (request !== modelLoadRequest) return
+      attachEmbeddedTopology([info])
       console.log(`[Sandbox] loaded 1 GLB: ${info.floorName}`)
       await chat.fitScene('iso')
       if (request !== modelLoadRequest) return
@@ -623,6 +1636,7 @@ async function handleUrlChange(url: string): Promise<void> {
 }
 
 onMounted(() => {
+  bindTopologyEditorCanvas()
   // 等 ssp context 初始化完成, 触发 handleUrlChange 一次
   // 然后启动 lib.url 的 watch
   const tryTrigger = () => {
@@ -642,6 +1656,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   viewDisposed = true
+  unbindTopologyEditorCanvas()
+  clearEmbeddedTopology()
   modelLoadRequest++
   modelLoading.value = false
   stopUrlWatch?.()
@@ -823,6 +1839,121 @@ onBeforeUnmount(() => {
               </button>
             </div>
           </div>
+
+          <section class="path-editor-section">
+            <div class="path-editor-title">
+              <strong>人工拓扑覆盖</strong>
+              <label class="path-editor-toggle">
+                <input v-model="topologyEditorEnabled" type="checkbox" />
+                启用编辑
+              </label>
+            </div>
+            <div v-if="topologyEditorAssets.length === 0" class="path-editor-empty">
+              当前模型没有可编辑的嵌入 topology。
+            </div>
+            <template v-else>
+              <select v-model="topologyEditorAssetId" class="path-editor-select">
+                <option v-for="asset in topologyEditorAssets" :key="asset.assetId" :value="asset.assetId">
+                  {{ asset.assetId }}
+                </option>
+              </select>
+              <select v-model="topologyEditorGraphId" class="path-editor-select">
+                <option v-for="graph in topologyEditorGraphOptions" :key="graph.id" :value="graph.id">
+                  graph: {{ graph.id }}
+                </option>
+              </select>
+              <input
+                v-model="topologyEditorSearch"
+                class="path-editor-search"
+                type="search"
+                placeholder="搜索 edge / source / target…"
+              />
+              <select v-model="topologyEditorEdgeId" class="path-editor-select">
+                <option v-for="edge in topologyEditorEdgeOptions" :key="edge.id" :value="edge.id">
+                  {{ edge.id }} · {{ edge.source }} → {{ edge.target }}
+                </option>
+              </select>
+              <div class="path-editor-actions">
+                <button class="btn-mini" :disabled="!topologyEditorCanEdit || !topologyEditorIsSameLayer" @click="addTopologyEditorMidpoint">+ 中点</button>
+                <button class="btn-mini" :disabled="!topologyEditorCanEdit" @click="focusTopologyEditorEdge">聚焦边</button>
+                <button class="btn-mini" :disabled="topologyEditorViaIndex < 0 || !topologyEditorIsSameLayer" @click="deleteTopologyEditorVia">删除 via</button>
+                <button class="btn-mini" :disabled="!topologyEditorCanEdit" @click="resetTopologyEditorEdge">重置边</button>
+              </div>
+              <div class="path-editor-actions">
+                <button class="btn-mini path-editor-danger" :disabled="!topologyEditorCanEdit" @click="removeTopologyEditorEdge">删除当前边</button>
+                <select v-model="topologyEditorRemovedEdgeId" class="path-editor-inline-select">
+                  <option value="">选择已删除基线边</option>
+                  <option v-for="edge in topologyEditorRemovedEdgeOptions" :key="`removed-edge:${edge.id}`" :value="edge.id">
+                    {{ edge.id }}
+                  </option>
+                </select>
+                <button class="btn-mini" :disabled="!topologyEditorRemovedEdgeId" @click="restoreTopologyEditorEdge">恢复边</button>
+              </div>
+
+              <details class="path-editor-details">
+                <summary>节点增删</summary>
+                <select v-model="topologyEditorNodeId" class="path-editor-select">
+                  <option v-for="node in topologyEditorNodeOptions" :key="node.id" :value="node.id">
+                    {{ node.id }} · {{ node.kind || 'NODE' }}
+                  </option>
+                </select>
+                <div class="path-editor-actions">
+                  <button class="btn-mini path-editor-danger" :disabled="!topologyEditorNodeId" @click="removeTopologyEditorNode">删除节点</button>
+                  <select v-model="topologyEditorRemovedNodeId" class="path-editor-inline-select">
+                    <option value="">选择已删除基线节点</option>
+                    <option v-for="node in topologyEditorRemovedNodeOptions" :key="`removed-node:${node.id}`" :value="node.id">
+                      {{ node.id }}
+                    </option>
+                  </select>
+                  <button class="btn-mini" :disabled="!topologyEditorRemovedNodeId" @click="restoreTopologyEditorNode">恢复节点</button>
+                </div>
+                <input v-model="topologyEditorNewNodeId" class="path-editor-search" placeholder="新 node ID" />
+                <div class="path-editor-grid">
+                  <select v-model="topologyEditorNewNodeLayerId" class="path-editor-select">
+                    <option v-for="layer in topologyEditorGraph?.layers || []" :key="layer.id" :value="layer.id">{{ layer.id }}</option>
+                  </select>
+                  <input v-model="topologyEditorNewNodeKind" class="path-editor-search" placeholder="kind" />
+                </div>
+                <div class="path-editor-grid path-editor-grid-3">
+                  <input v-model.number="topologyEditorNewNodeX" class="path-editor-search" type="number" step="0.1" placeholder="x" />
+                  <input v-model.number="topologyEditorNewNodeY" class="path-editor-search" type="number" step="0.1" placeholder="y" />
+                  <input v-model.number="topologyEditorNewNodeZ" class="path-editor-search" type="number" step="0.1" placeholder="z" />
+                </div>
+                <button class="btn-mini path-editor-wide" :disabled="!topologyEditorNewNodeId.trim()" @click="addTopologyEditorNode">新增节点</button>
+              </details>
+
+              <details class="path-editor-details">
+                <summary>新增边</summary>
+                <input v-model="topologyEditorNewEdgeId" class="path-editor-search" placeholder="新 edge ID" />
+                <select v-model="topologyEditorNewEdgeSource" class="path-editor-select">
+                  <option v-for="node in topologyEditorNodeOptions" :key="`source:${node.id}`" :value="node.id">source · {{ node.id }}</option>
+                </select>
+                <select v-model="topologyEditorNewEdgeTarget" class="path-editor-select">
+                  <option v-for="node in topologyEditorNodeOptions" :key="`target:${node.id}`" :value="node.id">target · {{ node.id }}</option>
+                </select>
+                <button
+                  class="btn-mini path-editor-wide"
+                  :disabled="!topologyEditorNewEdgeId.trim() || !topologyEditorNewEdgeSource || !topologyEditorNewEdgeTarget"
+                  @click="addTopologyEditorEdge"
+                >新增双向边</button>
+              </details>
+
+              <div class="path-editor-actions">
+                <button class="btn-mini" @click="topologyOverrideFileInput?.click()">导入 JSON</button>
+                <button class="btn-mini" @click="exportTopologyOverride">导出 JSON</button>
+                <button class="btn-mini path-editor-apply" :disabled="!topologyEditorCanEdit" @click="applyTopologyEditorPreview">应用预览</button>
+              </div>
+              <input ref="topologyOverrideFileInput" type="file" accept="application/json,.json" hidden @change="importTopologyOverrideFile" />
+              <p class="path-editor-hint">
+                生成图保持不变；当前 {{ topologyOverrideDocument.operations.length }} 条操作全部写入人工覆盖层。橙色线为 live preview；当前 {{ topologyEditorVia.length }} / 64 个 via。
+              </p>
+              <p v-if="topologyEditorEdge && !topologyEditorIsSameLayer" class="path-editor-hint">
+                跨层边不支持路径微调；可删除/恢复，新增跨层边要求两端共享 connectorId。
+              </p>
+              <p v-if="topologyEditorMessage" class="path-editor-status">{{ topologyEditorMessage }}</p>
+              <p v-if="topologyEditorError" class="path-editor-error">{{ topologyEditorError }}</p>
+            </template>
+          </section>
         </template>
 
         <!-- ssp tab -->
@@ -954,6 +2085,21 @@ onBeforeUnmount(() => {
               <div class="section-actions">
                 <span class="duration">总楼层: {{ modelTree.length }}</span>
                 <span class="duration">总 mesh: {{ totalMeshCount }}</span>
+                <button
+                  class="btn ghost"
+                  :disabled="embeddedTopologySummaries.every((summary) => summary.graphIds.length === 0)"
+                  @click="setEmbeddedGraphVisible(true)"
+                >显示路径图</button>
+                <button
+                  class="btn ghost"
+                  :disabled="embeddedTopologySummaries.every((summary) => summary.graphIds.length === 0)"
+                  @click="setEmbeddedGraphVisible(false)"
+                >隐藏路径图</button>
+                <button
+                  class="btn primary"
+                  :disabled="embeddedTopologySummaries.every((summary) => summary.graphIds.length === 0)"
+                  @click="renderEmbeddedSampleRoute"
+                >测试寻路</button>
               </div>
             </div>
             <div v-if="modelTree.length === 0" class="code-empty">
@@ -964,6 +2110,21 @@ onBeforeUnmount(() => {
                 点击左侧构件树中的子构件可在 3D 视图中聚焦相机。<br />
                 工具栏的 <kbd>⊞</kbd> / <kbd>⊟</kbd> 可展开/折叠所有层级。
               </p>
+              <p class="info-tip">
+                <strong>Embedded topology:</strong>
+                {{ embeddedTopologyMessage || '等待模型 topology 检查' }}
+              </p>
+              <ul v-if="embeddedTopologySummaries.length > 0" class="info-list">
+                <li v-for="summary in embeddedTopologySummaries" :key="`topology:${summary.assetId}`">
+                  <strong>{{ summary.assetId }}</strong>
+                  <span v-if="summary.error" class="info-meta">校验失败：{{ summary.error }}</span>
+                  <span v-else class="info-meta">
+                    {{ summary.graphCount }} graph · {{ summary.nodeCount }} nodes ·
+                    {{ summary.edgeCount }} edges · {{ summary.componentCount }} components ·
+                    {{ summary.isolatedCount }} isolated · {{ summary.unresolvedCount }} diagnostics
+                  </span>
+                </li>
+              </ul>
               <ul class="info-list">
                 <li v-for="floor in modelTree" :key="floor.id">
                   <strong>{{ floor.name }}</strong>
@@ -1259,6 +2420,127 @@ onBeforeUnmount(() => {
   padding: 1px 5px;
   border-radius: 3px;
   flex-shrink: 0;
+}
+
+.path-editor-section {
+  flex-shrink: 0;
+  padding: 8px;
+  border-top: 1px solid #2a2a35;
+  background: #101017;
+}
+
+.path-editor-title,
+.path-editor-toggle,
+.path-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.path-editor-title {
+  justify-content: space-between;
+  color: #fff;
+  font-size: 12px;
+  margin-bottom: 7px;
+}
+
+.path-editor-toggle {
+  color: #aaa;
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.path-editor-select,
+.path-editor-search,
+.path-editor-inline-select {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 5px;
+  padding: 5px 6px;
+  border: 1px solid #2a2a35;
+  border-radius: 3px;
+  background: #0e0e14;
+  color: #d8def5;
+  font: 11px inherit;
+}
+
+.path-editor-inline-select {
+  flex: 2;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.path-editor-actions {
+  margin-top: 6px;
+}
+
+.path-editor-actions .btn-mini {
+  flex: 1;
+  min-width: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.path-editor-apply {
+  color: #fff;
+  background: #2a4ad0;
+}
+
+.path-editor-danger {
+  color: #ff9c9c;
+}
+
+.path-editor-details {
+  margin-top: 7px;
+  padding: 5px 6px 7px;
+  border: 1px solid #252532;
+  border-radius: 4px;
+  color: #aeb7d1;
+  font-size: 10px;
+}
+
+.path-editor-details summary {
+  cursor: pointer;
+  color: #d8def5;
+  user-select: none;
+}
+
+.path-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.path-editor-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.path-editor-wide {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.path-editor-hint,
+.path-editor-status,
+.path-editor-error,
+.path-editor-empty {
+  margin: 7px 0 0;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.path-editor-hint,
+.path-editor-empty {
+  color: #777;
+}
+
+.path-editor-status {
+  color: #67d8a0;
+}
+
+.path-editor-error {
+  color: #ff7777;
+  overflow-wrap: anywhere;
 }
 
 /* Models tab 右侧详情面板 */

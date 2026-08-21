@@ -11,9 +11,10 @@
  *   - Quick Actions (6 个常见 query)
  */
 
-import { ref, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useChatStore } from '@/stores/chat'
 import { intentLogger } from '@/ai/audit/IntentLogger'
+import { useTopologyQuickAction } from '@/composables/useTopologyQuickAction'
 import { executeHostTemplateAction } from '@/templates/hostActions'
 
 const chat = useChatStore()
@@ -22,6 +23,34 @@ const showThinking = ref(false)
 const showAudit = ref(false)
 const auditEntries = ref<any[]>([])
 const expandedAuditId = ref<string | null>(null)
+const {
+  startNodeId: topologyStartNodeId,
+  goalNodeId: topologyGoalNodeId,
+  nodes: topologyNodes,
+  graphId: topologyGraphId,
+  phase: topologyPhase,
+  status: topologyStatus,
+  statusMessage: topologyStatusMessage,
+  result: topologyResult,
+  currentRouteId: topologyCurrentRouteId,
+  busy: topologyBusy,
+  sessionReady: topologySessionReady,
+  canExecute: topologyCanExecute,
+  canClear: topologyCanClear,
+  execute: executeTopologyRoute,
+  clear: clearTopologyRoute,
+} = useTopologyQuickAction()
+
+function topologyNodeLabel(node: {
+  id: string
+  layerId: string
+  label?: string
+}): string {
+  const label = node.label?.trim()
+  return label
+    ? `${label} (${node.id}) · ${node.layerId}`
+    : `${node.id} · ${node.layerId}`
+}
 
 function refreshAudit() {
   auditEntries.value = intentLogger.readAll().slice().reverse()  // 最新在前
@@ -86,7 +115,6 @@ async function replayAuditEntry(entry: any) {
 }
 
 // 监听 store turns, 自动 refresh
-import { watch } from 'vue'
 watch(() => chat.turns.length, () => {
   refreshAudit()
 })
@@ -234,6 +262,96 @@ function onKeydown(e: KeyboardEvent) {
         @click="quickAction(a)"
       >{{ a.label }}</button>
     </div>
+
+    <section
+      class="topology-quick-action"
+      data-testid="topology-quick-action"
+      :data-state="topologyStatus"
+      :data-busy="topologyBusy ? 'true' : 'false'"
+    >
+      <div class="topology-quick-header">
+        <strong>🧭 路径 Quick Action</strong>
+        <span class="topology-phase">{{ topologyPhase }}</span>
+      </div>
+
+      <div class="topology-graph">
+        <span>Graph</span>
+        <code data-testid="topology-graph-id">{{ topologyGraphId ?? '—' }}</code>
+      </div>
+
+      <div class="topology-endpoints">
+        <label>
+          <span>起点</span>
+          <select
+            v-model="topologyStartNodeId"
+            data-testid="topology-start-select"
+            :disabled="!topologySessionReady || topologyBusy"
+          >
+            <option disabled value="">请选择起点</option>
+            <option v-for="node in topologyNodes" :key="`start:${node.id}`" :value="node.id">
+              {{ topologyNodeLabel(node) }}
+            </option>
+          </select>
+        </label>
+
+        <label>
+          <span>终点</span>
+          <select
+            v-model="topologyGoalNodeId"
+            data-testid="topology-goal-select"
+            :disabled="!topologySessionReady || topologyBusy"
+          >
+            <option disabled value="">请选择终点</option>
+            <option v-for="node in topologyNodes" :key="`goal:${node.id}`" :value="node.id">
+              {{ topologyNodeLabel(node) }}
+            </option>
+          </select>
+        </label>
+      </div>
+
+      <div class="topology-controls">
+        <button
+          class="topology-run-btn"
+          data-testid="topology-execute"
+          :disabled="!topologyCanExecute"
+          @click="executeTopologyRoute"
+        >
+          {{ topologyBusy ? '处理中…' : '查找并显示' }}
+        </button>
+        <button
+          class="topology-clear-btn"
+          data-testid="topology-clear"
+          :disabled="!topologyCanClear"
+          @click="clearTopologyRoute"
+        >
+          清除路线
+        </button>
+      </div>
+
+      <p
+        class="topology-status"
+        data-testid="topology-status"
+        :data-state="topologyStatus"
+        role="status"
+        aria-live="polite"
+      >
+        {{ topologyStatusMessage }}
+      </p>
+      <div
+        v-if="topologyResult"
+        class="topology-result"
+        data-testid="topology-result"
+        :data-result-code="topologyResult.code"
+      >
+        <code>{{ topologyResult.code }}</code>
+        <span v-if="topologyResult.kind === 'success'">
+          长度 {{ topologyResult.totalLength.toFixed(2) }}，权重 {{ topologyResult.totalWeight.toFixed(2) }}
+        </span>
+      </div>
+      <div v-if="topologyCurrentRouteId" class="topology-route-id">
+        Route <code data-testid="topology-route-id">{{ topologyCurrentRouteId }}</code>
+      </div>
+    </section>
 
     <!-- 历史消息 -->
     <div class="messages">
@@ -517,6 +635,147 @@ function onKeydown(e: KeyboardEvent) {
 .quick-btn:hover {
   background: #333;
   border-color: #555;
+}
+
+.topology-quick-action {
+  padding: 10px 12px;
+  border-bottom: 1px solid #333;
+  background: #181f22;
+}
+
+.topology-quick-header,
+.topology-graph,
+.topology-controls,
+.topology-result,
+.topology-route-id {
+  display: flex;
+  align-items: center;
+}
+
+.topology-quick-header {
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: #ddd;
+  font-size: 12px;
+}
+
+.topology-phase {
+  color: #78909C;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.topology-graph {
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 8px;
+  color: #78909C;
+  font-size: 10px;
+}
+
+.topology-graph code,
+.topology-route-id code,
+.topology-result code {
+  overflow: hidden;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #101517;
+  color: #B2DFDB;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topology-endpoints {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.topology-endpoints label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+  color: #90A4AE;
+  font-size: 10px;
+}
+
+.topology-endpoints select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #455A64;
+  border-radius: 4px;
+  background: #20292d;
+  color: #ECEFF1;
+  padding: 5px 6px;
+  font-size: 11px;
+}
+
+.topology-endpoints select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.topology-controls {
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.topology-run-btn,
+.topology-clear-btn {
+  border-radius: 4px;
+  padding: 5px 9px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.topology-run-btn {
+  border: 1px solid #26A69A;
+  background: #00695C;
+  color: #fff;
+}
+
+.topology-clear-btn {
+  border: 1px solid #546E7A;
+  background: transparent;
+  color: #B0BEC5;
+}
+
+.topology-run-btn:disabled,
+.topology-clear-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.topology-status {
+  margin: 7px 0 0;
+  color: #90A4AE;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.topology-quick-action[data-state='success'] .topology-status,
+.topology-quick-action[data-state='cleared'] .topology-status {
+  color: #80CBC4;
+}
+
+.topology-quick-action[data-state='no-path'] .topology-status {
+  color: #FFD54F;
+}
+
+.topology-quick-action[data-state='error'] .topology-status {
+  color: #FF8A80;
+}
+
+.topology-result,
+.topology-route-id {
+  gap: 6px;
+  min-width: 0;
+  margin-top: 5px;
+  color: #90A4AE;
+  font-size: 9px;
 }
 
 .messages {

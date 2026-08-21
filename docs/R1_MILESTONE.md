@@ -49,7 +49,7 @@ R1 只有同时满足以下条件才可提交用户验收：
 | 0 | R1 合同、接口边界与验收矩阵 | `space AI platform产品经理-项目总控`、`技术负责人-架构与边界`、`QA工程师-质量与安全` | 本合同、sidecar v1 契约、测试矩阵 | 已完成 |
 | 1 | 通用 sidecar → graph 适配器与契约测试 | `空间数据工程师-Topology适配` | 适配器、fixture、错误模型、单元/契约测试 | 已完成 |
 | 2 | Three.js 场景接入与路线生命周期 | `前端工程师-Three.js体验` | AssetProof、原子建图、场景集成、交互与资源回收 | 已完成 |
-| 3 | 受控模板 / Quick Action 链路 | `AI工程师-Template Runtime` | Registry 模板与触发闭环 | 待开始 |
+| 3 | 受控模板 / Quick Action 链路 | `AI工程师-Template Runtime` | Registry 模板与触发闭环 | 已完成 |
 | 4 | 非污染构建与本地验收入口 | `平台工程师-后端与DevOps` | 本地 gate、构建状态保护与运行说明 | 待开始 |
 | 5 | 浏览器 P0、回归与安全验收 | `QA工程师-质量与安全` | 独立报告、缺陷结论、发布建议 | 待开始 |
 | 6 | 架构复核与产品验收 | `技术负责人-架构与边界`、`space AI platform产品经理-项目总控` | 边界结论、范围核对、里程碑汇报 | 待开始 |
@@ -61,6 +61,15 @@ R1 只有同时满足以下条件才可提交用户验收：
 - 同响应字节缓存租约、URL 授权、原子建图、可信 graph ID 补偿、A→B 失效和“路线 → graph → legacy topology → 模型”清理顺序已实现。
 - 场景生命周期专项回归 27/27、sidecar 18/18、Topology 10/10、边界审计与类型检查通过；独立三视角复审为 0 个 P0/P1，发现的 1 个 P2 公共导出面问题已关闭。
 - 真实浏览器中的 GLTFLoader/THREE.Cache、55-GLB 内存峰值、快速切换与 GPU 释放仍属于 WP5 浏览器 P0，不在本检查点内提前宣称通过。
+
+### WP3 检查点（2026-08-22）
+
+- ChatPanel 已提供只接受当前 ready topology session 显式节点选择的路径 Quick Action；起点和终点默认均为空，不根据节点顺序、kind 或 subtype 自动猜测。
+- 业务链路只通过注册的 `findPath`、`renderRoute`、`removeRoute` 模板执行，模板 ID、执行选项、路线样式与参数形状均固定；不直连 SSP，不经过 LLM、Intent 或 Planner。
+- 本地 operation token、场景 epoch、状态、graph ID 与端点快照共同阻断陈旧结果；同 graph ID 重载、清除竞态、组件卸载和迟到渲染均执行精确 route ID 补偿。
+- path receipt 与 route ID 均绑定同 facade 的签发记录；未经签发的路径或 route ID 在进入 Template Runtime 前被拒绝，模板异常和畸形输出只投影为有限、稳定的 UI 错误。
+- Quick Action 专项回归 19/19，其中包含真实注册 Template Runtime + SSP context 的 `findPath → renderRoute → removeRoute` 集成；生命周期 27/27、sidecar 18/18、Topology 10/10、模板/AI/topology 边界审计、类型检查和 diff 检查通过。
+- 正确性、安全/边界、可维护性/UI 三视角独立复审均无 P0/P1；发现的 2 个 P2（route ID 所有权、真实 Runtime 集成缺口）均已修复并由原审查者关闭。ChatPanel DOM、Home↔Sandbox 清理及真实 GPU 释放仍留给 WP5 浏览器 P0。
 
 ## 6. 强制边界
 

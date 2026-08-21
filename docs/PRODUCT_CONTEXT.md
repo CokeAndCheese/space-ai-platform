@@ -32,6 +32,8 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - 4 个 Manifest 约束的 v3 atomic 模板，同 ID 采用 v3-first。
 - `objectsTool` 已具备有界查询/描述及不透明 HighlightLease 生命周期。
 - `topologyTool` 有 23 个 API，支持显式图、跨层 connector、blocker、约束 Dijkstra、路线渲染与回收。
+- R1 已具备版本化外置 topology sidecar v1 适配、可信资产证明、world-space graph 编译和 Three.js 场景生命周期；正式 A_1F/A_2F sidecar 分别提供可达与显式 blocker 无路 fixture。
+- ChatPanel 已具备受控路径 Quick Action：仅从当前会话显式选择端点，并经注册模板完成查路、渲染与精确清除；不经过 LLM，也不直连 SSP。
 - AI 只能选择 Registry 明确开放的模板，不能直接调用 SSP。
 - 当前模型清单包含医院等测试场景；医院数据只能作为 fixture，不能成为通用产品契约。
 
@@ -45,7 +47,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - 墙体是应用/适配层生成 blocker 的依据，不是 topology 核心中的业务节点。
 - “入口→满足必经设施→目标”使用带 requirement bitmask 的精确 Dijkstra，不使用贪心。
 - factory + 闭包不妨碍模板原子化；模板依赖稳定的 `ssp.topologyTool.method()` 路径，而不是源码顶层 named export。
-- 尚缺通用 GLB metadata → world-space graph 适配器，这是当前最重要的产品能力缺口之一。
+- 通用“GLB 基础 metadata + 外置 topology sidecar v1”→ world-space graph 适配器已在 R1 完成；剩余发布门槛是非污染构建、真实浏览器 P0 与独立 QA/架构验收。
 
 ### Objects 与模板 Runtime
 
@@ -67,7 +69,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 
 ## 5. 当前验证证据
 
-2026-08-21 已通过：
+截至 2026-08-22 已通过：
 
 - 79/79 模板 schema 审计，0 问题；AI-enabled 实际值为 8。
 - Phase 0 能力分类：10 controllers / 85 methods / 0 unclassified。
@@ -76,6 +78,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - v3 Runtime 12 项、objects 13 项、topology 10 项回归。
 - R1 topology sidecar v1 适配器 18 项专项回归：封闭 schema、资源预算、加载/proof 分层、世界坐标、connector/blocker 和诊断去敏均通过。
 - R1 Three.js 场景生命周期 27 项专项回归：视觉加载与 proof 解耦、多资产部分成功、sidecar 失败优先级、同响应字节 handoff、原子 graph 补偿、A→B 失效和资源清理均通过；三视角独立复审无 P0/P1，1 个 P2 已关闭。
+- R1 Quick Action 19 项专项回归：固定 Registry 模板链路、显式端点、NO_PATH、同 graph ID 重载、清除竞态、陈旧渲染补偿、route ID 所有权和组件卸载均通过；其中 1 项使用真实 Template Runtime + SSP context 验证完整 `findPath → renderRoute → removeRoute`。三视角独立复审无 P0/P1，2 个 P2 已关闭。
 - TypeScript 类型检查。
 
 未作为本轮证据：生产构建、真实浏览器端到端验收、目标部署环境中的 LLM 通路、CI/CD 和生产性能。
@@ -91,7 +94,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 
 ### P1 — 形成可用产品
 
-1. 实现通用 GLB metadata → world-space topology graph 适配器，并用多个模型 fixture 验证。
+1. 完成 R1 非污染构建、真实浏览器 P0、独立 QA 与架构验收，并扩展更多非医院模型 fixture。
 2. 完成 Template Phase 2，迁移组合模板和 `query-scene`，收敛动态代码执行。
 3. 把 AI_LAYER_VERIFICATION 的关键路径转为浏览器 E2E，并完成人工验收签字。
 4. 定义模型资产的对象存储/CDN、版本、哈希、metadata 校验与回滚流程。

@@ -48,7 +48,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - 墙体是应用/适配层生成 blocker 的依据，不是 topology 核心中的业务节点。
 - “入口→满足必经设施→目标”使用带 requirement bitmask 的精确 Dijkstra，不使用贪心。
 - factory + 闭包不妨碍模板原子化；模板依赖稳定的 `ssp.topologyTool.method()` 路径，而不是源码顶层 named export。
-- 通用“GLB 基础 metadata + 外置 topology sidecar v1”→ world-space graph 适配器、非污染本地构建门禁和真实浏览器 P0 已在 R1 完成；剩余里程碑门槛是独立 QA、架构与产品验收。
+- 通用“GLB 基础 metadata + 外置 topology sidecar v1”→ world-space graph 适配器、非污染本地构建门禁、真实浏览器 P0、独立 QA、架构和产品验收均已在 R1 完成；当前只待用户批准关闭、创建本地里程碑记录并手动备份。
 
 ### Objects 与模板 Runtime
 
@@ -83,6 +83,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - R1 本地 gate 自测通过 package wiring、dirty 基线、fail-fast / 真实退出码、manifest 漂移不恢复和 Git porcelain 漂移检查。
 - R1 浏览器 P0 已通过 A_1F 可达路线及清除、A_2F `NO_PATH`、A_3F 缺失/非法 sidecar、页面与模型快速切换、结构化失败反馈和控制台检查；报告见 [`R1_BROWSER_P0_REPORT.md`](./R1_BROWSER_P0_REPORT.md)。
 - `npm run verify:r1` 已按顺序通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 20/20、三组边界审计、TypeScript 类型检查和 Vite 生产构建。用户 manifest 前后 SHA-256 均为 `2ed654ea23f091008e8bd91f2996077c938026ade8183dea972205997bea9fbc`，完整 Git porcelain 原始 Buffer 前后相同。
+- R1 独立 QA 与架构终验均为 PASS，0 个未关闭 P0/P1/P2；产品范围核对无漂移，可以提交用户验收。三方结论见 [`R1_FINAL_ACCEPTANCE.md`](./R1_FINAL_ACCEPTANCE.md)。
 
 未作为本轮证据：目标部署环境中的 LLM 通路、CI/CD、浏览器堆/GPU 指标和生产性能。生产构建已通过，但 Vite 仍报告大于 500 kB 的 chunk 警告，尚未设定发布性能预算。
 
@@ -97,7 +98,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 
 ### P1 — 形成可用产品
 
-1. 完成 R1 独立 QA 与架构验收，并扩展更多非医院模型 fixture。
+1. 在 R1 用户验收与手动备份后，扩展更多非医院模型 fixture。
 2. 完成 Template Phase 2，迁移组合模板和 `query-scene`，收敛动态代码执行。
 3. 把 AI_LAYER_VERIFICATION 的关键路径转为浏览器 E2E，并完成人工验收签字。
 4. 定义模型资产的对象存储/CDN、版本、哈希、metadata 校验与回滚流程。
@@ -137,9 +138,13 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 
 负责测试策略、Playwright/E2E、回归矩阵、发布验收，以及代理暴露面、动态代码执行、依赖和供应链安全。早期可一人兼任，发布前需保持独立验收权。
 
+### R1 终验临时代理（2026-08-22）
+
+因原技术负责人和 QA 任务完成检查后未保存可读取结论，且补发触发任务额度限制，当前临时启用 `技术负责人-R1终验代理` 与 `QA工程师-R1终验代理`，只对冻结的 R1 候选版本出具可审计终验结论。两项代理不取得代码写入权或长期编制，R1 用户验收关闭后自动撤销；常设六岗位及汇报关系不变。
+
 ## 8. 建议近期里程碑
 
-1. **R1 通用空间链路可验收版（已批准，研发中）**：采用版本化外置 topology sidecar v1，在不修改 SSP 核心的前提下完成“GLB 基础 metadata + sidecar”→ world-space graph 适配、Three.js 路线显示、受控触发链路、非污染本地构建和浏览器 P0 验收。合同见 [`R1_MILESTONE.md`](./R1_MILESTONE.md)。
+1. **R1 通用空间链路可验收版（研发完成，待用户验收）**：采用版本化外置 topology sidecar v1，在不修改 SSP 核心的前提下完成“GLB 基础 metadata + sidecar”→ world-space graph 适配、Three.js 路线显示、受控触发链路、非污染本地构建、浏览器 P0、独立 QA 和架构验收。合同见 [`R1_MILESTONE.md`](./R1_MILESTONE.md)，终验结论见 [`R1_FINAL_ACCEPTANCE.md`](./R1_FINAL_ACCEPTANCE.md)。
 2. **后续发布基础（未批准）**：生产 LLM gateway、凭据治理、CI/CD、生产构建制品和发布级 E2E。
 3. **后续 AI Runtime 收敛（未批准）**：完成 Phase 2，迁移关键 combo/query，降低 v2 动态执行面。
 4. **后续产品化（未批准）**：项目/场景管理、权限、服务端审计、模型资产服务和生产可观测性。

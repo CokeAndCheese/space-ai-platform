@@ -56,7 +56,7 @@ npm run verify:r1
 
 ## 待办
 
-1. 完成 R1 真实浏览器 P0、独立 QA、架构与产品验收。
+1. R1 已完成浏览器 P0、独立 QA、架构与产品验收；等待用户批准关闭、本地里程碑记录和外部手动备份。
 2. 推进 Template Phase 2：迁移组合/query 模板、execution-local capability、取消/超时与 finally 释放。
 3. 按需求评审新增 AI-enabled 模板，保持危险能力 opt-in。
 4. 继续按实际数据补齐性能和 metadata 观测。
@@ -83,4 +83,4 @@ scripts/audit-ai-boundary.mjs            AI/template 边界审计（只报告）
 scripts/test-objects.mjs                  objectsTool 查询与高亮租约回归
 ```
 
-**TL;DR**：本文已归档；以当前治理文档为准。当前基线为 79/0/4/8，AI 只能走模板，topology 只处理显式通用图；R1 仍待浏览器 P0、独立 QA 和架构/产品验收。
+**TL;DR**：本文已归档；以当前治理文档为准。当前基线为 79/0/4/8，AI 只能走模板，topology 只处理显式通用图；R1 内部验收已 PASS，待用户批准关闭和手动备份。

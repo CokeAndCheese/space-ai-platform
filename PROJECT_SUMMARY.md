@@ -67,10 +67,11 @@ topology v2 由纯数据 graph API、约束寻路和 Three.js 路线生命周期
 - Sandbox 支持 Templates、Models、ssp 三个 tab。
 - R1 已完成 topology sidecar v1 适配、正式可达/无路 fixture、可信多资产场景生命周期和受控 Quick Action 模板闭环。
 - `npm run verify:r1` 已提供 dirty 基线可用的非污染本地 gate；`dev` / `build` 不再隐式写回模型清单。
+- R1 真实浏览器 P0、独立 QA、架构和产品范围验收均已 PASS；当前状态为研发完成、待用户批准关闭。
 
 ## 后续阶段
 
-- 完成 R1 真实浏览器 P0、独立 QA、架构和产品验收；扩展更多非医院模型 fixture。
+- 用户批准关闭 R1 后完成本地里程碑记录与外部手动备份；随后扩展更多非医院模型 fixture。
 - Phase 2 实现封闭组合 Runtime，迁移 4 个 v2 combo 与 `query-scene`，并接入 execution-local HighlightLease capability table、取消/超时/finally 释放。
 - 继续将 v2 一一映射迁移到 v3；AI 暴露默认保持 opt-in。
 - 继续完善性能观测、模型 metadata 与应用层业务组合。

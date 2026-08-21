@@ -1,9 +1,13 @@
 # R1 里程碑合同 — 通用空间链路可验收版
 
-> 批准日期：2026-08-21  
-> 状态：已批准，研发中  
-> 决策人：用户 / 项目决策人  
-> 负责人：`space AI platform产品经理-项目总控`  
+> 批准日期：2026-08-21
+>
+> 状态：研发完成，待用户验收
+>
+> 决策人：用户 / 项目决策人
+>
+> 负责人：`space AI platform产品经理-项目总控`
+>
 > 活动分支：`codex/r1-generic-spatial-chain`
 
 ## 1. 产品目标
@@ -52,7 +56,7 @@ R1 只有同时满足以下条件才可提交用户验收：
 | 3 | 受控模板 / Quick Action 链路 | `AI工程师-Template Runtime` | Registry 模板与触发闭环 | 已完成 |
 | 4 | 非污染构建与本地验收入口 | `平台工程师-后端与DevOps` | 本地 gate、构建状态保护与运行说明 | 已完成 |
 | 5 | 浏览器 P0、回归与安全验收 | `QA工程师-质量与安全` | 独立报告、缺陷结论、发布建议 | 已完成 |
-| 6 | 架构复核与产品验收 | `技术负责人-架构与边界`、`space AI platform产品经理-项目总控` | 边界结论、范围核对、里程碑汇报 | 待开始 |
+| 6 | 架构复核与产品验收 | `技术负责人-架构与边界`、`space AI platform产品经理-项目总控` | 边界结论、范围核对、里程碑汇报 | 已完成 |
 
 ### WP2 检查点（2026-08-22）
 
@@ -88,6 +92,14 @@ R1 只有同时满足以下条件才可提交用户验收：
 - 活动路线下 Home → Sandbox → Home、A_1F → A_2F → A_1F 快速切换均未留下陈旧路线、graph 或结果；浏览器日志无 error，仅有整院初始视角的既有相机距离钳制 warning。
 - sidecar 请求显式声明 `Accept: application/json`，避免本地服务器将缺失 JSON 回退为 HTML；UI 只显示有限枚举的诊断 code/phase，不投影 URI、path、message 或 details。
 - `npm run verify:r1` 最终通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 20/20、三组边界审计、类型检查和生产构建；用户 manifest 与 Git porcelain 前后不变。
+
+### WP6 检查点（2026-08-22）
+
+- 独立 QA 终验为 PASS，0 个 P0/P1/P2；认可自动化、浏览器 P0、失败/竞态/清理、诊断去敏和非污染门禁证据。
+- 最终架构验收为 PASS；确认 SSP–Template–AI 窄腰、sidecar/AssetProof/world-space、生命周期和受控 Quick Action 均符合合同，相对 R1 基线没有 `src/ssp/**` 改动，范围无漂移。
+- 架构初审提出的流程 P1“独立 QA 结论缺失”已由独立 QA PASS 关闭；格式 P2“本文行尾空格”已修正并通过 `git diff --check`。
+- 产品经理确认 R1 合同范围全部满足，可以提交用户验收；完整三方结论见 [`R1_FINAL_ACCEPTANCE.md`](./R1_FINAL_ACCEPTANCE.md)。
+- 当前尚未关闭 R1、合入本地 `main` 或要求用户执行里程碑备份；这些动作在用户批准关闭后按既定流程执行。
 
 ## 6. 强制边界
 

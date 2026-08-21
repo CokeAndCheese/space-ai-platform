@@ -4,7 +4,7 @@
  *
  * 跟 Sandbox 一样: 空场景, 由 modelTool 完全接管
  * 模型清单从 useModelLibrary 来 (manifest.json + localStorage 选择持久化)
- * 用户从顶部下拉框选 → 触发 handleUrlChange → 调 modelTool.loadSubcategory() / loadFloor()
+ * 用户从顶部下拉框选 → 触发 handleUrlChange → 走带拓扑证明的逐资产加载生命周期
  *
  * 顶部 nav + 模型下拉框归 App.vue 管 (避免重复)
  * ChatPanel 在右侧 (AI 助手)
@@ -13,17 +13,17 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount, type WatchStopHandle } from 'vue'
 import { useThreeScene } from '@/composables/useThreeScene'
 import { useModelLibrary } from '@/composables/useModelLibrary'
+import { useTopologySceneLifecycle } from '@/composables/useTopologySceneLifecycle'
 import { ssp } from '@/ssp'
 import { useChatStore } from '@/stores/chat'
 import ChatPanel from '@/views/ChatPanel.vue'
 
 const lib = useModelLibrary()
 const chat = useChatStore()
+const topologyLifecycle = useTopologySceneLifecycle()
 
 function unloadManagedModels(): void {
-  if (!ssp.hasContext()) return
-  ssp.topologyTool.removeAll()
-  ssp.modelTool.unloadAll()
+  topologyLifecycle.invalidateAndCleanup()
 }
 
 // 3D 场景 —— modelUrl 用空字符串(不自动加载), 由 modelTool 完全接管
@@ -56,40 +56,33 @@ async function handleUrlChange(url: string): Promise<void> {
   const request = ++modelLoadRequest
   requestedModelUrl.value = url
   modelError.value = ''
-  if (!url) {
-    unloadManagedModels()
-    modelLoading.value = false
-    console.log('[Home] cleared scene (no GLB loaded)')
-    return
-  }
-  const rec = lib.models.value.find((m) => m.url === url)
-  if (!rec) {
-    modelLoading.value = false
-    modelError.value = `模型不在清单中：${url}`
-    console.warn('[Home] unknown url in lib:', url)
-    return
-  }
-  modelLoading.value = true
+  modelLoading.value = url.length > 0
   try {
-    unloadManagedModels()
-    if (rec.kind === 'scene') {
-      console.log(`[Home] loading scene '${rec.filename}' (${rec.sizeMB} MB)...`)
-      const infos = await ssp.modelTool.loadSubcategory(rec.filename)
-      if (request !== modelLoadRequest) return
-      console.log(`[Home] loaded ${infos.length} GLB in '${rec.filename}'`)
-      await chat.fitScene('iso')
-      if (request !== modelLoadRequest) return
-      await chat.sendQuery('__capture_main_viewpoint__', { internal: true, forceFallback: true })
-    } else {
-      const info = await ssp.modelTool.loadFloor(rec.url)
-      if (request !== modelLoadRequest) return
-      console.log(`[Home] loaded 1 GLB: ${info.floorName}`)
-      await chat.fitScene('iso')
-      if (request !== modelLoadRequest) return
-      await chat.sendQuery('__capture_main_viewpoint__', { internal: true, forceFallback: true })
+    const result = await topologyLifecycle.select(url, lib.models.value)
+    const isCurrent = () => (
+      !viewDisposed &&
+      request === modelLoadRequest &&
+      topologyLifecycle.isGenerationCurrent(result.generation)
+    )
+    if (!isCurrent() || result.kind === 'stale') return
+    if (result.kind === 'empty') {
+      console.log('[Home] cleared scene (no GLB loaded)')
+      return
     }
+    if (result.kind === 'model-error') {
+      modelError.value = result.message
+      console.warn('[Home] model load failed:', result.message)
+      return
+    }
+
+    console.log(`[Home] loaded ${result.assetCount} GLB asset(s)`)
+    if (!isCurrent()) return
+    await chat.fitScene('iso')
+    if (!isCurrent()) return
+    await chat.sendQuery('__capture_main_viewpoint__', { internal: true, forceFallback: true })
+    if (!isCurrent()) return
   } catch (err) {
-    if (request === modelLoadRequest) {
+    if (request === modelLoadRequest && !viewDisposed) {
       modelError.value = err instanceof Error ? err.message : String(err)
       console.warn('[Home] model load failed:', err)
     }
@@ -118,6 +111,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   viewDisposed = true
   modelLoadRequest++
+  topologyLifecycle.invalidate()
   modelLoading.value = false
   stopUrlWatch?.()
   stopUrlWatch = null

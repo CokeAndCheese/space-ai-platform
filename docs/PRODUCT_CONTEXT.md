@@ -1,6 +1,6 @@
 # Space AI Platform — 产品与团队上下文
 
-> 产品经理基线：2026-08-21。本文整合当前代码、权威项目文档及历史项目任务中的有效结论，作为后续各角色任务的共同产品上下文。代码契约仍以源码和 API catalog 为准。
+> 产品经理基线：2026-08-22。本文整合当前代码、权威项目文档及历史项目任务中的有效结论，作为后续各角色任务的共同产品上下文。代码契约仍以源码和 API catalog 为准。
 
 治理入口：产品经理的长期角色、权限和汇报机制见 [`PRODUCT_MANAGER_CHARTER.md`](./PRODUCT_MANAGER_CHARTER.md)；最新组织架构见 [`ORG_CHART.md`](./ORG_CHART.md)；研发与备份流程见 [`DEVELOPMENT_WORKFLOW.md`](./DEVELOPMENT_WORKFLOW.md)；用户批准的长期决策见 [`DECISION_LOG.md`](./DECISION_LOG.md)。仓库任务的强制入口规则见根目录 [`AGENTS.md`](../AGENTS.md)。
 
@@ -75,6 +75,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - AI/template 与 topology 依赖边界审计。
 - v3 Runtime 12 项、objects 13 项、topology 10 项回归。
 - R1 topology sidecar v1 适配器 18 项专项回归：封闭 schema、资源预算、加载/proof 分层、世界坐标、connector/blocker 和诊断去敏均通过。
+- R1 Three.js 场景生命周期 27 项专项回归：视觉加载与 proof 解耦、多资产部分成功、sidecar 失败优先级、同响应字节 handoff、原子 graph 补偿、A→B 失效和资源清理均通过；三视角独立复审无 P0/P1，1 个 P2 已关闭。
 - TypeScript 类型检查。
 
 未作为本轮证据：生产构建、真实浏览器端到端验收、目标部署环境中的 LLM 通路、CI/CD 和生产性能。

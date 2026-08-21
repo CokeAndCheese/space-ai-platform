@@ -30,7 +30,7 @@
 
 | 脚本 | npm script |
 |---|---|
-| `list-models.mjs` | `npm run list-models` (auto-run on `predev` / `prebuild`) |
+| `list-models.mjs` | `npm run list-models`（显式写回；`dev` / `build` 不会自动运行） |
 | `compress-model.mjs` | `npm run compress` |
 | `validate-metadata.mjs` | `npm run validate-metadata` |
 | `inject-scene-name.mjs` | `npm run inject-scene-name` |

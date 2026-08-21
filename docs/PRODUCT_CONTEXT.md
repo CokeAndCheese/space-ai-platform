@@ -34,6 +34,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - `topologyTool` 有 23 个 API，支持显式图、跨层 connector、blocker、约束 Dijkstra、路线渲染与回收。
 - R1 已具备版本化外置 topology sidecar v1 适配、可信资产证明、world-space graph 编译和 Three.js 场景生命周期；正式 A_1F/A_2F sidecar 分别提供可达与显式 blocker 无路 fixture。
 - ChatPanel 已具备受控路径 Quick Action：仅从当前会话显式选择端点，并经注册模板完成查路、渲染与精确清除；不经过 LLM，也不直连 SSP。
+- R1 已具备非污染本地验收入口：开发与构建不再隐式生成模型清单，固定 gate 在 dirty 基线上校验 manifest 原始字节与完整 Git porcelain 前后不变。
 - AI 只能选择 Registry 明确开放的模板，不能直接调用 SSP。
 - 当前模型清单包含医院等测试场景；医院数据只能作为 fixture，不能成为通用产品契约。
 
@@ -47,7 +48,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - 墙体是应用/适配层生成 blocker 的依据，不是 topology 核心中的业务节点。
 - “入口→满足必经设施→目标”使用带 requirement bitmask 的精确 Dijkstra，不使用贪心。
 - factory + 闭包不妨碍模板原子化；模板依赖稳定的 `ssp.topologyTool.method()` 路径，而不是源码顶层 named export。
-- 通用“GLB 基础 metadata + 外置 topology sidecar v1”→ world-space graph 适配器已在 R1 完成；剩余发布门槛是非污染构建、真实浏览器 P0 与独立 QA/架构验收。
+- 通用“GLB 基础 metadata + 外置 topology sidecar v1”→ world-space graph 适配器及非污染本地构建门禁已在 R1 完成；剩余发布门槛是真实浏览器 P0 与独立 QA/架构验收。
 
 ### Objects 与模板 Runtime
 
@@ -79,22 +80,23 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - R1 topology sidecar v1 适配器 18 项专项回归：封闭 schema、资源预算、加载/proof 分层、世界坐标、connector/blocker 和诊断去敏均通过。
 - R1 Three.js 场景生命周期 27 项专项回归：视觉加载与 proof 解耦、多资产部分成功、sidecar 失败优先级、同响应字节 handoff、原子 graph 补偿、A→B 失效和资源清理均通过；三视角独立复审无 P0/P1，1 个 P2 已关闭。
 - R1 Quick Action 19 项专项回归：固定 Registry 模板链路、显式端点、NO_PATH、同 graph ID 重载、清除竞态、陈旧渲染补偿、route ID 所有权和组件卸载均通过；其中 1 项使用真实 Template Runtime + SSP context 验证完整 `findPath → renderRoute → removeRoute`。三视角独立复审无 P0/P1，2 个 P2 已关闭。
-- TypeScript 类型检查。
+- R1 本地 gate 自测通过 package wiring、dirty 基线、fail-fast / 真实退出码、manifest 漂移不恢复和 Git porcelain 漂移检查。
+- `npm run verify:r1` 已按顺序通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 19/19、三组边界审计、TypeScript 类型检查和 Vite 生产构建。用户 manifest 前后 SHA-256 均为 `2ed654ea23f091008e8bd91f2996077c938026ade8183dea972205997bea9fbc`，完整 Git porcelain 原始 Buffer 前后相同。
 
-未作为本轮证据：生产构建、真实浏览器端到端验收、目标部署环境中的 LLM 通路、CI/CD 和生产性能。
+未作为本轮证据：真实浏览器端到端验收、目标部署环境中的 LLM 通路、CI/CD 和生产性能。生产构建已通过，但 Vite 仍报告大于 500 kB 的 chunk 警告，尚未设定发布性能预算。
 
 ## 6. 产品风险与优先级
 
 ### P0 — 发布前必须解决
 
 1. **生产 LLM 后端未闭环**：仓库只有 Vite 开发代理，静态生产构建没有对应的 API 服务、认证、限流、密钥托管和可观测性。
-2. **缺少交付门禁**：没有 CI workflow、统一 test 命令、浏览器 E2E、覆盖率门槛和构建产物验证。
+2. **交付门禁仍不完整**：R1 已有本地统一 gate，但仍没有 CI workflow、浏览器 E2E、覆盖率门槛和发布级构建制品验证。
 3. **凭据治理**：本地环境存在真实 LLM 凭据配置；必须轮换并确认不会进入构建、日志或备份。
 4. **本地备份纪律**：暂停 GitHub 后，里程碑外部手动备份成为磁盘或目录级故障的主要恢复保障，必须在进入下一里程碑前确认完成。
 
 ### P1 — 形成可用产品
 
-1. 完成 R1 非污染构建、真实浏览器 P0、独立 QA 与架构验收，并扩展更多非医院模型 fixture。
+1. 完成 R1 真实浏览器 P0、独立 QA 与架构验收，并扩展更多非医院模型 fixture。
 2. 完成 Template Phase 2，迁移组合模板和 `query-scene`，收敛动态代码执行。
 3. 把 AI_LAYER_VERIFICATION 的关键路径转为浏览器 E2E，并完成人工验收签字。
 4. 定义模型资产的对象存储/CDN、版本、哈希、metadata 校验与回滚流程。

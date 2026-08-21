@@ -10,7 +10,9 @@
  *
  * 用法:
  *   node scripts/list-models.mjs
- *   npm run dev   -> package.json 里已配 predev hook
+ *   npm run list-models
+ *
+ * 注意: 这是显式写回命令。dev/build/verify:r1 不会自动调用本脚本。
  */
 
 import { promises as fs } from 'node:fs'

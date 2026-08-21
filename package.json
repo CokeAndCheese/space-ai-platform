@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "list-models": "node scripts/list-models.mjs",
-    "predev": "node scripts/list-models.mjs",
-    "prebuild": "node scripts/list-models.mjs",
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
+    "verify:r1": "node scripts/verify-r1-local.mjs",
+    "test:r1-local-gate": "node scripts/test-r1-local-gate.mjs",
     "preview": "vite preview",
     "compress": "node scripts/compress-model.mjs",
     "validate-metadata": "node scripts/validate-metadata.mjs",

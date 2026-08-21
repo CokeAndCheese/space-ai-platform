@@ -115,3 +115,25 @@ space-ai-platform_M1_YYYY-MM-DD_HHMM
 - 当前主工作区有用户拥有的 `src/model-manifest.json` 修改，必须继续排除在非相关提交之外。
 - 任何分支切换如果会要求移动、stash、提交或覆盖该用户修改，必须停止并请求对应授权。
 - 现有人员任务正在从旧 Codex worktree 切换到保存的单一项目目录；切换完成前不得开始新的写入工作。
+
+## 9. R1 本地非污染门禁
+
+`npm run dev` 和 `npm run build` 不再通过 `predev` / `prebuild` 自动调用模型清单生成器。模型清单刷新保留为显式命令：
+
+```text
+npm run list-models
+```
+
+这是有意写回 `src/model-manifest.json` 的命令。只有在用户明确要求重建清单，且已经备份现有文件并确认预期差异后才能运行；常规开发、构建和 R1 验收不得把它作为隐式前置步骤。
+
+R1 的统一本地入口是：
+
+```text
+npm run verify:r1
+```
+
+门禁使用固定的 Node 可执行文件和固定 argv，直接运行 topology 四组回归、三组边界审计、`vue-tsc --noEmit` 和 `vite build`。它不通过嵌套的 `npm run build` 执行生产构建，因此即使未来误加 `prebuild`，R1 验收入口也不会触发该 lifecycle hook。
+
+门禁开始时按原始字节读取 `src/model-manifest.json`，并以 `git status --porcelain=v2 --branch --show-stash --untracked-files=all -z` 捕获包含 staged、unstaged、untracked、分支与 stash 摘要的完整 Git porcelain Buffer。结束时再次采集并逐字节比较，同时报告 manifest SHA-256。起始工作区可以是 dirty；只要求前后基线完全相同。porcelain 采集预算为 16 MiB，错误诊断采集预算为 64 KiB；超限时门禁安全失败，不尝试截断后继续验收。
+
+任一子命令失败后立即停止后续命令，但始终执行终态完整性复核；子命令退出码优先保留。manifest 或 Git porcelain 漂移、快照失败、无法启动子命令以及可捕获的 `SIGINT` / `SIGTERM` / `SIGHUP` 都使门禁失败。门禁不会执行 restore、reset、clean、暂存、删除 `dist/` 或覆盖任何用户改动；生产构建可写入已忽略的 `dist/`。不可捕获的进程终止（例如 `SIGKILL`）、系统掉电和执行期间写后恢复为相同最终字节不属于端点快照可证明的范围。

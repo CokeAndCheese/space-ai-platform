@@ -36,7 +36,7 @@ R1 只有同时满足以下条件才可提交用户验收：
 - 有路径、无路径、非法 metadata、跨层和资源清理场景均有自动化证据。
 - Quick Action 或受控模板能够完成“触发 → 规划 → Topology → Three.js 路线显示”的闭环。
 - AI/template boundary、topology boundary、类型检查和相关回归全部通过。
-- 本地生产构建可以重复执行，执行前后用户拥有的 `src/model-manifest.json` 内容与工作区状态保持不变。
+- 本地生产构建可以重复执行，执行前后用户拥有的 `src/model-manifest.json` 内容与 Git 可见工作区状态保持不变；已忽略的可重建 `dist/` 属于构建产物。
 - 浏览器 P0 验收覆盖模型加载、触发寻路、路线显示/清除、模型切换和失败反馈。
 - 技术负责人完成边界复核，QA 给出独立验收结论，产品经理确认范围没有漂移。
 
@@ -50,7 +50,7 @@ R1 只有同时满足以下条件才可提交用户验收：
 | 1 | 通用 sidecar → graph 适配器与契约测试 | `空间数据工程师-Topology适配` | 适配器、fixture、错误模型、单元/契约测试 | 已完成 |
 | 2 | Three.js 场景接入与路线生命周期 | `前端工程师-Three.js体验` | AssetProof、原子建图、场景集成、交互与资源回收 | 已完成 |
 | 3 | 受控模板 / Quick Action 链路 | `AI工程师-Template Runtime` | Registry 模板与触发闭环 | 已完成 |
-| 4 | 非污染构建与本地验收入口 | `平台工程师-后端与DevOps` | 本地 gate、构建状态保护与运行说明 | 待开始 |
+| 4 | 非污染构建与本地验收入口 | `平台工程师-后端与DevOps` | 本地 gate、构建状态保护与运行说明 | 已完成 |
 | 5 | 浏览器 P0、回归与安全验收 | `QA工程师-质量与安全` | 独立报告、缺陷结论、发布建议 | 待开始 |
 | 6 | 架构复核与产品验收 | `技术负责人-架构与边界`、`space AI platform产品经理-项目总控` | 边界结论、范围核对、里程碑汇报 | 待开始 |
 
@@ -70,6 +70,15 @@ R1 只有同时满足以下条件才可提交用户验收：
 - path receipt 与 route ID 均绑定同 facade 的签发记录；未经签发的路径或 route ID 在进入 Template Runtime 前被拒绝，模板异常和畸形输出只投影为有限、稳定的 UI 错误。
 - Quick Action 专项回归 19/19，其中包含真实注册 Template Runtime + SSP context 的 `findPath → renderRoute → removeRoute` 集成；生命周期 27/27、sidecar 18/18、Topology 10/10、模板/AI/topology 边界审计、类型检查和 diff 检查通过。
 - 正确性、安全/边界、可维护性/UI 三视角独立复审均无 P0/P1；发现的 2 个 P2（route ID 所有权、真实 Runtime 集成缺口）均已修复并由原审查者关闭。ChatPanel DOM、Home↔Sandbox 清理及真实 GPU 释放仍留给 WP5 浏览器 P0。
+
+### WP4 检查点（2026-08-22）
+
+- `dev` / `build` 已移除模型清单生成 lifecycle；`list-models` 仅保留为需用户明确要求、备份和差异确认的显式写回命令。
+- `verify:r1` 以固定 Node argv 顺序执行四组 topology 回归、三组边界审计、类型检查和直接 Vite 生产构建，不嵌套 npm build lifecycle。
+- 门禁允许起始 dirty 基线；前后逐字节比较用户 manifest 与完整 Git porcelain Buffer。子命令失败立即停止但仍执行终态检查，任何漂移均失败且不自动恢复、覆盖、暂存或清理。
+- 门禁自身的临时 fixture 测试已覆盖 package wiring、稳定 dirty 基线、真实退出码与 fail-fast、manifest 漂移不恢复、Git porcelain 漂移。
+- `npm run verify:r1` 已按固定顺序通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 19/19、三组边界审计、类型检查和 Vite 生产构建；manifest 前后 SHA-256 均为 `2ed654ea23f091008e8bd91f2996077c938026ade8183dea972205997bea9fbc`，Git porcelain 前后原始 Buffer 摘要相同。
+- WP4 只关闭非污染本地构建与自动化验收入口；真实浏览器 P0、构建大 chunk 警告、独立 QA 和架构/产品验收仍由 WP5 / WP6 关闭。
 
 ## 6. 强制边界
 

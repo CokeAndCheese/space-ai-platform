@@ -2,14 +2,14 @@
 
 > AI 友好的 Three.js 能力平台：把 Three.js 能力封装成 ssp-shim controller，再通过结构化 JSON 模板提供给 LLM 和业务代码。
 
-## 当前状态（2026-08-17）
+## 当前状态（2026-08-22）
 
 - SSP 暴露 10 个 controller，共 85 个 controller 方法；`cameraController.controls` 是一个底层实例属性，不计入方法数。
 - 顶层 context 工具 4 个（`setContext` / `getContext` / `hasContext` / `clearContext`），合计 89 个可调用函数。
 - v2 兼容目录 `src/templates/ssp_templates/` 有 79 个 active、0 个 placeholder、4 个组合模板、8 个 `aiEnabled` 模板；`clearAllHighlights` 已改为 host-only。
 - v3 已落地 4 个 Manifest 约束的一一映射原子模板；独立 machine contract 同时锁定模板 allow-list、参数 schema 和返回 schema，其中 `resetVisibility` 面向 AI；同 ID 由 v3 优先遮蔽 v2。
 - AI 的模型面能力仅来自统一模板目录；纯目录构建不导入 SSP，执行时由应用层注入 SSP。
-- `topologyTool` 提供 23 个 API（legacy 图、v2 图与路线）；通用 GLB metadata 到 world-space topology graph 的适配层尚未实现，现有医院模型仅作测试 fixture。
+- `topologyTool` 提供 23 个 API（legacy 图、v2 图与路线）；R1 已落地版本化 topology sidecar v1 到 world-space graph 的通用适配、可信资产证明、场景生命周期和受控 Quick Action 链路。
 
 ## SSP API
 
@@ -41,10 +41,12 @@ npm run dev            # http://localhost:5173/
 
 | 命令 | 作用 |
 |---|---|
-| `npm run dev` | 启动开发服务 |
+| `npm run dev` | 启动开发服务；不会自动刷新模型清单 |
 | `npm run typecheck` | `vue-tsc --noEmit` |
-| `npm run build` | 类型检查并执行生产构建（会先运行 `list-models`） |
-| `npm run list-models` | 扫描 `public/models/`，生成 `src/model-manifest.json` |
+| `npm run build` | 类型检查并执行生产构建；不会自动刷新模型清单 |
+| `npm run verify:r1` | 按固定顺序运行 R1 回归、边界审计、类型检查和生产构建，并核对 manifest 与 Git porcelain 前后完全一致 |
+| `npm run test:r1-local-gate` | 在临时 Git fixture 中回归 R1 本地门禁自身的成功、失败和污染检测语义 |
+| `npm run list-models` | **有意写回命令**：扫描 `public/models/` 并覆盖生成 `src/model-manifest.json` |
 | `npm run audit:templates` | 只报告模板 schema、数量和引用问题，不修改文件 |
 | `npm run phase0:generate` | 从当前 SSP 与模板事实重新生成 Capability Manifest 和 Phase 0 文档 |
 | `npm run audit:phase0` | 校验生成清单没有漂移且 SSP 方法全部完成策略分类 |
@@ -56,6 +58,8 @@ npm run dev            # http://localhost:5173/
 | `npm run audit:topology-boundary` | 检查 topology 依赖边界 |
 | `npm run compress` | 压缩 GLB |
 | `npm run validate-metadata` | 验证 GLB metadata |
+
+> **写回警告：**`npm run list-models` 会有意重建并写回 `src/model-manifest.json`。只有在用户明确要求刷新清单，且已经备份现有文件并确认预期差异后才能运行。常规 `dev`、`build` 和 `verify:r1` 都不会调用它。
 
 ## 模板
 
@@ -71,7 +75,7 @@ src/templates/ssp_templates/
 
 ## 模型与拓扑边界
 
-`public/models/<scene>/` 下的每个子目录是一个独立场景，模型通过 `src/model-manifest.json` 自动发现，路径不写死。GLB 的 `scene.extras` 保存楼层 metadata，mesh 的 `userData.renderType` 保存构件类型。
+`public/models/<scene>/` 下的每个子目录是一个独立场景；运行时从 `src/model-manifest.json` 读取模型入口，路径不写死。该清单只通过显式 `npm run list-models` 刷新，不再由 `dev` 或 `build` 隐式改写。GLB 的 `scene.extras` 保存楼层 metadata，mesh 的 `userData.renderType` 保存构件类型。
 
 `topologyTool` 是窄腰：只接收调用方显式提供的 graph、connector、blocker 数据，负责通用寻路和 Three.js 路线渲染；不解析 GLB metadata、不从示例模型推断连接关系、不调用其他 SSP controller。跨层连接必须由输入图显式提供；通用 metadata → world-space graph 适配器留在应用/模板层。
 
@@ -81,7 +85,7 @@ src/templates/ssp_templates/
 2. 新增模板必须使用 v3 声明式 schema 和 Manifest 静态映射；v2 `code` 编译器只保留为未迁移模板的隔离兼容路径。
 3. `cameraController` 使用 `useThreeScene` 注入的同一个 CameraControls 实例。
 4. 审计命令只报告；`src/ssp/**` 检查默认不修改，需要变更时必须先报告范围并取得用户对本轮的明确确认。
-5. 仓库通过多个 worktree 并行开发。不要清理、重置、移动或提交不属于当前任务的改动；提交前按精确路径核对 staged 文件。
+5. 所有研发写入使用保存的单一项目目录，由产品经理维护单一任务分支和写入队列；不要清理、重置、移动或提交不属于当前任务的改动，提交前按精确路径核对 staged 文件。
 6. `clearAllHighlights` 只允许宿主紧急恢复，AI、组合模板和补偿流程均不得调用。
 
 ## 技术栈与许可

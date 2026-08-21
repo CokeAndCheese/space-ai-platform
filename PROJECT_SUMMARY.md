@@ -1,6 +1,6 @@
 # Space AI Platform — 项目总结
 
-> 更新：2026-08-17。本文只记录当前仓库事实；具体签名以源码和 API catalog 为准。
+> 更新：2026-08-22。本文只记录当前仓库事实；产品范围、组织与研发流程以 `docs/PRODUCT_CONTEXT.md`、`docs/ORG_CHART.md` 和 `docs/DEVELOPMENT_WORKFLOW.md` 为准，具体签名以源码和 API catalog 为准。
 
 ## 规模与分层
 
@@ -15,7 +15,8 @@ src/
 ├── templates/ssp_templates/     ← 79 个 v2 兼容模板（10 个实际模块目录）
 ├── templates/v3/atomic/         ← 4 个 v3 一一映射原子模板
 ├── ai/                          ← 解析、规划、模板执行与审计
-├── composables/                 ← Three.js 场景初始化
+├── adapters/topology/           ← topology sidecar v1 到 world-space graph 适配
+├── composables/                 ← Three.js 场景初始化、可信 topology 生命周期与 Quick Action
 └── test/                        ← 沙盒和回归脚本
 ```
 
@@ -53,7 +54,7 @@ v2 审计基线：79 active、0 placeholder、4 combo（`flash-alarm`、`floor`�
 
 ## topologyTool 边界
 
-topology v2 由纯数据 graph API、约束寻路和 Three.js 路线生命周期组成，legacy 静态图 API 继续兼容。核心只接受显式 nodes/edges、connector 和 blocker 数据；不解析 GLB metadata、不遍历示例模型推断连接关系、不调用其他 controller。跨层路径必须经过输入图显式 connector 边。通用 metadata → world-space graph 适配层尚未实现，应放在应用/模板层而不是 topology 核心。
+topology v2 由纯数据 graph API、约束寻路和 Three.js 路线生命周期组成，legacy 静态图 API 继续兼容。核心只接受显式 nodes/edges、connector 和 blocker 数据；不解析 GLB metadata、不遍历示例模型推断连接关系、不调用其他 controller。跨层路径必须经过输入图显式 connector 边。R1 已在 SSP 外实现版本化 topology sidecar v1 → world-space graph 适配、AssetProof 和场景生命周期，保持核心窄腰不变。
 
 ## 已完成
 
@@ -64,14 +65,16 @@ topology v2 由纯数据 graph API、约束寻路和 Three.js 路线生命周期
 - Phase 0 Capability Manifest 与 v2 冻结审计已落地。
 - Phase 1 v3 原子 Runtime、4 个首批迁移、独立参数/返回 machine contract、ObjectRef 与有界公共结果投影已落地。
 - Sandbox 支持 Templates、Models、ssp 三个 tab。
+- R1 已完成 topology sidecar v1 适配、正式可达/无路 fixture、可信多资产场景生命周期和受控 Quick Action 模板闭环。
+- `npm run verify:r1` 已提供 dirty 基线可用的非污染本地 gate；`dev` / `build` 不再隐式写回模型清单。
 
 ## 后续阶段
 
-- 实现通用 GLB metadata 到 world-space 显式 topology graph 的适配层；不得绑定某个行业或示例模型。
+- 完成 R1 真实浏览器 P0、独立 QA、架构和产品验收；扩展更多非医院模型 fixture。
 - Phase 2 实现封闭组合 Runtime，迁移 4 个 v2 combo 与 `query-scene`，并接入 execution-local HighlightLease capability table、取消/超时/finally 释放。
 - 继续将 v2 一一映射迁移到 v3；AI 暴露默认保持 opt-in。
 - 继续完善性能观测、模型 metadata 与应用层业务组合。
 
 ## 工作区注意事项
 
-仓库使用多个 worktree 并行开发。不要执行清理、重置、移动 worktree 或无关提交；提交前按精确路径核对 staged 文件。审计命令默认只报告问题。
+项目使用单一保存工作区、轻量本地 Git 和单一任务分支写入队列，不连接 GitHub。不要执行清理、重置或无关提交；`src/model-manifest.json` 的用户修改必须始终排除，提交前按精确路径核对 staged 文件。审计命令默认只报告问题。

@@ -16,6 +16,7 @@ import type {
   TopologySceneSessionNode,
   TopologySceneSessionStatus,
 } from '../../topology'
+import type { TopologySidecarDiagnostic } from '../../adapters/topology'
 
 type TestBody = () => void | Promise<void>
 
@@ -128,11 +129,13 @@ function sessionHarness(
   status: Ref<TopologySceneSessionStatus>
   graphId: Ref<string | null>
   nodes: Ref<readonly TopologySceneSessionNode[]>
+  diagnostic: Ref<TopologySidecarDiagnostic | null>
 } {
   return {
     status: ref<TopologySceneSessionStatus>('ready'),
     graphId: ref<string | null>(graphIdValue),
     nodes: ref<readonly TopologySceneSessionNode[]>(nodes(layerId)),
+    diagnostic: ref<TopologySidecarDiagnostic | null>(null),
   }
 }
 
@@ -290,7 +293,7 @@ const tests: TestCase[] = [
         options: {
           route: routeFixture(),
           visible: true,
-          style: { color: '#FF5A36', width: 0.16, opacity: 0.95, depthTest: true },
+          style: { color: '#FF5A36', width: 0.16, opacity: 0.95, depthTest: false },
           flow: { active: true, speed: 2, spacing: 1.4, color: '#FFF176', size: 0.14 },
         },
       }, 'renderRoute params')
@@ -317,6 +320,51 @@ const tests: TestCase[] = [
       await controller.execute()
       equal(harness.calls.length, 0, 'empty selection runtime calls')
       equal(controller.canExecute.value, false, 'empty selection execute gate')
+      scope.stop()
+    },
+  },
+  {
+    name: 'session diagnostics expose only structured code and phase in unavailable UI',
+    run: () => {
+      const harness = runtimeHarness(() => {
+        throw new Error('runtime must not be called')
+      })
+      const session = sessionHarness()
+      const { scope, controller } = mountController(session, harness.runtime)
+      session.diagnostic.value = {
+        code: 'SIDECAR_NOT_FOUND',
+        phase: 'DISCOVER',
+        message: 'raw discovery detail must stay private',
+        path: '/private/path',
+        sidecarUri: 'https://space.test/private.topology.v1.json?token=secret',
+        assetId: null,
+        entityId: null,
+        details: { authorization: 'secret' },
+      }
+      session.status.value = 'unavailable'
+      equal(
+        controller.statusMessage.value,
+        '当前场景没有可用拓扑（SIDECAR_NOT_FOUND / DISCOVER）。',
+        'safe unavailable diagnostic',
+      )
+      assert(
+        !controller.statusMessage.value.includes('private') &&
+          !controller.statusMessage.value.includes('secret'),
+        'raw diagnostic fields must not reach unavailable UI',
+      )
+
+      session.diagnostic.value = {
+        ...session.diagnostic.value,
+        code: 'SIDECAR_JSON_INVALID',
+        phase: 'PARSE',
+      }
+      session.status.value = 'error'
+      equal(
+        controller.statusMessage.value,
+        '拓扑会话不可用（SIDECAR_JSON_INVALID / PARSE）。',
+        'safe error diagnostic',
+      )
+      equal(harness.calls.length, 0, 'diagnostic projection runtime calls')
       scope.stop()
     },
   },

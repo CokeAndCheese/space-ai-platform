@@ -18,7 +18,7 @@ const ROUTE_STYLE = Object.freeze({
   color: '#FF5A36',
   width: 0.16,
   opacity: 0.95,
-  depthTest: true,
+  depthTest: false,
 })
 
 const ROUTE_FLOW = Object.freeze({

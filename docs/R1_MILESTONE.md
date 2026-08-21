@@ -51,7 +51,7 @@ R1 只有同时满足以下条件才可提交用户验收：
 | 2 | Three.js 场景接入与路线生命周期 | `前端工程师-Three.js体验` | AssetProof、原子建图、场景集成、交互与资源回收 | 已完成 |
 | 3 | 受控模板 / Quick Action 链路 | `AI工程师-Template Runtime` | Registry 模板与触发闭环 | 已完成 |
 | 4 | 非污染构建与本地验收入口 | `平台工程师-后端与DevOps` | 本地 gate、构建状态保护与运行说明 | 已完成 |
-| 5 | 浏览器 P0、回归与安全验收 | `QA工程师-质量与安全` | 独立报告、缺陷结论、发布建议 | 待开始 |
+| 5 | 浏览器 P0、回归与安全验收 | `QA工程师-质量与安全` | 独立报告、缺陷结论、发布建议 | 已完成 |
 | 6 | 架构复核与产品验收 | `技术负责人-架构与边界`、`space AI platform产品经理-项目总控` | 边界结论、范围核对、里程碑汇报 | 待开始 |
 
 ### WP2 检查点（2026-08-22）
@@ -79,6 +79,15 @@ R1 只有同时满足以下条件才可提交用户验收：
 - 门禁自身的临时 fixture 测试已覆盖 package wiring、稳定 dirty 基线、真实退出码与 fail-fast、manifest 漂移不恢复、Git porcelain 漂移。
 - `npm run verify:r1` 已按固定顺序通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 19/19、三组边界审计、类型检查和 Vite 生产构建；manifest 前后 SHA-256 均为 `2ed654ea23f091008e8bd91f2996077c938026ade8183dea972205997bea9fbc`，Git porcelain 前后原始 Buffer 摘要相同。
 - WP4 只关闭非污染本地构建与自动化验收入口；真实浏览器 P0、构建大 chunk 警告、独立 QA 和架构/产品验收仍由 WP5 / WP6 关闭。
+
+### WP5 检查点（2026-08-22）
+
+- 浏览器 P0 报告见 [`R1_BROWSER_P0_REPORT.md`](./R1_BROWSER_P0_REPORT.md)：真实 A_1F 模型完成显式端点选择、`findPath → renderRoute → removeRoute`、路线目视与精确清除；A_2F blocker 返回 `NO_PATH` 且不产生路线。
+- A_1F 路线样式调整为受控 overlay，橙色路线和流动标记在实际医院楼层模型上保持可见；其透视墙体/楼板的取舍记录为后续体验优化，不阻断 R1。
+- A_3F 同时覆盖 sidecar 缺失和临时非法 JSON：两种情况下模型均保留，Quick Action 控件禁用，并分别投影 `SIDECAR_NOT_FOUND / DISCOVER` 与 `SIDECAR_JSON_INVALID / PARSE`；临时非法文件已移除。
+- 活动路线下 Home → Sandbox → Home、A_1F → A_2F → A_1F 快速切换均未留下陈旧路线、graph 或结果；浏览器日志无 error，仅有整院初始视角的既有相机距离钳制 warning。
+- sidecar 请求显式声明 `Accept: application/json`，避免本地服务器将缺失 JSON 回退为 HTML；UI 只显示有限枚举的诊断 code/phase，不投影 URI、path、message 或 details。
+- `npm run verify:r1` 最终通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 20/20、三组边界审计、类型检查和生产构建；用户 manifest 与 Git porcelain 前后不变。
 
 ## 6. 强制边界
 

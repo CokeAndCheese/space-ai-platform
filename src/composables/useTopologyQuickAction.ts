@@ -8,6 +8,7 @@ import {
   type WatchStopHandle,
 } from 'vue'
 import { useTopologySceneLifecycle } from '@/composables/useTopologySceneLifecycle'
+import type { TopologySidecarDiagnostic } from '@/adapters/topology'
 import {
   normalizeTopologyQuickActionError,
   topologyQuickActionFacade,
@@ -70,6 +71,7 @@ export interface TopologyQuickActionSession {
   status: Readonly<Ref<TopologySceneSessionStatus>>
   graphId: Readonly<Ref<string | null>>
   nodes: Readonly<Ref<readonly TopologySceneSessionNode[]>>
+  diagnostic: Readonly<Ref<TopologySidecarDiagnostic | null>>
 }
 
 export interface UseTopologyQuickActionReturn {
@@ -92,6 +94,10 @@ export interface UseTopologyQuickActionReturn {
 
 function isNonEmpty(value: string | null): value is string {
   return typeof value === 'string' && value.length > 0
+}
+
+function diagnosticLabel(diagnostic: TopologySidecarDiagnostic | null): string {
+  return diagnostic === null ? '' : `（${diagnostic.code} / ${diagnostic.phase}）`
 }
 
 export function createTopologyQuickAction(
@@ -154,8 +160,12 @@ export function createTopologyQuickAction(
     if (activePhase.value === 'rendering') return '正在显示路线…'
     if (activeResult.value !== null) return activeResult.value.message
     if (session.status.value === 'loading') return '拓扑会话加载中。'
-    if (session.status.value === 'unavailable') return '当前场景没有可用拓扑。'
-    if (session.status.value === 'error') return '拓扑会话不可用。'
+    if (session.status.value === 'unavailable') {
+      return `当前场景没有可用拓扑${diagnosticLabel(session.diagnostic.value)}。`
+    }
+    if (session.status.value === 'error') {
+      return `拓扑会话不可用${diagnosticLabel(session.diagnostic.value)}。`
+    }
     if (!sessionReady.value) return '请选择包含显式拓扑节点的场景。'
     if (session.nodes.value.length < 2) return '当前拓扑不足两个显式节点。'
     if (startNodeId.value.length === 0 || goalNodeId.value.length === 0) {
@@ -347,7 +357,12 @@ export function createTopologyQuickAction(
   }
 
   const stopSessionWatch: WatchStopHandle = watch(
-    () => [session.status.value, session.graphId.value, session.nodes.value] as const,
+    () => [
+      session.status.value,
+      session.graphId.value,
+      session.nodes.value,
+      session.diagnostic.value,
+    ] as const,
     () => {
       sceneEpoch++
       operationToken++

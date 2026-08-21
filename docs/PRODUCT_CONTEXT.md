@@ -48,7 +48,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - 墙体是应用/适配层生成 blocker 的依据，不是 topology 核心中的业务节点。
 - “入口→满足必经设施→目标”使用带 requirement bitmask 的精确 Dijkstra，不使用贪心。
 - factory + 闭包不妨碍模板原子化；模板依赖稳定的 `ssp.topologyTool.method()` 路径，而不是源码顶层 named export。
-- 通用“GLB 基础 metadata + 外置 topology sidecar v1”→ world-space graph 适配器及非污染本地构建门禁已在 R1 完成；剩余发布门槛是真实浏览器 P0 与独立 QA/架构验收。
+- 通用“GLB 基础 metadata + 外置 topology sidecar v1”→ world-space graph 适配器、非污染本地构建门禁和真实浏览器 P0 已在 R1 完成；剩余里程碑门槛是独立 QA、架构与产品验收。
 
 ### Objects 与模板 Runtime
 
@@ -79,11 +79,12 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - v3 Runtime 12 项、objects 13 项、topology 10 项回归。
 - R1 topology sidecar v1 适配器 18 项专项回归：封闭 schema、资源预算、加载/proof 分层、世界坐标、connector/blocker 和诊断去敏均通过。
 - R1 Three.js 场景生命周期 27 项专项回归：视觉加载与 proof 解耦、多资产部分成功、sidecar 失败优先级、同响应字节 handoff、原子 graph 补偿、A→B 失效和资源清理均通过；三视角独立复审无 P0/P1，1 个 P2 已关闭。
-- R1 Quick Action 19 项专项回归：固定 Registry 模板链路、显式端点、NO_PATH、同 graph ID 重载、清除竞态、陈旧渲染补偿、route ID 所有权和组件卸载均通过；其中 1 项使用真实 Template Runtime + SSP context 验证完整 `findPath → renderRoute → removeRoute`。三视角独立复审无 P0/P1，2 个 P2 已关闭。
+- R1 Quick Action 20 项专项回归：固定 Registry 模板链路、显式端点、NO_PATH、同 graph ID 重载、清除竞态、陈旧渲染补偿、route ID 所有权、诊断去敏和组件卸载均通过；其中 1 项使用真实 Template Runtime + SSP context 验证完整 `findPath → renderRoute → removeRoute`。三视角独立复审无 P0/P1，2 个 P2 已关闭。
 - R1 本地 gate 自测通过 package wiring、dirty 基线、fail-fast / 真实退出码、manifest 漂移不恢复和 Git porcelain 漂移检查。
-- `npm run verify:r1` 已按顺序通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 19/19、三组边界审计、TypeScript 类型检查和 Vite 生产构建。用户 manifest 前后 SHA-256 均为 `2ed654ea23f091008e8bd91f2996077c938026ade8183dea972205997bea9fbc`，完整 Git porcelain 原始 Buffer 前后相同。
+- R1 浏览器 P0 已通过 A_1F 可达路线及清除、A_2F `NO_PATH`、A_3F 缺失/非法 sidecar、页面与模型快速切换、结构化失败反馈和控制台检查；报告见 [`R1_BROWSER_P0_REPORT.md`](./R1_BROWSER_P0_REPORT.md)。
+- `npm run verify:r1` 已按顺序通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 20/20、三组边界审计、TypeScript 类型检查和 Vite 生产构建。用户 manifest 前后 SHA-256 均为 `2ed654ea23f091008e8bd91f2996077c938026ade8183dea972205997bea9fbc`，完整 Git porcelain 原始 Buffer 前后相同。
 
-未作为本轮证据：真实浏览器端到端验收、目标部署环境中的 LLM 通路、CI/CD 和生产性能。生产构建已通过，但 Vite 仍报告大于 500 kB 的 chunk 警告，尚未设定发布性能预算。
+未作为本轮证据：目标部署环境中的 LLM 通路、CI/CD、浏览器堆/GPU 指标和生产性能。生产构建已通过，但 Vite 仍报告大于 500 kB 的 chunk 警告，尚未设定发布性能预算。
 
 ## 6. 产品风险与优先级
 
@@ -96,7 +97,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 
 ### P1 — 形成可用产品
 
-1. 完成 R1 真实浏览器 P0、独立 QA 与架构验收，并扩展更多非医院模型 fixture。
+1. 完成 R1 独立 QA 与架构验收，并扩展更多非医院模型 fixture。
 2. 完成 Template Phase 2，迁移组合模板和 `query-scene`，收敛动态代码执行。
 3. 把 AI_LAYER_VERIFICATION 的关键路径转为浏览器 E2E，并完成人工验收签字。
 4. 定义模型资产的对象存储/CDN、版本、哈希、metadata 校验与回滚流程。

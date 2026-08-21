@@ -200,7 +200,12 @@ function response(options: {
 }
 
 interface HarnessBehavior {
-  fetch: (url: string, init: { signal: AbortSignal; credentials: 'same-origin'; redirect: 'error' }) => Promise<TopologyFetchResponse>
+  fetch: (url: string, init: {
+    signal: AbortSignal
+    credentials: 'same-origin'
+    redirect: 'error'
+    headers?: Readonly<Record<string, string>>
+  }) => Promise<TopologyFetchResponse>
   digestSha256: (bytes: ArrayBuffer) => Promise<string>
   resolveLoaderUrl: (url: string) => string
   loadFloor: (url: string) => Promise<TopologyFloorInfo>
@@ -237,6 +242,7 @@ function createHarness(options: {
     credentials: string
     redirect: string
     signal: AbortSignal
+    headers?: Readonly<Record<string, string>>
   }> = []
   const digestInputs: ArrayBuffer[] = []
   const cacheCaptures = new Map<string, unknown>()
@@ -697,6 +703,10 @@ const tests: TestCase[] = [
       equal(result.kind, 'loaded', '404 model result')
       equal(harness.lifecycle.snapshot.status, 'unavailable', '404 topology state')
       equal(harness.lifecycle.snapshot.diagnostic?.code, 'SIDECAR_NOT_FOUND', '404 diagnostic')
+      const sidecarCall = harness.fetchCalls.find((call) => call.url.endsWith('.topology.v1.json'))
+      const modelCall = harness.fetchCalls.find((call) => call.url.endsWith('.glb'))
+      equal(sidecarCall?.headers?.Accept, 'application/json', 'sidecar JSON accept header')
+      equal(modelCall?.headers, undefined, 'GLB request headers')
       assert(Object.isFrozen(harness.lifecycle.snapshot.diagnostic), 'session diagnostic must be frozen')
       assert(Object.isFrozen(harness.lifecycle.snapshot.diagnostic?.details), 'diagnostic details must be frozen')
       equal(harness.graphInputs.length, 0, '404 graph commits')

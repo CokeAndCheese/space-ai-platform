@@ -78,6 +78,7 @@ export interface TopologySceneLifecyclePorts {
       signal: AbortSignal
       credentials: 'same-origin'
       redirect: 'error'
+      headers?: Readonly<Record<string, string>>
     },
   ): Promise<TopologyFetchResponse>
   digestSha256(bytes: ArrayBuffer): Promise<string>
@@ -1429,6 +1430,7 @@ export class TopologySceneLifecycle {
         signal: ticket.controller.signal,
         credentials: 'same-origin',
         redirect: 'error',
+        headers: { Accept: 'application/json' },
       })
       this.assertTicketCurrent(ticket)
       if (response.status === 404 && !response.redirected) {

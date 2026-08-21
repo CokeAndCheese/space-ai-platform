@@ -1,0 +1,134 @@
+{
+  "schema": "space-ai-platform/topology-sidecar",
+  "schemaVersion": 1,
+  "revision": "r1-p0-a2f-topology-2026-08-21.1",
+  "graphId": "scene/a2f/explicit-blocked-route",
+  "coordinateSpace": "ASSET_LOCAL",
+  "unit": "meter",
+  "upAxis": "Y",
+  "assets": [
+    {
+      "assetId": "scene/a2f/asset",
+      "uri": "./A_2F.glb",
+      "digest": {
+        "algorithm": "SHA-256",
+        "value": "cd1c5d5625d3ba585b4e4df4059c84f900aa4aee19bbfabfba371520ae78ea7e"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "id": "scene/a2f/layer/base",
+      "label": "Topology layer",
+      "order": 0
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene/a2f/node/start",
+      "layerId": "scene/a2f/layer/base",
+      "assetId": "scene/a2f/asset",
+      "position": {
+        "x": 60,
+        "y": 3.55,
+        "z": 3
+      },
+      "label": "Start",
+      "kind": "ENDPOINT"
+    },
+    {
+      "id": "scene/a2f/node/junction",
+      "layerId": "scene/a2f/layer/base",
+      "assetId": "scene/a2f/asset",
+      "position": {
+        "x": 76,
+        "y": 3.55,
+        "z": 15
+      },
+      "label": "Junction",
+      "kind": "WAYPOINT"
+    },
+    {
+      "id": "scene/a2f/node/goal",
+      "layerId": "scene/a2f/layer/base",
+      "assetId": "scene/a2f/asset",
+      "position": {
+        "x": 96,
+        "y": 3.55,
+        "z": 30
+      },
+      "label": "Goal",
+      "kind": "ENDPOINT"
+    }
+  ],
+  "edges": [
+    {
+      "id": "scene/a2f/edge/start-junction",
+      "source": "scene/a2f/node/start",
+      "target": "scene/a2f/node/junction",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL",
+      "path": {
+        "type": "POLYLINE",
+        "via": [
+          {
+            "assetId": "scene/a2f/asset",
+            "position": {
+              "x": 68,
+              "y": 3.55,
+              "z": 9
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene/a2f/edge/junction-goal",
+      "source": "scene/a2f/node/junction",
+      "target": "scene/a2f/node/goal",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL",
+      "path": {
+        "type": "POLYLINE",
+        "via": [
+          {
+            "assetId": "scene/a2f/asset",
+            "position": {
+              "x": 86,
+              "y": 3.55,
+              "z": 23
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "connectors": [],
+  "blockers": [
+    {
+      "id": "scene/a2f/blocker/route-cut",
+      "active": true,
+      "edgeIds": [
+        "scene/a2f/edge/junction-goal"
+      ],
+      "label": "Explicit route constraint",
+      "kind": "EXPLICIT_CONSTRAINT",
+      "tags": [
+        "explicit",
+        "deterministic"
+      ],
+      "data": {
+        "acceptanceEffect": "NO_PATH"
+      }
+    }
+  ],
+  "tags": [
+    "r1-browser-p0",
+    "explicit-graph",
+    "carrier-neutral"
+  ],
+  "data": {
+    "source": "versioned-sidecar-v1",
+    "acceptanceCase": "ACTIVE_BLOCKER_NO_PATH"
+  }
+}

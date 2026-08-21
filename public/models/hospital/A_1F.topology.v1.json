@@ -1,0 +1,149 @@
+{
+  "schema": "space-ai-platform/topology-sidecar",
+  "schemaVersion": 1,
+  "revision": "r1-p0-a1f-topology-2026-08-21.1",
+  "graphId": "scene/a1f/explicit-route",
+  "coordinateSpace": "ASSET_LOCAL",
+  "unit": "meter",
+  "upAxis": "Y",
+  "assets": [
+    {
+      "assetId": "scene/a1f/asset",
+      "uri": "./A_1F.glb",
+      "digest": {
+        "algorithm": "SHA-256",
+        "value": "3cd86b01d500c8e5c223c2391e159e08c6af3fcfca6fb9004ad5ae441a507e47"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "id": "scene/a1f/layer/base",
+      "label": "Topology layer",
+      "order": 0
+    }
+  ],
+  "nodes": [
+    {
+      "id": "scene/a1f/node/start",
+      "layerId": "scene/a1f/layer/base",
+      "assetId": "scene/a1f/asset",
+      "position": {
+        "x": 58,
+        "y": 0.25,
+        "z": 2
+      },
+      "label": "Start",
+      "kind": "ENDPOINT"
+    },
+    {
+      "id": "scene/a1f/node/turn-a",
+      "layerId": "scene/a1f/layer/base",
+      "assetId": "scene/a1f/asset",
+      "position": {
+        "x": 70,
+        "y": 0.25,
+        "z": 2
+      },
+      "label": "Waypoint A",
+      "kind": "WAYPOINT"
+    },
+    {
+      "id": "scene/a1f/node/turn-b",
+      "layerId": "scene/a1f/layer/base",
+      "assetId": "scene/a1f/asset",
+      "position": {
+        "x": 70,
+        "y": 0.25,
+        "z": 17
+      },
+      "label": "Waypoint B",
+      "kind": "WAYPOINT"
+    },
+    {
+      "id": "scene/a1f/node/goal",
+      "layerId": "scene/a1f/layer/base",
+      "assetId": "scene/a1f/asset",
+      "position": {
+        "x": 96,
+        "y": 0.25,
+        "z": 32
+      },
+      "label": "Goal",
+      "kind": "ENDPOINT"
+    }
+  ],
+  "edges": [
+    {
+      "id": "scene/a1f/edge/start-turn-a",
+      "source": "scene/a1f/node/start",
+      "target": "scene/a1f/node/turn-a",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL",
+      "path": {
+        "type": "POLYLINE",
+        "via": [
+          {
+            "assetId": "scene/a1f/asset",
+            "position": {
+              "x": 64,
+              "y": 0.25,
+              "z": 2
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene/a1f/edge/turn-a-turn-b",
+      "source": "scene/a1f/node/turn-a",
+      "target": "scene/a1f/node/turn-b",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL",
+      "path": {
+        "type": "POLYLINE",
+        "via": [
+          {
+            "assetId": "scene/a1f/asset",
+            "position": {
+              "x": 70,
+              "y": 0.25,
+              "z": 9.5
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "scene/a1f/edge/turn-b-goal",
+      "source": "scene/a1f/node/turn-b",
+      "target": "scene/a1f/node/goal",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL",
+      "path": {
+        "type": "POLYLINE",
+        "via": [
+          {
+            "assetId": "scene/a1f/asset",
+            "position": {
+              "x": 82,
+              "y": 0.25,
+              "z": 24
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "connectors": [],
+  "blockers": [],
+  "tags": [
+    "r1-browser-p0",
+    "explicit-graph",
+    "carrier-neutral"
+  ],
+  "data": {
+    "source": "versioned-sidecar-v1",
+    "acceptanceCase": "REACHABLE"
+  }
+}

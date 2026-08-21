@@ -74,6 +74,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - v3 审计：4 atomic / 4 Manifest binding / 0 issue。
 - AI/template 与 topology 依赖边界审计。
 - v3 Runtime 12 项、objects 13 项、topology 10 项回归。
+- R1 topology sidecar v1 适配器 18 项专项回归：封闭 schema、资源预算、加载/proof 分层、世界坐标、connector/blocker 和诊断去敏均通过。
 - TypeScript 类型检查。
 
 未作为本轮证据：生产构建、真实浏览器端到端验收、目标部署环境中的 LLM 通路、CI/CD 和生产性能。

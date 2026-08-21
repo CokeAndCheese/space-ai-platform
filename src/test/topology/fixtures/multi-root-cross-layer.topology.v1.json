@@ -1,0 +1,114 @@
+{
+  "schema": "space-ai-platform/topology-sidecar",
+  "schemaVersion": 1,
+  "revision": "fixture-multi-root-v1",
+  "graphId": "fixture/multi-root-cross-layer",
+  "coordinateSpace": "ASSET_LOCAL",
+  "unit": "meter",
+  "upAxis": "Y",
+  "assets": [
+    {
+      "assetId": "asset/lower-root",
+      "uri": "./lower.glb",
+      "revision": "asset-lower-r42"
+    },
+    {
+      "assetId": "asset/upper-root",
+      "uri": "../shared/upper.glb",
+      "revision": "asset-upper-r42"
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer/lower",
+      "label": "Lower layer",
+      "order": 0,
+      "elevation": 0
+    },
+    {
+      "id": "layer/upper",
+      "label": "Upper layer",
+      "order": 1,
+      "elevation": 4
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node/lower-start",
+      "layerId": "layer/lower",
+      "assetId": "asset/lower-root",
+      "position": { "x": 0, "y": 0, "z": 0 }
+    },
+    {
+      "id": "node/lower-transfer",
+      "layerId": "layer/lower",
+      "assetId": "asset/lower-root",
+      "position": { "x": 2, "y": 0, "z": 0 }
+    },
+    {
+      "id": "node/upper-transfer",
+      "layerId": "layer/upper",
+      "assetId": "asset/upper-root",
+      "position": { "x": 0, "y": 0, "z": 0 }
+    },
+    {
+      "id": "node/upper-goal",
+      "layerId": "layer/upper",
+      "assetId": "asset/upper-root",
+      "position": { "x": 0, "y": 0, "z": 2 }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge/lower-link",
+      "source": "node/lower-start",
+      "target": "node/lower-transfer",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL"
+    },
+    {
+      "id": "edge/cross-layer",
+      "source": "node/lower-transfer",
+      "target": "node/upper-transfer",
+      "relation": "CONNECTOR",
+      "direction": "BIDIRECTIONAL",
+      "mode": "TRANSFER"
+    },
+    {
+      "id": "edge/upper-link",
+      "source": "node/upper-transfer",
+      "target": "node/upper-goal",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL",
+      "path": {
+        "type": "POLYLINE",
+        "via": [
+          {
+            "assetId": "asset/upper-root",
+            "position": { "x": 0, "y": 0, "z": 1 }
+          }
+        ]
+      }
+    }
+  ],
+  "connectors": [
+    {
+      "id": "connector/between-layers",
+      "nodeIds": ["node/lower-transfer", "node/upper-transfer"],
+      "edgeIds": ["edge/cross-layer"],
+      "tags": ["explicit", "cross-layer"]
+    }
+  ],
+  "blockers": [
+    {
+      "id": "blocker/upper-inactive",
+      "active": false,
+      "edgeIds": ["edge/upper-link"]
+    }
+  ],
+  "tags": ["fixture", "multi-root"],
+  "data": {
+    "source": "sidecar-test",
+    "assetCount": 2
+  }
+}

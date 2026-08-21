@@ -70,6 +70,8 @@ sidecar 顶层必须包含：
 
 v1 reader 遇到未知 `schema` 或非 `1` 的 `schemaVersion` 必须 fail closed。v1 是封闭结构：未知结构字段视为错误；业务扩展只能进入各实体允许的 `data` 对象。改变字段语义、坐标规则、引用规则或编译规则必须产生新的 sidecar schema 版本。
 
+sidecar UTF-8 源文本不得超过 8 MiB；reader 必须在 `JSON.parse` 前完成该检查并以 `SIDECAR_LIMIT_EXCEEDED` 失败。
+
 ## 4. 顶层文档结构
 
 sidecar v1 顶层字段如下：
@@ -83,14 +85,14 @@ sidecar v1 顶层字段如下：
 | `coordinateSpace` | string | 是 | v1 固定为 `ASSET_LOCAL` |
 | `unit` | string | 是 | v1 固定为 `meter` |
 | `upAxis` | string | 是 | v1 固定为 `Y` |
-| `assets` | array | 是 | 至少一个资产绑定 |
+| `assets` | array | 是 | 1–128 个资产绑定 |
 | `layers` | array | 是 | 1–32 项 |
 | `nodes` | array | 是 | 1–2,000 项 |
 | `edges` | array | 是 | 0–5,000 项 |
-| `connectors` | array | 是 | 可以为空；所有跨层 connector 必须在此显式声明 |
-| `blockers` | array | 是 | 可以为空；所有初始 blocker 必须在此显式声明 |
-| `tags` | string[] | 否 | 不重复的非空字符串，只透传 |
-| `data` | object | 否 | JSON 值组成的业务扩展，只透传，不参与推断 |
+| `connectors` | array | 是 | 0–2,000 项；所有跨层 connector 必须在此显式声明 |
+| `blockers` | array | 是 | 0–5,000 项；所有初始 blocker 必须在此显式声明 |
+| `tags` | string[] | 否 | 最多 64 个不重复的非空字符串，只透传 |
+| `data` | object | 否 | 有界 JSON 值组成的业务扩展，只透传，不参与推断 |
 
 一个 sidecar v1 只编译一张 `TopologyGraphInput`。多图组合、流式分片和跨 sidecar connector 不属于 R1 v1。
 
@@ -122,7 +124,21 @@ sidecar v1 顶层字段如下：
 
 当前场景可以包含 sidecar 未引用的装饰资产；这些额外资产不参与图。sidecar 引用的资产缺失、无法核验或绑定不一致时，必须拒绝整张 topology 图，不能只跳过相关节点或边。
 
-### 5.3 可信 AssetProof
+### 5.3 已加载资产与可信 AssetProof
+
+“当前选择中是否已经加载一个资产实例”和“该实例的内容是否具备可信证明”是两个独立事实，不能由同一个可选 proof 隐式推断。R1 编译上下文必须分别提供：
+
+| 结构 | 必填字段 | 含义 |
+|---|---|---|
+| `TopologyLoadedAsset` | `canonicalUri`、`root`、`selectionGeneration` | 当前选择中实际挂入 scene 的资产实例，不表达内容可信性 |
+| `TopologyAssetProof` | `canonicalUri`、`root`、`selectionGeneration`、`provenance` 及 digest/revision | 对同一 loaded asset 的内容强绑定证明 |
+
+适配器必须先根据 `loadedAssets` 判断加载完整性，再根据 `assetProofs` 验证可信绑定：
+
+- 没有恰好一个对应 loaded instance：`SIDECAR_ASSET_NOT_LOADED`。
+- 多 GLB sidecar 只加载了部分必需资产：`SIDECAR_PARTIAL_SCENE`。
+- loaded instance 存在但没有可信 proof：`SIDECAR_ASSET_BINDING_UNVERIFIABLE`。
+- URI、root、generation、digest 或 revision 与 proof 不一致：`SIDECAR_ASSET_BINDING_MISMATCH`。
 
 `uri + root` 只能证明“当前有一个对象声称来自该 URL”，不能单独证明 root 来自 sidecar digest/revision 对应的确切 GLB 内容。R1 集成层必须在 SSP 外为每个已加载 root 提供可信 `AssetProof`，至少包含：
 
@@ -180,9 +196,9 @@ worldPoint = assetRoot.matrixWorld × localPoint
 
 ### 7.1 通用 ID 与扩展数据
 
-所有 ID 必须在 trim 后非空且不超过 160 字符。`assetId`、layer ID、node ID、edge ID、connector ID、blocker ID 分别在各自命名空间内唯一；建议使用 `scene/type/name` 形式避免 fixture 间碰撞。
+除资产 URI 和 `data` 内字符串外，所有 sidecar 字符串必须在 trim 后非空且不超过 160 字符。资产 URI 最长 4,096 字符。`assetId`、layer ID、node ID、edge ID、connector ID、blocker ID 分别在各自命名空间内唯一；建议使用 `scene/type/name` 形式避免 fixture 间碰撞。
 
-所有会直接进入 `TopologyGraphInput` 的可选字符串，包括 `label`、`kind`、`subtype`、`mode` 和每个 tag，也必须在 trim 后非空且不超过 160 字符。所有 tag 数组必须在 trim 后无重复项。违反这些规则必须在 commit 前返回 `SIDECAR_FIELD_INVALID`，不能依赖 SSP 二次拒绝。
+所有 tag 数组最多 64 项，trim 后不得重复。每个 `data` 字段最多 16 层容器深度、4,096 个累计 JSON 节点、单个数组或对象最多 1,024 个成员；字符串值和对象键最长 4,096 字符。违反容量规则必须在 commit 前返回 `SIDECAR_LIMIT_EXCEEDED`，不能依赖 SSP 二次拒绝或调用栈溢出。
 
 稳定 ID 必须在不改变实体身份的资产重导出后保持不变。不得把 GLB 数组索引作为稳定 ID，也不得单独依赖由数组索引派生的 `findId`。如果使用 GLB `sid` 做来源锚点，生产者必须保证其跨文件唯一、跨修订稳定且可验证；`sid` 只能验证身份，不能替代显式 node、edge、connector 或 blocker。
 
@@ -261,6 +277,8 @@ sidecar node 不直接声明 `connectorId`。connector 身份只由 `connectors[
 
 connector 不自动生成边。所有端点对必须已经在 `edges[]` 中以明确的 source/target、方向和几何声明。
 
+所有 connector 的 `nodeIds` 与 `edgeIds` 合计不得超过 20,000 个引用。
+
 编译器必须验证：
 
 1. 端点跨 layer 的 edge 必须为 `CONNECTOR`，且必须被恰好一个 connector 的 `edgeIds` 引用。
@@ -287,6 +305,8 @@ connector 不自动生成边。所有端点对必须已经在 `edges[]` 中以�
 编译器按 edge 收集所有 `active: true` 的 blocker ID，排序去重后写入该 edge 的 `initialState.blockerIds`。`active: false` 的 blocker 仍需通过引用校验，但不进入初始 blockerIds。
 
 blocker 只能显式影响 `edgeIds` 指定的边。不得根据墙体、门、距离、名称、`renderType`、`kind` 或其他行业语义自动创建或扩散 blocker。
+
+所有 blocker 的 `edgeIds` 合计不得超过 20,000 个引用；同一 edge 初始最多由 64 个 active blocker 阻断。
 
 ## 8. 编译到 `TopologyGraphInput`
 
@@ -325,12 +345,16 @@ blocker 只能显式影响 `edgeIds` 指定的边。不得根据墙体、门、�
 
 sidecar v1 编译器必须在 commit 前检查至少以下当前限制：
 
+- UTF-8 sidecar 源文本最多 8 MiB。
+- 一张图最多绑定 128 个 assets、2,000 个 connectors、5,000 个 blockers。
 - 一张图最多 32 layers。
 - 一张图最多 2,000 nodes。
 - 一张图最多 5,000 edges。
 - 每条 edge 最多 64 个 via points。
 - 一张图最多 20,000 segments。
 - 每个 ID 最长 160 字符。
+- 每个 tags 数组最多 64 项；connector/blocker 引用总量各最多 20,000；每条 edge 最多 64 个 active blockers。
+- 每个 `data` 字段最多 16 层、4,096 个 JSON 节点、单容器 1,024 个成员和 4,096 字符的值/键。
 - 相邻折线点距离必须大于 `1e-6`。
 
 这些是 R1 编译目标的当前限制，不等于永久产品上限。未来 SSP 契约变化时应通过新的适配器兼容审查处理，不能静默放宽 sidecar v1 reader。

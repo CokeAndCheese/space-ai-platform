@@ -1,0 +1,121 @@
+{
+  "schema": "space-ai-platform/topology-sidecar",
+  "schemaVersion": 1,
+  "revision": "fixture-rotated-v1",
+  "graphId": "fixture/rotated-single-root",
+  "coordinateSpace": "ASSET_LOCAL",
+  "unit": "meter",
+  "upAxis": "Y",
+  "assets": [
+    {
+      "assetId": "asset/rotated-root",
+      "uri": "./rotated-single-root.glb",
+      "digest": {
+        "algorithm": "SHA-256",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer/base",
+      "label": "Base layer",
+      "order": 0,
+      "elevation": 0,
+      "tags": ["fixture", "single-root"]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node/start",
+      "layerId": "layer/base",
+      "assetId": "asset/rotated-root",
+      "position": { "x": 0, "y": 0, "z": 0 },
+      "kind": "ORIGIN"
+    },
+    {
+      "id": "node/junction",
+      "layerId": "layer/base",
+      "assetId": "asset/rotated-root",
+      "position": { "x": 1, "y": 0, "z": 0 },
+      "kind": "WAYPOINT"
+    },
+    {
+      "id": "node/detour",
+      "layerId": "layer/base",
+      "assetId": "asset/rotated-root",
+      "position": { "x": 1, "y": 0, "z": 1 },
+      "kind": "WAYPOINT"
+    },
+    {
+      "id": "node/goal",
+      "layerId": "layer/base",
+      "assetId": "asset/rotated-root",
+      "position": { "x": 2, "y": 0, "z": 0 },
+      "kind": "DESTINATION"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge/entry",
+      "source": "node/start",
+      "target": "node/junction",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL",
+      "path": {
+        "type": "POLYLINE",
+        "via": [
+          {
+            "assetId": "asset/rotated-root",
+            "position": { "x": 0.5, "y": 0, "z": 0.5 }
+          }
+        ]
+      }
+    },
+    {
+      "id": "edge/direct",
+      "source": "node/junction",
+      "target": "node/goal",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL"
+    },
+    {
+      "id": "edge/detour-out",
+      "source": "node/junction",
+      "target": "node/detour",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL"
+    },
+    {
+      "id": "edge/detour-in",
+      "source": "node/detour",
+      "target": "node/goal",
+      "relation": "LINK",
+      "direction": "BIDIRECTIONAL"
+    }
+  ],
+  "connectors": [],
+  "blockers": [
+    {
+      "id": "blocker/zeta",
+      "active": true,
+      "edgeIds": ["edge/direct"],
+      "kind": "EXPLICIT_CONSTRAINT"
+    },
+    {
+      "id": "blocker/alpha",
+      "active": true,
+      "edgeIds": ["edge/direct"]
+    },
+    {
+      "id": "blocker/inactive",
+      "active": false,
+      "edgeIds": ["edge/entry"]
+    }
+  ],
+  "tags": ["fixture", "world-transform"],
+  "data": {
+    "source": "sidecar-test",
+    "nested": { "preserved": true }
+  }
+}

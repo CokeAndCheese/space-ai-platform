@@ -25,6 +25,7 @@
     "test:templates-v3": "node scripts/test-template-v3.mjs",
     "test:objects": "node scripts/test-objects.mjs",
     "test:topology": "node scripts/test-topology.mjs",
+    "test:topology-sidecar": "node scripts/test-topology-sidecar.mjs",
     "audit:topology-boundary": "node scripts/audit-topology-boundary.mjs"
   },
   "dependencies": {

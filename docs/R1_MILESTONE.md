@@ -8,11 +8,11 @@
 
 ## 1. 产品目标
 
-让符合公开元数据契约的 GLB 场景，不依赖医院项目硬编码，即可生成 Three.js 世界坐标中的通用拓扑图；用户通过 Quick Action 或受控 AI 模板触发寻路后，可以在 3D 场景中看到并管理路线。该链路必须能够在本地重复构建和验收，且不得污染用户已有的 `src/model-manifest.json` 修改。
+让符合公开 GLB 基础元数据与配套 topology sidecar 契约的场景，不依赖医院项目硬编码，即可生成 Three.js 世界坐标中的通用拓扑图；用户通过 Quick Action 或受控 AI 模板触发寻路后，可以在 3D 场景中看到并管理路线。该链路必须能够在本地重复构建和验收，且不得污染用户已有的 `src/model-manifest.json` 修改。
 
 ## 2. R1 范围
 
-1. 定义并实现通用 GLB metadata → world-space topology graph 适配器。
+1. 定义并实现通用“GLB 基础 metadata + 外置 topology sidecar v1”→ world-space topology graph 适配器。R1 契约见 [`R1_TOPOLOGY_SIDECAR_V1.md`](./R1_TOPOLOGY_SIDECAR_V1.md)。
 2. 明确 node、edge、connector、blocker 的输入责任和错误报告；Topology 核心继续只消费显式通用图数据。
 3. 将适配结果接入现有 Three.js / SSP context，并完成路线渲染与生命周期回收。
 4. 通过 Quick Action 或 Registry 明确开放的模板触发至少一条完整寻路链路；AI 不得直接调用 SSP。
@@ -31,7 +31,7 @@
 
 R1 只有同时满足以下条件才可提交用户验收：
 
-- 至少两个相互独立的模型/fixture 证明适配器不是医院单场景硬编码。
+- 至少两个相互独立的模型/sidecar fixture 证明适配器不是医院单场景硬编码。
 - 输出节点、边、跨层 connector 和 blocker 均为显式、可校验的通用数据；世界坐标变换正确。
 - 有路径、无路径、非法 metadata、跨层和资源清理场景均有自动化证据。
 - Quick Action 或受控模板能够完成“触发 → 规划 → Topology → Three.js 路线显示”的闭环。
@@ -46,8 +46,8 @@ R1 只有同时满足以下条件才可提交用户验收：
 
 | 顺序 | 工作包 | 负责人 | 主要交付 | 状态 |
 |---|---|---|---|---|
-| 0 | R1 合同、接口边界与验收矩阵 | `space AI platform产品经理-项目总控`、`技术负责人-架构与边界`、`QA工程师-质量与安全` | 本合同、接口设计、测试矩阵 | 进行中 |
-| 1 | 通用 metadata → graph 适配器与契约测试 | `空间数据工程师-Topology适配` | 适配器、fixture、错误模型、单元/契约测试 | 待开始 |
+| 0 | R1 合同、接口边界与验收矩阵 | `space AI platform产品经理-项目总控`、`技术负责人-架构与边界`、`QA工程师-质量与安全` | 本合同、sidecar v1 契约、测试矩阵 | 已完成 |
+| 1 | 通用 sidecar → graph 适配器与契约测试 | `空间数据工程师-Topology适配` | 适配器、fixture、错误模型、单元/契约测试 | 进行中 |
 | 2 | Three.js 场景接入与路线生命周期 | `前端工程师-Three.js体验` | 场景集成、交互与资源回收 | 待开始 |
 | 3 | 受控模板 / Quick Action 链路 | `AI工程师-Template Runtime` | Registry 模板与触发闭环 | 待开始 |
 | 4 | 非污染构建与本地验收入口 | `平台工程师-后端与DevOps` | 本地 gate、构建状态保护与运行说明 | 待开始 |

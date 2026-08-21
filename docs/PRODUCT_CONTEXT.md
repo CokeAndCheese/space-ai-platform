@@ -131,7 +131,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 
 ## 8. 建议近期里程碑
 
-1. **R1 通用空间链路可验收版（已批准，研发中）**：完成 metadata→graph 适配器、Three.js 路线显示、受控触发链路、非污染本地构建和浏览器 P0 验收。合同见 [`R1_MILESTONE.md`](./R1_MILESTONE.md)。
+1. **R1 通用空间链路可验收版（已批准，研发中）**：采用版本化外置 topology sidecar v1，在不修改 SSP 核心的前提下完成“GLB 基础 metadata + sidecar”→ world-space graph 适配、Three.js 路线显示、受控触发链路、非污染本地构建和浏览器 P0 验收。合同见 [`R1_MILESTONE.md`](./R1_MILESTONE.md)。
 2. **后续发布基础（未批准）**：生产 LLM gateway、凭据治理、CI/CD、生产构建制品和发布级 E2E。
 3. **后续 AI Runtime 收敛（未批准）**：完成 Phase 2，迁移关键 combo/query，降低 v2 动态执行面。
 4. **后续产品化（未批准）**：项目/场景管理、权限、服务端审计、模型资产服务和生产可观测性。

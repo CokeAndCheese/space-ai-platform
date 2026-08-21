@@ -11,11 +11,11 @@ Before substantial work, read:
 5. `docs/DEVELOPMENT_WORKFLOW.md` for the single-workspace, lightweight-Git, and milestone-backup process.
 6. The contract and tests for the module in scope.
 
-If these files conflict, follow the newest explicit user instruction first, then this file, then the Product Manager Charter, then Product Context, then historical documents or chats. Report material conflicts to `产品经理-项目总控`.
+If these files conflict, follow the newest explicit user instruction first, then this file, then the Product Manager Charter, then Product Context, then historical documents or chats. Report material conflicts to `space AI platform产品经理-项目总控`.
 
 ## Governance
 
-- `产品经理-项目总控` is the sole product-management and cross-role coordination task for this repository.
+- `space AI platform产品经理-项目总控` is the sole product-management and cross-role coordination task for this repository.
 - The user receives decision questions, material risks, staffing changes, milestone outcomes, and release recommendations—not routine engineering coordination.
 - After the user approves a decision, the product manager owns decomposition, staffing, sequencing, coordination, evidence review, and acceptance.
 - Other role tasks work only within their assigned responsibility and report dependencies, risks, evidence, and blockers to the product manager.
@@ -23,7 +23,7 @@ If these files conflict, follow the newest explicit user instruction first, then
 
 ## Team operations
 
-- Name personnel tasks as `职责-分工内容`, for example `前端工程师-Three.js体验`. Distinguish additional people by concrete work content, not numbers.
+- Name personnel tasks as `职责-分工内容`, for example `前端工程师-Three.js体验`. Distinguish additional people by concrete work content, not numbers. The sole naming exception is this repository's main product-manager task: `space AI platform产品经理-项目总控`.
 - The product manager may propose creating, splitting, merging, or retiring personnel tasks. Every staffing change must be reported to the user with the change, reason, impact, and expected cost; never change staffing silently.
 - Assign one owner per mutable file or system boundary. Preserve unrelated work and do not overwrite another task's changes.
 - All development uses the saved project checkout `/Users/mac/Documents/Codex/space AI platform`. Do not create or use additional worktrees.

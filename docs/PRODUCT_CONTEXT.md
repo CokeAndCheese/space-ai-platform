@@ -8,7 +8,7 @@
 
 Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器加载 GLB/BIM 场景，SSP 将场景能力封装成稳定的 controller，Template Registry 再把受控能力提供给 AI 和业务代码。
 
-Space Model Studio 与 Space AI Platform 是两个独立产品：前者负责生产和校验标准模型，后者负责上层空间应用。两者不共享内部实现，目标上只通过共同的版本化数据契约连接。当前 Studio `3.3-semantic + embedded topology v1` 与 Platform `v3.1 + sidecar v1` 尚未对齐，禁止宣称已经直接兼容；差异、冻结规则和待决方案见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)。
+Space Model Studio 与 Space AI Platform 是两个独立产品：前者负责生产和校验标准模型，后者负责上层空间应用。两者不共享内部实现，只通过共同的版本化数据契约连接。用户已批准新增 Standard Model Package v1：Studio dual-write `3.3-semantic + embedded topology v1 + sidecar v1`，Platform dual-read 旧 v3.1 路径和新 package + 3.3 路径。双端实现与共同验证尚未完成，仍禁止宣称已经兼容；边界见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)，联合设计见 [`STANDARD_MODEL_PACKAGE_V1.md`](./STANDARD_MODEL_PACKAGE_V1.md)。
 
 当前目标用户首先是空间应用开发者和方案实施人员，而不是已经具备账户、权限、项目管理和多人协作的终端 SaaS 用户。
 
@@ -28,7 +28,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 → 场景动作、查询结果与本地审计记录
 ```
 
-当前 Studio 产物不能直接进入这条 Platform 链路并宣称契约兼容；在用户批准收敛方案且双端验证前，两边继续按各自冻结基线工作。
+当前 Studio 产物仍不能直接进入这条 Platform 链路并宣称契约兼容；在 package v1 双端实现和共同验证前，两边继续按各自冻结基线工作。
 
 应用目前提供两个主要界面：3D 场景主页和 Template/Models/SSP Sandbox。模型选择、Intent 审计和 Sandbox 状态主要保存在浏览器 `localStorage`。
 
@@ -54,6 +54,8 @@ Space Model Studio 产出符合共享契约的标准模型包
 - 双方内部源码/API 不自动成为共享契约；Platform R1 的内部验收有效，但不构成 Studio → Platform 端到端兼容证据。
 - 已发布版本不得单方静默修改。字段、枚举、ID、单位、坐标、发现或资产绑定等破坏性变化必须新版本、双端影响评估、共同 fixture/validator、迁移与回滚方案，并取得用户批准。
 - Space AI Platform 优先以 SSP 外适配层吸收应用差异，不能为单个上层需求轻易要求 Studio 改动共享契约。
+- 用户已批准 Standard Model Package v1：package manifest 显式声明 `3.3-semantic`、GLB/sidecar SHA-256、不可变 revision、资产与楼层身份；Studio 额外输出严格 sidecar v1，Platform 新增显式 3.3 reader 并保留 v3.1 reader。
+- Platform 不读取 embedded topology 作为 fallback；新 reader、摘要核验和 AssetProof 集成都位于 `src/ssp/**` 之外。共同 fixtures/validators 通过前不得宣布跨项目兼容。
 
 ### Topology
 
@@ -110,7 +112,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 2. **交付门禁仍不完整**：R1 已有本地统一 gate，但仍没有 CI workflow、浏览器 E2E、覆盖率门槛和发布级构建制品验证。
 3. **凭据治理**：本地环境存在真实 LLM 凭据配置；必须轮换并确认不会进入构建、日志或备份。
 4. **本地备份纪律**：暂停 GitHub 后，里程碑外部手动备份成为磁盘或目录级故障的主要恢复保障，必须在进入下一里程碑前确认完成。
-5. **跨项目契约未对齐**：Studio 当前为 `3.3-semantic + embedded topology v1`，Platform 当前为 `v3.1 + external sidecar v1`；两者在版本身份、必填性、载体、发现、坐标、资产绑定、connector/blocker 等方面存在阻断差异。用户批准收敛方案且双端共同验证前，必须阻断跨项目兼容发布声明。
+5. **跨项目契约尚未实现**：Standard Model Package v1 方向已批准，但 package/exporter、3.3 reader、共同 fixtures/validators 和双端端到端验证尚未交付。完成前必须阻断跨项目兼容发布声明，并防止 legacy reader 自动猜版本。
 
 ### P1 — 形成可用产品
 
@@ -161,9 +163,10 @@ Space Model Studio 产出符合共享契约的标准模型包
 ## 8. 建议近期里程碑
 
 1. **R1 通用空间链路可验收版（研发完成，待用户验收）**：采用版本化外置 topology sidecar v1，在不修改 SSP 核心的前提下完成“GLB 基础 metadata + sidecar”→ world-space graph 适配、Three.js 路线显示、受控触发链路、非污染本地构建、浏览器 P0、独立 QA 和架构验收。合同见 [`R1_MILESTONE.md`](./R1_MILESTONE.md)，终验结论见 [`R1_FINAL_ACCEPTANCE.md`](./R1_FINAL_ACCEPTANCE.md)。
-2. **后续发布基础（未批准）**：生产 LLM gateway、凭据治理、CI/CD、生产构建制品和发布级 E2E。
-3. **后续 AI Runtime 收敛（未批准）**：完成 Phase 2，迁移关键 combo/query，降低 v2 动态执行面。
-4. **后续产品化（未批准）**：项目/场景管理、权限、服务端审计、模型资产服务和生产可观测性。
+2. **R2 Standard Model Package v1（方案已批准，联合设计已确认）**：下一门禁为共同机器 schema、diagnostics 与 fixture SHA index，随后执行 Studio exporter/producer validator → Platform package/3.3 reader → 双端交叉验证与浏览器验收。R1 关闭和手动备份完成前不启动高风险实现。
+3. **后续发布基础（未批准）**：生产 LLM gateway、凭据治理、CI/CD、生产构建制品和发布级 E2E。
+4. **后续 AI Runtime 收敛（未批准）**：完成 Phase 2，迁移关键 combo/query，降低 v2 动态执行面。
+5. **后续产品化（未批准）**：项目/场景管理、权限、服务端审计、模型资产服务和生产可观测性。
 
 ## 9. 各角色共同约束
 

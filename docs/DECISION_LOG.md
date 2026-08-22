@@ -87,6 +87,20 @@
 - **记录**：完整边界与流程见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)。
 - **待决事项**：选择冻结隔离、新增标准模型包契约，或由 Platform 新增独立 3.3/embedded adapter；在用户决定前双方维持现有基线。
 
+## 2026-08-22 — 批准方案 B：建立 Standard Model Package v1
+
+- **状态**：有效。
+- **背景**：Studio `3.3-semantic + embedded topology v1` 与 Platform `v3.1 + sidecar v1` 无法直接互操作，但两个产品必须通过同一套版本化数据契约连接。
+- **决策**：用户批准方案 B，新增独立 `space-model-package` schema v1。Studio 保留 embedded topology 并额外输出严格 Platform sidecar v1；Platform 保留旧 v3.1 reader，并新增 package v1 + `3.3-semantic` 的显式 reader/validator。
+- **冻结边界**：不就地修改 Metadata v3.1、`3.3-semantic`、Studio embedded topology v1 或 Platform sidecar v1；Platform 不读取 embedded topology 作为 fallback，不修改 `src/ssp/**`。
+- **交付门禁**：共同 JSON contract、golden success/failure fixtures、producer/consumer validators、兼容矩阵、迁移与回滚、双端自动验证和独立 QA 全部通过前，不得声明跨项目兼容。
+- **执行**：两个项目总控直接协同；Studio 负责 package/exporter/producer validation，Platform 负责 package reader、3.3 adapter、AssetProof/sidecar 集成与 consumer validation。
+- **人员影响**：无新增或撤销编制；两端现有技术负责人、模型/空间数据工程师和 QA 承担联合工作。
+- **实施顺序**：Platform R1 完成用户关闭和手动备份前，只固化联合设计，不启动新的高风险实现写入。
+- **记录**：联合设计基线见 [`STANDARD_MODEL_PACKAGE_V1.md`](./STANDARD_MODEL_PACKAGE_V1.md)。
+- **设计结果**：两个项目总控已完成九项逐条确认，当前无剩余契约设计冲突；下一门禁是共同机器 schema、diagnostic envelope 与同字节 fixture SHA-256 index。
+- **替换关系**：解决上一条决策中的“待决事项”；长期产品分离与变更门禁继续有效。
+
 
 
 

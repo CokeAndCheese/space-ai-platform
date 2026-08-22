@@ -3,12 +3,12 @@
 ## 决策记录
 
 - 生效日期：`2026-08-22`
-- 状态：产品分离与契约治理原则已批准；具体契约收敛方案待用户决策
+- 状态：产品分离、契约治理和方案 B 已批准；双端设计基线已确认，机器 schema/fixtures/validators 与实现尚未开始
 - 生产方：Space Model Studio
 - 消费方：Space AI Platform
 - Studio 当前实现基线：Metadata `3.3-semantic`；GLB 内嵌 `scene.extras.sspTopology` schema v1
 - Platform 当前实现基线：GLB Metadata v3.1；外置 `space-ai-platform/topology-sidecar` schema v1
-- 当前兼容结论：**未对齐，不得声明为可直接互操作的同一机器契约**
+- 当前兼容结论：**迁移方向已确定，但双端实现与共同验证未完成，仍不得声明为可直接互操作**
 
 本记录只固化长期产品边界、当前事实和变更门禁，不修改任何现有字段、枚举、坐标、ID、发现或绑定语义。
 
@@ -60,9 +60,9 @@ Space AI Platform
 | blocker | edge `initialState.blockerIds` | 顶层 `blockers[]` 是唯一真源 | 不兼容 |
 | 容量与稳定性 | embedded validator 有图结构、ID 和几何门禁 | sidecar 另有文本、实体、字符串和 JSON 深度上限 | 约束集合不同 |
 
-## 4. 当前发布冻结
+## 4. 方案 B 实施期间的发布冻结
 
-在用户批准契约收敛方案前：
+在 Standard Model Package v1 双端验收前：
 
 1. Studio 继续按 `3.3-semantic + embedded sspTopology v1` 实现和验证自身发布物。
 2. Platform 继续按 `v3.1 + topology sidecar v1` fail closed。
@@ -85,36 +85,24 @@ Space AI Platform
 7. 获得用户批准后，双方在各自仓库实现并交叉验证。
 8. 两端尚未同步实现和通过验证前，不宣布新版本可交付。
 
-## 6. 待用户决策的迁移方案
+## 6. 已批准的迁移方案
 
-### 方案 A：冻结隔离
+### 方案 B：新增 Standard Model Package v1
 
-Studio 保持 `3.3-semantic + embedded v1`，Platform 保持 `v3.1 + sidecar v1`，不做跨端投产。
+用户于 2026-08-22 批准方案 B。联合设计基线见 [`STANDARD_MODEL_PACKAGE_V1.md`](./STANDARD_MODEL_PACKAGE_V1.md)。实施边界为：
 
-- 优点：零静默变更，风险最低。
-- 缺点：违背“两个产品由同一数据契约连接”的目标状态，只能作为临时冻结。
+- 新增独立 `space-model-package` schema v1，以 manifest 显式声明 Metadata `3.3-semantic`、GLB/sidecar SHA-256、不可变 revision、资产与楼层身份。
+- Studio 保留 embedded topology 供本端回开，并从同一 Domain topology 额外编译严格符合 Platform sidecar v1 的正式 sidecar。
+- Platform 保留旧 v3.1 reader，并新增 package v1 + 3.3 的显式 reader/validator；Platform 仍只消费 sidecar，不读取 embedded topology 作为 fallback。
+- 已冻结的四个既有契约均不就地修改；若 sidecar v1 无法承载未来语义，则另发 v2。
+- 两端先冻结共同 fixture/validator，再实现 exporter/reader；共同验证前不宣布兼容。
 
-### 方案 B：新增标准模型包契约（建议）
+2026-08-22，两个项目总控已逐项确认 package identity、manifest 字段、URI/摘要、版本与资源限制、Metadata dual-read、embedded→sidecar 映射、diagnostics、fixture 权威索引和非规范审计附件，当前没有需要用户再次裁决的设计分歧。下一门禁是共同机器 schema、diagnostic envelope 和同字节 fixture SHA-256 index。
 
-定义新的版本化 package contract，至少声明 metadata contract identity、最终 GLB SHA-256/revision、topology 载体与 schema、资产绑定和兼容矩阵。过渡期可以：
+### 未采用方案
 
-- 保留 Studio embedded topology 供 Studio 回开。
-- 由同一 Domain topology 额外编译严格符合 Platform sidecar v1 的正式 sidecar，Platform 继续只消费 sidecar。
-- Platform 新增对 Studio `3.3-semantic` 的显式 reader/validator 支持，同时保留旧 v3.1 reader，不把 3.3 伪装成 v3.1。
-- 若完全遵循现有 Platform sidecar v1，则不得改变其 schema identity、`ASSET_LOCAL`、assets/connectors/blockers 或发现语义。
-- 如果这些规则不适合 Studio，则发布 sidecar v2，而不是修改 v1。
-- metadata 明确选择新的联合版本或显式支持 3.3，不能把 3.3 标成 v3.1。
-
-优点是把“标准模型包”设为真正跨项目窄腰，可双发、回滚和逐步迁移；缺点是需要 package manifest/exporter、共享 fixtures、双端 validators 和迁移测试。
-
-### 方案 C：Platform 新增独立 3.3/embedded adapter
-
-Platform 以新的显式 reader 支持 Studio `3.3-semantic` 和 embedded topology；旧 v3.1/sidecar reader 保持不变。
-
-- 优点：Studio 输出变化较少。
-- 缺点：Platform 必须接受新的载体、资产绑定与坐标安全模型；不能复用 sidecar v1 名称掩盖差异。
-
-产品经理建议优先选择方案 B。它最符合产品分离和共享窄腰原则，也不会就地篡改任一已发布版本。
+- 方案 A「长期冻结隔离」未采用；仅作为双端实现完成前的临时运行状态。
+- 方案 C「Platform 直接消费 3.3 + embedded topology」未采用；Platform 不新增 embedded fallback。
 
 ## 7. 双方责任
 
@@ -130,4 +118,4 @@ Platform 以新的显式 reader 支持 Studio `3.3-semantic` 和 embedded topolo
 |---|---|---|---|
 | 2026-08-22 | Studio 为标准模型生产端，Platform 为上层应用消费端；产品、代码和运行时分离，只通过版本化数据契约连接 | 已批准 | 无新增编制 |
 | 2026-08-22 | 破坏性变化必须新版本；双端影响、共同 golden/validator、迁移、回滚和用户批准成为强制门禁 | 已批准 | 两端现有技术/数据岗位增加协同职责 |
-| 2026-08-22 | Studio `3.3-semantic + embedded v1` 与 Platform `v3.1 + sidecar v1` 如何收敛 | 待用户决策 | 取决于方案 |
+| 2026-08-22 | 采用方案 B，新增 Standard Model Package v1；Studio dual-write，Platform dual-read，保留四个既有契约 | 已批准 | 无新增编制；现有岗位承担联合实现 |

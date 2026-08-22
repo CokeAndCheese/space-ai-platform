@@ -33,6 +33,9 @@ If these files conflict, follow the newest explicit user instruction first, then
 
 ## Repository safeguards
 
+- Treat Space Model Studio as the independent upstream producer of standard model packages and Space AI Platform as the downstream application consumer. The projects share versioned data contracts, not implementation code.
+- Treat `docs/GLB_METADATA_SPEC.md`, adopted topology sidecar schemas, and their compatibility fixtures as cross-project public interfaces. Never change a published version's observable field, enum, ID, coordinate, discovery, or asset-binding semantics unilaterally. Breaking changes require a new version, producer/consumer impact review, synchronized fixtures and validators, migration/rollback planning, and explicit user approval.
+- The currently implemented baselines are not yet interoperable: Studio uses Metadata `3.3-semantic` plus embedded `scene.extras.sspTopology` v1, while Platform uses Metadata v3.1 plus external topology sidecar v1. Preserve both baselines and treat convergence as unresolved; never relabel, guess, copy, or silently adapt one as the other. Follow `docs/CROSS_PROJECT_DATA_CONTRACT.md`.
 - Treat the existing `src/model-manifest.json` modification as user-owned; do not overwrite, stage, or commit it unless explicitly instructed.
 - Do not modify protected `src/ssp/**` without first reporting scope, impact, and verification to the product manager and receiving authorization for that implementation.
 - Preserve the SSP–Template–AI narrow waist. AI may invoke only explicitly registered templates, never raw SSP calls.

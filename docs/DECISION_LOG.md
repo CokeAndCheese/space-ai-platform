@@ -77,6 +77,16 @@
 - **执行**：产品经理自主拆解、分工、管理本地 `codex/r1-generic-spatial-chain` 分支和单一写入队列，并组织架构复核与独立 QA。
 - **关闭条件**：用户完成里程碑验收后创建本地里程碑 commit，并在进入下一里程碑前完成外部手动备份。
 
+## 2026-08-22 — 确立 Space Model Studio 与 Space AI Platform 的共享数据契约边界
+
+- **状态**：有效。
+- **产品关系**：Space Model Studio 负责提供和校验标准模型；Space AI Platform 负责上层空间应用。两个产品相互独立，架构上只允许由用户批准的同一套版本化数据契约连接；当前实现尚未完成该收敛。
+- **当前事实**：Studio 生产基线为 Metadata `3.3-semantic` 与 GLB 内嵌 `scene.extras.sspTopology` v1；Platform 消费基线为 Metadata v3.1 与外置 topology sidecar v1。两者当前未对齐，不得声明为可直接互操作的同一机器契约。
+- **变更规则**：任何一方不得单独、静默改变已发布版本的字段、枚举、ID、坐标、发现、引用或资产绑定语义。破坏性变化必须发布新版本，完成双端影响评估、共同 fixture/validator、兼容迁移和回滚方案，并取得用户明确批准。
+- **责任**：Model Studio 对生产端符合性负责；AI Platform 对消费、校验、兼容和 SSP 外适配负责；技术负责人维护跨项目契约变更门禁，空间数据工程师维护双端 fixture 与兼容矩阵。
+- **记录**：完整边界与流程见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)。
+- **待决事项**：选择冻结隔离、新增标准模型包契约，或由 Platform 新增独立 3.3/embedded adapter；在用户决定前双方维持现有基线。
+
 
 
 

@@ -9,6 +9,8 @@
 > 维护责任：`space AI platform产品经理-项目总控`
 >
 > 技术边界：适配器位于 `src/ssp/**` 之外
+>
+> 跨项目状态：本文件是 Space AI Platform 当前外置 sidecar v1 消费契约；Space Model Studio 当前输出的是不同的 GLB 内嵌 `scene.extras.sspTopology` v1。两个 v1 尚不兼容；差异和共同变更门禁见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)
 
 ## 1. 目的与边界
 
@@ -643,3 +645,5 @@ R1 只有在矩阵中适用的自动化、浏览器 P0、架构复核和独立 Q
 R1 实现发现本契约无法在不修改 `src/ssp/**` 的情况下落地时，必须停止并向 `space AI platform产品经理-项目总控` 报告范围、影响和验证方案；不得把适配逻辑临时塞入 Topology 核心。
 
 若未来要把 sidecar 宣布为永久唯一格式、增加正式新载体或改变公共数据语义，必须作为新的长期架构决策处理。本契约在 R1 内保持可逆：输入载体与运行时 `TopologyGraphInput` 之间始终由明确适配器隔离。
+
+sidecar v1 是 Space AI Platform 已冻结的版本化输入接口，不等于 Studio 的 embedded v1。任何一方都不得通过复制、重命名或字段猜测把二者冒充为同一 schema，也不得在 `schemaVersion: 1` 下静默改变字段、枚举、坐标、发现、引用或资产绑定语义。收敛时必须执行双端影响评估、发布明确的新 schema/version 或完全遵循既有 v1、提供共同 golden fixture 和迁移/回滚方案，并取得用户对重大或破坏性变化的明确批准。

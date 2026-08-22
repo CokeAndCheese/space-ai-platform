@@ -14,6 +14,8 @@ R1「通用空间链路可验收版」已完成合同范围内研发、自动化
 
 本结论不代表生产发布。生产 LLM gateway、CI/CD、账号权限、凭据治理、性能预算和线上部署均仍在 R1 非目标或后续里程碑中。
 
+本结论也只证明 Platform 当前 `v3.1 + external topology sidecar v1` 链路。后续同步发现 Studio 当前生产基线为 `3.3-semantic + embedded sspTopology v1`，两者尚未对齐；R1 PASS 不得被解释为 Studio → Platform 跨项目兼容证明。差异见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)。
+
 ## 2. 独立签字
 
 ### QA工程师-R1终验代理
@@ -55,6 +57,7 @@ R1「通用空间链路可验收版」已完成合同范围内研发、自动化
 - 尚未建立浏览器堆/GPU、低端设备和大场景性能预算；生产构建仍有大 chunk 警告。
 - R1 没有生产 LLM 服务、CI/CD、凭据治理、账号权限或部署能力；不得将本地验收等同于生产可发布。
 - 项目暂停 GitHub，用户完成本地里程碑外部手动备份前，不应进入下一个高风险里程碑。
+- Space Model Studio 与 Platform 的当前机器契约未对齐；该差异不推翻 R1 的 Platform 内部证据，但阻断跨项目兼容发布声明，需由用户另行批准收敛方案。
 
 ## 5. 待用户决策
 

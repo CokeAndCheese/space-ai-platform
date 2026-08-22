@@ -19,6 +19,7 @@
 | `SSPTool_API_CATALOG.md` / `objectsTool_API.md` / `topologyTool_API.md` | 当前公开 API 与模块边界 |
 | `src/templates/_SCHEMA.md` | 当前模板契约、数量和 AI opt-in 规则 |
 | `GLB_METADATA_SPEC.md` / `MESH_METADATA_INJECTION_SPEC.md` / `BLENDER_METADATA_GUIDE.md` | 当前 metadata 规范与操作说明 |
+| `CROSS_PROJECT_DATA_CONTRACT.md` | Space Model Studio 生产标准模型、Space AI Platform 消费模型的跨项目契约边界与变更门禁 |
 | `AI_LAYER_VERIFICATION.md` | 下一轮手工验收清单；未勾选项不是失败结论 |
 | `AI_LAYER_DESIGN.md` | 第 0-11 节是历史方案，顶部和第 12 节以后记录当前落地差异 |
 | `STAGE2_SUMMARY.md` / `MODEL_METADATA_AUDIT_PROMPT.md` | 历史过程快照，不能替代当前 API/模板数量 |

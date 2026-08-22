@@ -10,6 +10,8 @@
 >
 > 活动分支：`codex/r1-generic-spatial-chain`
 
+> 跨项目说明：R1 验收证明 Platform 当前 v3.1 + external sidecar v1 链路；不证明 Studio 当前 3.3-semantic + embedded topology v1 与之兼容。跨项目差异与待决方案见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)。
+
 ## 1. 产品目标
 
 让符合公开 GLB 基础元数据与配套 topology sidecar 契约的场景，不依赖医院项目硬编码，即可生成 Three.js 世界坐标中的通用拓扑图；用户通过 Quick Action 或受控 AI 模板触发寻路后，可以在 3D 场景中看到并管理路线。该链路必须能够在本地重复构建和验收，且不得污染用户已有的 `src/model-manifest.json` 修改。

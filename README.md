@@ -2,6 +2,8 @@
 
 > AI 友好的 Three.js 能力平台：把 Three.js 能力封装成 ssp-shim controller，再通过结构化 JSON 模板提供给 LLM 和业务代码。
 
+Space Model Studio 是独立的标准模型生产方，本项目是上层应用消费方；目标上两者只通过版本化共享数据契约连接，不共享内部实现。当前 Studio 与 Platform 契约尚未对齐，不得宣称直接兼容；差异、冻结规则和变更门禁见 [docs/CROSS_PROJECT_DATA_CONTRACT.md](./docs/CROSS_PROJECT_DATA_CONTRACT.md)。
+
 ## 当前状态（2026-08-22）
 
 - SSP 暴露 10 个 controller，共 85 个 controller 方法；`cameraController.controls` 是一个底层实例属性，不计入方法数。
@@ -76,6 +78,8 @@ src/templates/ssp_templates/
 ## 模型与拓扑边界
 
 `public/models/<scene>/` 下的每个子目录是一个独立场景；运行时从 `src/model-manifest.json` 读取模型入口，路径不写死。该清单只通过显式 `npm run list-models` 刷新，不再由 `dev` 或 `build` 隐式改写。GLB 的 `scene.extras` 保存楼层 metadata，mesh 的 `userData.renderType` 保存构件类型。
+
+GLB Metadata v3.1 和外置 topology sidecar v1 是本项目当前消费基线；Studio 当前使用不同的 `3.3-semantic` 与 GLB 内嵌 topology v1。不得为了单个应用需求就地改变任一已发布版本的字段、枚举、ID、单位、坐标、发现或资产绑定语义；收敛必须采用明确版本并完成双端兼容评审与共同 fixture 验证。
 
 `topologyTool` 是窄腰：只接收调用方显式提供的 graph、connector、blocker 数据，负责通用寻路和 Three.js 路线渲染；不解析 GLB metadata、不从示例模型推断连接关系、不调用其他 SSP controller。跨层连接必须由输入图显式提供；通用 metadata → world-space graph 适配器留在应用/模板层。
 

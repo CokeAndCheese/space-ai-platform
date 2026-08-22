@@ -4,6 +4,8 @@
 > 配套验证脚本: `node scripts/validate-metadata.mjs`
 >
 > **Blender 操作员看这份**: [BLENDER_METADATA_GUIDE.md](./BLENDER_METADATA_GUIDE.md) — 简化版,只讲 Blender 怎么填。
+>
+> **跨项目状态**：本文件是 Space AI Platform 当前 v3.1 消费基线；Space Model Studio 当前生产基线是不同的 `3.3-semantic`。两者尚未通过共同 fixture/validator 证明兼容，不得把 3.3 静默标成 v3.1，也不得单方改变本文件语义；差异与待决方案见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)。
 
 ## v3.1 变更(2026-07,在 v3 基础上)
 

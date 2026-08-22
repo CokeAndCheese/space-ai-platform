@@ -8,12 +8,17 @@
 
 Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器加载 GLB/BIM 场景，SSP 将场景能力封装成稳定的 controller，Template Registry 再把受控能力提供给 AI 和业务代码。
 
+Space Model Studio 与 Space AI Platform 是两个独立产品：前者负责生产和校验标准模型，后者负责上层空间应用。两者不共享内部实现，目标上只通过共同的版本化数据契约连接。当前 Studio `3.3-semantic + embedded topology v1` 与 Platform `v3.1 + sidecar v1` 尚未对齐，禁止宣称已经直接兼容；差异、冻结规则和待决方案见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)。
+
 当前目标用户首先是空间应用开发者和方案实施人员，而不是已经具备账户、权限、项目管理和多人协作的终端 SaaS 用户。
 
 ## 2. 核心用户链路
 
+目标跨项目链路（契约收敛后）为：
+
 ```text
-选择场景/楼层 GLB
+Space Model Studio 产出符合共享契约的标准模型包
+→ Space AI Platform 选择场景/楼层 GLB
 → Three.js 加载并建立 SSP context
 → 用户输入自然语言或 Quick Action
 → 确定性规则 / Intent 缓存 / 同源 LLM 代理
@@ -22,6 +27,8 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 → SSP controller
 → 场景动作、查询结果与本地审计记录
 ```
+
+当前 Studio 产物不能直接进入这条 Platform 链路并宣称契约兼容；在用户批准收敛方案且双端验证前，两边继续按各自冻结基线工作。
 
 应用目前提供两个主要界面：3D 场景主页和 Template/Models/SSP Sandbox。模型选择、Intent 审计和 Sandbox 状态主要保存在浏览器 `localStorage`。
 
@@ -39,6 +46,14 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 - 当前模型清单包含医院等测试场景；医院数据只能作为 fixture，不能成为通用产品契约。
 
 ## 4. 已整合的历史决策
+
+### 跨项目数据契约
+
+- Space Model Studio 是标准模型生产方，Space AI Platform 是上层应用消费方；两个产品独立演进、独立发布，目标上只通过共同版本化数据契约连接。
+- 当前 Studio 生产基线是 Metadata `3.3-semantic` 与 GLB 内嵌 `scene.extras.sspTopology` v1；Platform 消费基线是 Metadata v3.1 与外置 topology sidecar v1。两端尚未对齐，两个名为 v1 的 topology schema 也不是同一接口。
+- 双方内部源码/API 不自动成为共享契约；Platform R1 的内部验收有效，但不构成 Studio → Platform 端到端兼容证据。
+- 已发布版本不得单方静默修改。字段、枚举、ID、单位、坐标、发现或资产绑定等破坏性变化必须新版本、双端影响评估、共同 fixture/validator、迁移与回滚方案，并取得用户批准。
+- Space AI Platform 优先以 SSP 外适配层吸收应用差异，不能为单个上层需求轻易要求 Studio 改动共享契约。
 
 ### Topology
 
@@ -95,6 +110,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 2. **交付门禁仍不完整**：R1 已有本地统一 gate，但仍没有 CI workflow、浏览器 E2E、覆盖率门槛和发布级构建制品验证。
 3. **凭据治理**：本地环境存在真实 LLM 凭据配置；必须轮换并确认不会进入构建、日志或备份。
 4. **本地备份纪律**：暂停 GitHub 后，里程碑外部手动备份成为磁盘或目录级故障的主要恢复保障，必须在进入下一里程碑前确认完成。
+5. **跨项目契约未对齐**：Studio 当前为 `3.3-semantic + embedded topology v1`，Platform 当前为 `v3.1 + external sidecar v1`；两者在版本身份、必填性、载体、发现、坐标、资产绑定、connector/blocker 等方面存在阻断差异。用户批准收敛方案且双端共同验证前，必须阻断跨项目兼容发布声明。
 
 ### P1 — 形成可用产品
 
@@ -128,7 +144,7 @@ Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器
 
 ### Topology 与空间数据工程师
 
-负责通用 metadata→world-space graph 适配器、connector/blocker 数据生产、跨模型契约和寻路数据质量。
+负责通用 metadata→world-space graph 适配器、connector/blocker 数据生产、与 Space Model Studio 协同的共享数据契约、兼容矩阵和寻路数据质量。
 
 ### 后端 / 平台 / DevOps 工程师
 

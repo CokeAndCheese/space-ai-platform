@@ -2,6 +2,8 @@
 
 > 更新：2026-08-22。本文只记录当前仓库事实；产品范围、组织与研发流程以 `docs/PRODUCT_CONTEXT.md`、`docs/ORG_CHART.md` 和 `docs/DEVELOPMENT_WORKFLOW.md` 为准，具体签名以源码和 API catalog 为准。
 
+Space Model Studio 是独立的标准模型生产方，Space AI Platform 是上层应用消费方；目标上两者只通过版本化共享数据契约连接。当前 Studio `3.3-semantic + embedded topology v1` 与 Platform `v3.1 + external sidecar v1` 尚未对齐，不得宣称直接兼容；差异和变更门禁见 [docs/CROSS_PROJECT_DATA_CONTRACT.md](./docs/CROSS_PROJECT_DATA_CONTRACT.md)。
+
 ## 规模与分层
 
 - 10 个 SSP controller，85 个 controller 方法；`cameraController.controls` 为属性。

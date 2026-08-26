@@ -31,6 +31,14 @@ Space AI Platform
 - 当前双端实现尚未对齐；用户所要求的“同一套数据契约连接”是必须完成的目标架构，不是已经满足的现状。
 - 任一方不得为快速对齐，在已发布版本名下静默改变字段、枚举、必填性、坐标、单位、ID、发现、资产绑定、connector、blocker 或摘要语义。
 
+### Studio 内部 authoring 输入不进入共享契约
+
+- 2026-08-26，用户批准 Studio V1「整体建筑导入」：Studio 可把单个 raw `Building.glb` 作为内部 authoring input，自动识别楼层、建立逐层只读源视图，并复用其既有 Metadata/SPACE/Topology 流程。
+- raw `Building.glb`、楼层识别规则和内部拆层视图都不是 Standard Model Package、Metadata `3.3-semantic`、topology sidecar 或 Platform 输入接口。
+- Platform 不扫描目录、不猜楼层、不直接读取或适配 raw `Building.glb`；本决策不产生 Platform reader、adapter、SSP、模板或 UI 研发动作。
+- Studio 内部拆层不得生成未经发布契约声明的跨层 connector/路由，也不得改变 Package v1、Metadata v3.1/`3.3-semantic`、embedded topology v1 或 sidecar v1 的既有语义。
+- Studio 最终产物仍须经过既有标准模型发布门禁；Standard Model Package v1 的共同 schema、fixtures 和 validators 未完成前，不得用本能力宣称跨项目兼容。
+
 ## 2. 当前 Metadata 差异
 
 | 契约面 | Studio `3.3-semantic` | Platform v3.1 | 兼容判断 |
@@ -119,3 +127,4 @@ Space AI Platform
 | 2026-08-22 | Studio 为标准模型生产端，Platform 为上层应用消费端；产品、代码和运行时分离，只通过版本化数据契约连接 | 已批准 | 无新增编制 |
 | 2026-08-22 | 破坏性变化必须新版本；双端影响、共同 golden/validator、迁移、回滚和用户批准成为强制门禁 | 已批准 | 两端现有技术/数据岗位增加协同职责 |
 | 2026-08-22 | 采用方案 B，新增 Standard Model Package v1；Studio dual-write，Platform dual-read，保留四个既有契约 | 已批准 | 无新增编制；现有岗位承担联合实现 |
+| 2026-08-26 | Studio V1「整体建筑导入」属于 Studio 内部 authoring input profile；raw `Building.glb` 不进入 Platform 或共享发布契约 | 已批准 | Platform 无研发动作、无人员变动 |

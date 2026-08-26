@@ -101,6 +101,16 @@
 - **设计结果**：两个项目总控已完成九项逐条确认，当前无剩余契约设计冲突；下一门禁是共同机器 schema、diagnostic envelope 与同字节 fixture SHA-256 index。
 - **替换关系**：解决上一条决策中的“待决事项”；长期产品分离与变更门禁继续有效。
 
+## 2026-08-26 — 确认 Studio V1「整体建筑导入」为生产侧内部输入能力
+
+- **状态**：有效。
+- **背景**：用户批准 Space Model Studio 从单个 raw `Building.glb` 自动识别楼层、创建 floors，并逐层复用现有 Metadata/SPACE/Topology authoring 能力。
+- **决策**：该能力是 Studio 内部 authoring input profile，不是 Standard Model Package、Metadata `3.3-semantic`、topology sidecar 或 Space AI Platform 输入。
+- **Platform 边界**：Platform 不扫描、猜测或直接读取 raw `Building.glb`，不新增 reader、adapter、SSP、模板或 UI 研发动作。
+- **契约影响**：不改变 Standard Model Package v1、Metadata v3.1/`3.3-semantic`、Studio embedded topology v1 或 Platform sidecar v1；不借内部拆层扩展跨层 connector/路由语义。
+- **交付门禁**：Studio 最终仍按既有标准模型和未来 Package 门禁发布；共同 fixtures/validators 完成前不得宣称 Package 兼容。
+- **人员影响**：Platform 无新增、撤销或职责迁移。
+
 
 
 

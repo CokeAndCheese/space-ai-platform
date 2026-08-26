@@ -1,6 +1,6 @@
 # Space AI Platform — 产品与团队上下文
 
-> 产品经理基线：2026-08-22。本文整合当前代码、权威项目文档及历史项目任务中的有效结论，作为后续各角色任务的共同产品上下文。代码契约仍以源码和 API catalog 为准。
+> 产品经理基线：2026-08-26。本文整合当前代码、权威项目文档及历史项目任务中的有效结论，作为后续各角色任务的共同产品上下文。代码契约仍以源码和 API catalog 为准。
 
 治理入口：产品经理的长期角色、权限和汇报机制见 [`PRODUCT_MANAGER_CHARTER.md`](./PRODUCT_MANAGER_CHARTER.md)；最新组织架构见 [`ORG_CHART.md`](./ORG_CHART.md)；研发与备份流程见 [`DEVELOPMENT_WORKFLOW.md`](./DEVELOPMENT_WORKFLOW.md)；用户批准的长期决策见 [`DECISION_LOG.md`](./DECISION_LOG.md)。仓库任务的强制入口规则见根目录 [`AGENTS.md`](../AGENTS.md)。
 
@@ -56,6 +56,8 @@ Space Model Studio 产出符合共享契约的标准模型包
 - Space AI Platform 优先以 SSP 外适配层吸收应用差异，不能为单个上层需求轻易要求 Studio 改动共享契约。
 - 用户已批准 Standard Model Package v1：package manifest 显式声明 `3.3-semantic`、GLB/sidecar SHA-256、不可变 revision、资产与楼层身份；Studio 额外输出严格 sidecar v1，Platform 新增显式 3.3 reader 并保留 v3.1 reader。
 - Platform 不读取 embedded topology 作为 fallback；新 reader、摘要核验和 AssetProof 集成都位于 `src/ssp/**` 之外。共同 fixtures/validators 通过前不得宣布跨项目兼容。
+- 用户已批准 Studio V1「整体建筑导入」，但它仅是 Studio 的内部 authoring input profile：单个 raw `Building.glb` 在 Studio 内识别楼层并形成逐层只读源视图，再复用 Studio 既有 Metadata/SPACE/Topology 能力。raw `Building.glb` 不是 Standard Model Package、不是 Metadata/Topology 发布契约，也不是 Platform 输入；Platform 不扫描、不猜测、不直接读取该文件，不产生研发动作或人员变动。
+- 「整体建筑导入」不得借内部拆层静默扩展跨层 connector/路由，也不改变 Package v1、Metadata v3.1/`3.3-semantic`、embedded topology v1 或 sidecar v1。Studio 仍须经过既有发布门禁输出标准模型；双端 fixtures/validators 完成前不得宣称 Package 兼容。
 
 ### Topology
 

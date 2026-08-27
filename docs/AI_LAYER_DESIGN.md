@@ -12,6 +12,7 @@
 > - 当前模板总数为 79，全部 active、0 placeholder；数量以 `npm run audit:templates` 为准。
 > - 楼层状态操作优先使用 `floorNames`；裸 `level` 多楼栋歧义必须澄清，不能猜楼栋。
 > - 2026-08-27 用户批准的 R1 收口 UX 已实现并验收：`query-scene` hide 不弹原生确认；hide/show/isolate 每次只产生一个最新的一步精确可见性撤回，恢复该次操作涉及对象的操作前状态；显式“全部显示”保留但不等同于撤回，不做多步撤回或 redo；模型切换或重载使旧撤回失效。证据见 [R1_VISIBILITY_UNDO_REPORT.md](./R1_VISIBILITY_UNDO_REPORT.md)。
+> - 自然语言“撤回”缺陷已闭环：原聊天“撤回”未前置路由而进入 LLM 并生成非法 operation；当前由确定性 host-only 路由处理。顶部按钮与聊天共用 helper，不进入 Intent/Planner/AI catalog；host UI 将相关 turns 标为 `llmVisible=false`，并与 context ring 解耦，审计语义保持一致。证据见 [R1_VISIBILITY_UNDO_REPORT.md](./R1_VISIBILITY_UNDO_REPORT.md)。
 >
 > 当前交接入口见 [HANDOFF_PROMPT.md](./HANDOFF_PROMPT.md)，AI 边界验收见
 > [AI_LAYER_VERIFICATION.md](./AI_LAYER_VERIFICATION.md)。
@@ -618,7 +619,12 @@ UI 加一个"查看审计日志"按钮,弹窗展示最近 100 条,支持重放�
 | query 完全无法理解 | UI 显示 "我没听懂, 试试: 'A 楼 1 层有哪些消防栓?'" |
 | 结果 >500 mesh | Planner 自动切到"汇总"模式 + UI 提示 |
 | hide / show / isolate 操作 | 不弹原生确认；UI 仅提供一个最新的一步精确可见性撤回；显式“全部显示”不作为撤回 |
+| 自然语言“撤回” | 先由确定性 host-only 路由处理，不调用 LLM、不生成 Intent，不进入 Planner 或 AI catalog；与顶部撤回按钮共用 helper；host turns 标为 `llmVisible=false`，不进入后续 LLM context ring；成功与无记录结果均按 host 审计语义记录 |
 | 高亮 / 闪烁持续 | 5 秒后自动清除 |
+
+### 自然语言撤回闭环（2026-08-27）
+
+聊天输入严格匹配的“撤回/撤销（上一步）”由宿主先行路由到确定性可见性撤回 helper，绕过 LLM、Intent、Planner 和 AI catalog。顶部撤回按钮复用同一 helper，因此两种入口共享单步事务和失败语义。宿主用户/助手 turns 均标记 `llmVisible=false`，不进入后续 LLM 的 context ring；成功撤回不生成伪 Intent，无记录时返回确定性反馈并按错误语义写入审计。
 
 ---
 
@@ -695,7 +701,9 @@ UI 加一个"查看审计日志"按钮,弹窗展示最近 100 条,支持重放�
 其中 `resetVisibility` 由同 ID v3 原子模板遮蔽 legacy，是显式“全部显示”全局恢复动作，
 不等同于可见性撤回；`clearAllHighlights` 是 host-only 紧急恢复动作，只能由显式宿主适配器调用，
 不进入 Intent、fallback 或 AI 目录。2026-08-27 批准的单步精确撤回覆盖 `query-scene` 的
-hide/show/isolate，且模型切换或重载后失效；实现与 R1 回归已经通过。
+hide/show/isolate，且模型切换或重载后失效；自然语言“撤回”也已由确定性 host-only 路由闭环，
+与顶部按钮共用 helper，不进入 Intent/Planner/AI catalog，host turns 标为 `llmVisible=false`；
+实现与 R1 回归已经通过。
 
 边界与注册表:
 - src/templates/catalog.ts                   # v3-first 统一目录 + AI 白名单

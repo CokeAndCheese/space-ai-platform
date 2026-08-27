@@ -18,6 +18,8 @@ import type {
 export interface ChatTurn {
   role: 'user' | 'assistant'
   content: string
+  /** Host-only UI commands stay visible in the transcript but never enter LLM context. */
+  llmVisible?: boolean
   intent?: Intent
   resultSids?: string[]
   resultCount?: number
@@ -32,6 +34,7 @@ export interface ChatTurn {
 }
 
 const MAX_TURNS = 10
+const MAX_CONTEXT_TURNS = 10
 const MAX_TURNS_TO_LLM = 5
 const FLOOR_CONTEXT_OPERATIONS = new Set(['show', 'hide', 'isolate', 'focus'])
 
@@ -48,16 +51,21 @@ type FloorContextResolution =
 
 export class ChatContext {
   turns: ChatTurn[] = []
+  private contextTurns: ChatTurn[] = []
 
   /** 添加一轮 user/assistant */
   push(turn: ChatTurn): void {
     this.turns.push(turn)
     while (this.turns.length > MAX_TURNS) this.turns.shift()
+    if (turn.llmVisible !== false) {
+      this.contextTurns.push(turn)
+      while (this.contextTurns.length > MAX_CONTEXT_TURNS) this.contextTurns.shift()
+    }
   }
 
   /** 取最后 N 轮给 LLM */
   getHistoryForLLM(): ChatTurn[] {
-    return this.turns.slice(-MAX_TURNS_TO_LLM)
+    return this.contextTurns.slice(-MAX_TURNS_TO_LLM)
   }
 
   /** 用户数量 */
@@ -67,9 +75,9 @@ export class ChatContext {
 
   /** 上一轮的 Intent (assistant) */
   get lastIntent(): Intent | null {
-    for (let i = this.turns.length - 1; i >= 0; i--) {
-      if (this.turns[i].role === 'assistant' && this.turns[i].intent) {
-        return this.turns[i].intent!
+    for (let i = this.contextTurns.length - 1; i >= 0; i--) {
+      if (this.contextTurns[i].role === 'assistant' && this.contextTurns[i].intent) {
+        return this.contextTurns[i].intent!
       }
     }
     return null
@@ -77,9 +85,9 @@ export class ChatContext {
 
   /** 上一轮的结果 sids */
   get lastResultSids(): string[] {
-    for (let i = this.turns.length - 1; i >= 0; i--) {
-      if (this.turns[i].role === 'assistant' && this.turns[i].resultSids) {
-        return this.turns[i].resultSids!
+    for (let i = this.contextTurns.length - 1; i >= 0; i--) {
+      if (this.contextTurns[i].role === 'assistant' && this.contextTurns[i].resultSids) {
+        return this.contextTurns[i].resultSids!
       }
     }
     return []
@@ -88,6 +96,7 @@ export class ChatContext {
   /** 清除所有 */
   clear(): void {
     this.turns = []
+    this.contextTurns = []
   }
 
   /**
@@ -133,8 +142,8 @@ export class ChatContext {
     }
 
     const requestedLevel = scope.levels[0]
-    for (let index = this.turns.length - 1; index >= 0; index--) {
-      const turn = this.turns[index]
+    for (let index = this.contextTurns.length - 1; index >= 0; index--) {
+      const turn = this.contextTurns[index]
       if (turn.role !== 'assistant' || turn.intent?.templateId !== 'query-scene') continue
 
       const resolution = floorContextFromTurn(turn, requestedLevel)

@@ -71,7 +71,7 @@
   "example": "return await templateRuntime.execute('query-scene', { operation: 'highlight', target: { renderType: 'WINDOW' }, visual: { color: '#4FC3F7' } });",
   "guard": [
     "hide、show、isolate 不弹原生确认；每次成功后仅保留最新的一步精确可见性撤回，撤回只恢复该次操作真实改变且仍挂载、未发生 after 冲突的对象",
-    "模型切换或重载后旧撤回失效；host-only 的 undoVisibility 不进入 Intent、Planner 或 AI catalog",
+    "模型切换或重载后旧撤回失效；host-only 的可见性撤回动作不进入 Intent、Planner 或 AI catalog",
     "无 target 时匹配当前场景内所有带 sid 的 mesh",
     "楼层计数必须显式传 entity=floor，不能通过 groupBy 推断",
     "show、hide、isolate、focus 仅指定单个 level 且匹配多个 floorName 时不得执行副作用，必须返回楼栋候选",

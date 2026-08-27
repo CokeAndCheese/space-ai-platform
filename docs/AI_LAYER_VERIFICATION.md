@@ -149,8 +149,20 @@ npm run audit:topology-boundary
 | 2.3.8 | 产生撤回入口后切换模型 | 旧撤回入口失效，不得作用于新模型 | ☐ | |
 | 2.3.9 | 产生撤回入口后重载当前模型 | 旧撤回入口失效，不得作用于重载后的场景 | ☐ | |
 | 2.3.10 | 输入 `对比 A 楼和 B 楼` | 不弹原生 confirm (compare 非可见性变更) | ☐ | |
+| 2.3.11 | A_1F 隐藏 101 个门后输入自然语言 `撤回` | 确定性 host-only 路由直接精确恢复 101 个门；不调用 LLM，不生成 Intent/Planner 记录 | ☐ | |
+| 2.3.12 | 自然语言撤回后再发送普通 LLM 查询 | 后续 LLM history 不包含撤回 user/assistant host turns；两者均为 `llmVisible=false`，不进入 context ring | ☐ | |
+| 2.3.13 | 已撤回后再次输入 `撤回` | 不调用 LLM；返回“当前没有可撤回的显示操作”的确定性反馈；审计按失败语义记录，不生成伪 Intent | ☐ | |
+| 2.3.14 | 再次隐藏 101 个门后点击顶部撤回按钮 | 按钮与聊天共用同一 helper，host churn 后仍精确恢复 101 个门，不能误用旧事务 | ☐ | |
 
 > 本节是 2026-08-27 批准的 R1 收口前 UX 修正。实现、专项自动化、A_2F/A_3F 真实浏览器核心路径、模型切换和 `npm run verify:r1` 已通过，证据见 [R1_VISIBILITY_UNDO_REPORT.md](./R1_VISIBILITY_UNDO_REPORT.md)。表格仍保留为后续完整人工回归签字清单，未逐项签字的状态不据此解释为失败。
+
+### 2.3 追加缺陷闭环证据（2026-08-27，已验证）
+
+原缺陷是聊天“撤回”未前置路由而进入 LLM，生成非法 `operation`。最终修复采用确定性 host-only 路由；聊天与顶部按钮共用 helper，撤回不进入 Intent/Planner/AI catalog，host turns 标为 `llmVisible=false` 并与 context ring 解耦，审计结果与 host-only 语义一致。
+
+- Template Runtime 相关测试：18/18 PASS。
+- A_1F 真实浏览器：隐藏 101 个门后用聊天“撤回”精确恢复 101 个；再次撤回返回无记录的确定性反馈；再次隐藏后点击顶部按钮仍精确恢复 101 个。
+- QA 三轮闭环：首轮发现 P1 泄漏与 P2 审计问题，第二轮发现 P2 churn 问题；修复后最终 GO，未遗留 P0/P1/P2。
 
 ## 2.4 Intent 缓存 (P1)
 

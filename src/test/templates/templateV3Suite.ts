@@ -1,6 +1,8 @@
 import * as THREE from 'three'
 import { ssp } from '../../ssp'
-import { fallbackParse } from '../../ai/rules/fallbackRules'
+import { fallbackParse, isVisibilityUndoQuery } from '../../ai/rules/fallbackRules'
+import { ChatContext, type ChatTurn } from '../../ai/context/chatContext'
+import { createTemplateIntent } from '../../ai/types/Intent'
 import { clearSspContext, setSspContext } from '../../ssp/core/context'
 import { templateCatalog, resolveAiTemplateId } from '../../templates/catalog'
 import { executeTemplate } from '../../templates/runtime'
@@ -636,11 +638,182 @@ const tests: TestCase[] = [
     },
   },
   {
+    name: 'visibility undo phrases use a narrow host-only route and never become an Intent',
+    run: () => {
+      for (const query of ['撤回', '撤销', '撤回上一步', '撤销 上一步', '  撤回  ']) {
+        equal(isVisibilityUndoQuery(query), true, `positive undo route: ${query}`)
+        equal(fallbackParse(query), null, `host-only undo must not become fallback Intent: ${query}`)
+      }
+      for (const query of ['请撤回', '撤回一下', '撤回刚才的隐藏', '撤回上两步', '撤回并显示']) {
+        equal(isVisibilityUndoQuery(query), false, `negative undo route: ${query}`)
+      }
+    },
+  },
+  {
+    name: 'chat store routes natural-language undo through host action without calling the LLM',
+    run: async () => {
+      const scene = new THREE.Scene()
+      const door = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      Object.assign(door.userData, { sid: 'DOOR_A_1F_CHAT_UNDO', renderType: 'DOOR' })
+      scene.add(door)
+      setSspContext({
+        scene,
+        camera: new THREE.PerspectiveCamera(),
+        renderer: {} as THREE.WebGLRenderer,
+        domElement: {} as HTMLElement,
+      })
+
+      const previousStorage = globalThis.localStorage
+      const storageData = new Map<string, string>()
+      const storage = {
+        getItem: (key: string) => storageData.get(key) ?? null,
+        setItem: (key: string, value: string) => { storageData.set(key, value) },
+        removeItem: (key: string) => { storageData.delete(key) },
+        clear: () => { storageData.clear() },
+        key: (index: number) => [...storageData.keys()][index] ?? null,
+        get length() { return storageData.size },
+      } as Storage
+      Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: storage })
+      const previousFetch = globalThis.fetch
+      let llmCalls = 0
+      const llmUserPrompts: string[] = []
+      globalThis.fetch = (async () => {
+        llmCalls += 1
+        throw new Error('LLM must not be called for host undo')
+      }) as typeof fetch
+
+      try {
+        invalidateVisibilityUndo()
+        await executeTemplate('query-scene', {
+          operation: 'hide',
+          target: { renderType: 'DOOR' },
+        })
+        equal(door.visible, false, 'fixture should be hidden before natural-language undo')
+
+        const { createPinia, setActivePinia } = await import('pinia')
+        const { useChatStore } = await import('../../stores/chat')
+        setActivePinia(createPinia())
+        const chat = useChatStore()
+        await chat.sendQuery('撤回')
+
+        equal(llmCalls, 0, 'natural-language undo must not call LLM')
+        equal(door.visible, true, 'natural-language undo restores the hidden object')
+        const undoTurn = chat.turns[chat.turns.length - 1]
+        assert(undoTurn?.role === 'assistant', 'natural-language undo appends an assistant result')
+        equal(undoTurn.llmVisible, false, 'host assistant turn is hidden from LLM history')
+        equal(undoTurn.intent, undefined, 'host-only undo assistant result has no Intent')
+        assert(undoTurn.resultMessage?.includes('精确恢复 1 个对象'), 'undo result is explicit')
+        equal(chat.turns[0]?.llmVisible, false, 'host user turn is hidden from LLM history')
+
+        await chat.sendQuery('撤销上一步')
+        equal(llmCalls, 0, 'no-record undo must not call LLM')
+        equal(chat.lastError, '当前没有可撤回的显示操作', 'no-record undo has a friendly deterministic error')
+        const noRecordTurn = chat.turns[chat.turns.length - 1]
+        equal(noRecordTurn?.resultMessage, '当前没有可撤回的显示操作', 'no-record assistant result is explicit')
+
+        const entries = JSON.parse(storageData.get('ai_template_log_v2') ?? '[]') as Array<{
+          errored: boolean
+          errorMsg?: string
+        }>
+        equal(entries[entries.length - 2]?.errored, false, 'successful host undo is not an audit error')
+        equal(entries[entries.length - 1]?.errored, true, 'rejected host undo is an audit error')
+        equal(entries[entries.length - 1]?.errorMsg, '当前没有可撤回的显示操作', 'rejected host undo audit reason')
+
+        globalThis.fetch = (async (_input, init) => {
+          llmCalls += 1
+          const body = JSON.parse(String(init?.body ?? '{}')) as {
+            messages?: Array<{ content?: unknown }>
+          }
+          llmUserPrompts.push(String(body.messages?.[1]?.content ?? ''))
+          return new Response(JSON.stringify({
+            choices: [{
+              message: {
+                content: JSON.stringify({
+                  action: 'template',
+                  templateId: 'query-scene',
+                  params: { operation: 'list', target: { renderType: 'DOOR' } },
+                }),
+              },
+            }],
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        }) as typeof fetch
+        await chat.sendQuery('列出所有门')
+        equal(llmCalls, 1, 'ordinary query still calls LLM')
+        assert(!llmUserPrompts[0]?.includes('撤回'), 'LLM history omits host undo turns')
+        assert(!llmUserPrompts[0]?.includes('精确恢复'), 'LLM history omits host assistant result')
+      } finally {
+        globalThis.fetch = previousFetch
+        if (previousStorage === undefined) Reflect.deleteProperty(globalThis, 'localStorage')
+        else Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: previousStorage })
+        invalidateVisibilityUndo()
+        clearSspContext()
+        door.geometry.dispose()
+        ;(door.material as THREE.Material).dispose()
+      }
+    },
+  },
+  {
+    name: 'chat context keeps ordinary history and inheritance through host-turn churn',
+    run: () => {
+      const context = new ChatContext()
+      const latestIntent = createTemplateIntent('query-scene', {
+        operation: 'hide',
+        scope: { buildings: ['B'], levels: [2] },
+      })
+      const ordinaryTurns: ChatTurn[] = []
+      for (let index = 0; index < 5; index++) {
+        ordinaryTurns.push(
+          { role: 'user', content: `普通查询 ${index}`, timestamp: index * 2 },
+          {
+            role: 'assistant',
+            content: `普通结果 ${index}`,
+            intent: index === 4 ? latestIntent : createTemplateIntent('query-scene', {
+              operation: 'list',
+              target: { renderType: 'DOOR' },
+            }),
+            resultSids: index === 4 ? ['DOOR_B_2F_001'] : undefined,
+            timestamp: index * 2 + 1,
+          },
+        )
+      }
+      ordinaryTurns.forEach((turn) => context.push(turn))
+      for (let index = 0; index < 12; index++) {
+        context.push({ role: 'user', content: `撤回 ${index}`, llmVisible: false, timestamp: 100 + index * 2 })
+        context.push({ role: 'assistant', content: `已撤回第 ${index} 次`, llmVisible: false, timestamp: 101 + index * 2 })
+      }
+
+      equal(context.turns.length, 10, 'UI transcript keeps its existing ring capacity')
+      equal(context.getHistoryForLLM().length, 5, 'LLM context keeps the latest five ordinary turns')
+      assert(
+        context.getHistoryForLLM().every((turn) => !turn.content.startsWith('撤回')),
+        'LLM context excludes all host turns after churn',
+      )
+      equal(context.lastIntent, latestIntent, 'lastIntent survives host-turn churn')
+      deepEqual(context.lastResultSids, ['DOOR_B_2F_001'], 'lastResultSids survive host-turn churn')
+
+      const inherited = context.applyInheritance(createTemplateIntent('query-scene', {
+        operation: 'show',
+        scope: { levels: [2] },
+      }), '也显示')
+      deepEqual(
+        (inherited.params as { scope?: { buildings?: string[]; levels?: number[] } }).scope,
+        { buildings: ['B'], levels: [2] },
+        'floor inheritance reads the ordinary context ring',
+      )
+
+      context.clear()
+      equal(context.turns.length, 0, 'clear empties the UI ring')
+      equal(context.getHistoryForLLM().length, 0, 'clear empties the context ring')
+      equal(context.lastIntent, null, 'clear empties context intent')
+    },
+  },
+  {
     name: 'unified catalog is v3-first and host emergency template is not AI-visible',
     run: () => {
       equal(templateCatalog.isV3('resetVisibility'), true, 'resetVisibility generation')
       equal(resolveAiTemplateId('resetVisibility'), 'resetVisibility', 'v3 AI id')
       equal(resolveAiTemplateId('clearAllHighlights'), null, 'host emergency AI id')
+      equal(resolveAiTemplateId('undoVisibility'), null, 'visibility undo host action AI id')
       equal(fallbackParse('__clear_highlight__'), null, 'host command must not become fallback Intent')
       equal(fallbackParse('清除高亮'), null, 'natural language must not select host emergency action')
       expectThrows(
@@ -651,6 +824,7 @@ const tests: TestCase[] = [
       const prompt = templateCatalog.toAiPromptSection()
       assert(prompt.includes('resetVisibility'), 'v3 AI prompt should include resetVisibility')
       assert(!prompt.includes('clearAllHighlights'), 'AI prompt must hide clearAllHighlights')
+      assert(!prompt.includes('undoVisibility'), 'AI prompt must hide visibility undo host action')
     },
   },
   {

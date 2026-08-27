@@ -61,6 +61,7 @@ const FLOOR_VISIBILITY_BARE_PATTERN =
   /^(?:恢复|显示|取消\s*隐藏)\s*(\d+)\s*(?:F|层|楼)(?:楼层)?$/i
 const FLOOR_COLLAPSE_PATTERN =
   /(?:收回|收起|合拢|复原)\s*(?:楼层|楼板)|楼层\s*(?:收回|收起|合拢)|取消\s*(?:炸开|展开|分层)(?:\s*(?:楼层|楼板))?/i
+const VISIBILITY_UNDO_PATTERN = /^(?:撤回|撤销)\s*(?:上一步)?$/
 
 const RULES: FallbackRule[] = [
   // ===== -1. 系统特殊 query (UI 控件走 narrow waist) =====
@@ -590,6 +591,15 @@ export function isFloorVisibilityQuery(query: string): boolean {
   return FLOOR_VISIBILITY_ALL_PATTERN.test(normalized) ||
     FLOOR_VISIBILITY_BUILDING_PATTERN.test(normalized) ||
     FLOOR_VISIBILITY_BARE_PATTERN.test(normalized)
+}
+
+/**
+ * Host-only visibility undo phrases. This intentionally matches only narrow,
+ * unambiguous commands; broad requests remain ordinary natural language and
+ * may still be handled by the model/fallback parser.
+ */
+export function isVisibilityUndoQuery(query: string): boolean {
+  return VISIBILITY_UNDO_PATTERN.test(query.trim())
 }
 
 /** 必须稳定路由到 collapse-floor，不能交给 LLM 猜模板。 */

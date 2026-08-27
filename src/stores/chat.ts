@@ -17,6 +17,7 @@ import {
   fallbackParse,
   isFloorCollapseQuery,
   isFloorVisibilityQuery,
+  isVisibilityUndoQuery,
 } from '@/ai/rules/fallbackRules'
 import { intentLogger } from '@/ai/audit/IntentLogger'
 import { reloadLLMClient as reloadLLMClientFn } from '@/ai/parser/llmClient'
@@ -78,6 +79,7 @@ export const useChatStore = defineStore('chat', () => {
   } = {}): Promise<void> {
     if (!rawQuery.trim()) return
 
+    const isHostVisibilityUndo = !opts.overrideIntent && !opts.internal && isVisibilityUndoQuery(rawQuery)
     lastError.value = null
     if (!visibilityUndoState.value.canUndo) visibilityNotice.value = null
     isStreaming.value = true
@@ -88,6 +90,7 @@ export const useChatStore = defineStore('chat', () => {
       const userTurn: ChatTurn = {
         role: 'user',
         content: rawQuery,
+        ...(isHostVisibilityUndo ? { llmVisible: false } : {}),
         timestamp: Date.now(),
       }
       chatContext.push(userTurn)
@@ -96,6 +99,35 @@ export const useChatStore = defineStore('chat', () => {
     const t0 = performance.now()
 
     try {
+      // Visibility undo is a host-only command. It must not be represented as
+      // an Intent or sent through the LLM/Planner/AI catalog. The same helper
+      // is used by the top undo button below, preserving failure semantics.
+      if (isHostVisibilityUndo) {
+        status.value = 'executing'
+        const command = await executeVisibilityUndoCommand()
+        if (!opts.internal) {
+          chatContext.push({
+            role: 'assistant',
+            content: command.message,
+            llmVisible: false,
+            resultMessage: command.message,
+            resultData: command.receipt,
+            timestamp: Date.now(),
+          })
+        }
+        intentLogger.log({
+          query: rawQuery,
+          intent: undefined,
+          rawContent: '',
+          thinking: '(确定性宿主撤回，跳过 LLM/Intent/Planner)',
+          source: 'fallback',
+          errored: command.errored,
+          ...(command.errored ? { errorMsg: command.message } : {}),
+          durationMs: performance.now() - t0,
+        })
+        return
+      }
+
       let intent: Intent
       let source: 'llm' | 'fallback' | 'mock' | 'user-edit'
       let thinking = ''
@@ -273,22 +305,12 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   async function undoLastVisibility(): Promise<void> {
-    if (isStreaming.value || !visibilityUndoState.value.canUndo) return
+    if (isStreaming.value) return
     lastError.value = null
     isStreaming.value = true
     status.value = 'executing'
     try {
-      const receipt = await executeHostTemplateAction('undoVisibility') as VisibilityUndoReceipt
-      refreshVisibilityUndoState()
-      if (!receipt.undone) {
-        visibilityNotice.value = null
-        lastError.value = visibilityUndoFailureMessage(receipt.reason)
-        return
-      }
-      visibilityNotice.value = `已撤回${visibilityOperationLabel(receipt.operation)}，精确恢复 ${receipt.changedCount} 个对象`
-    } catch (error) {
-      refreshVisibilityUndoState()
-      lastError.value = error instanceof Error ? error.message : String(error)
+      await executeVisibilityUndoCommand()
     } finally {
       status.value = 'idle'
       isStreaming.value = false
@@ -304,6 +326,33 @@ export const useChatStore = defineStore('chat', () => {
 
   function refreshVisibilityUndoState(): void {
     visibilityUndoState.value = getVisibilityUndoState()
+  }
+
+  async function executeVisibilityUndoCommand(): Promise<{
+    receipt: VisibilityUndoReceipt | null
+    message: string
+    errored: boolean
+  }> {
+    try {
+      const receipt = await executeHostTemplateAction('undoVisibility') as VisibilityUndoReceipt
+      refreshVisibilityUndoState()
+      if (!receipt.undone) {
+        visibilityNotice.value = null
+        const message = visibilityUndoFailureMessage(receipt.reason)
+        lastError.value = message
+        return { receipt, message, errored: true }
+      }
+      const message = `已撤回${visibilityOperationLabel(receipt.operation)}，精确恢复 ${receipt.changedCount} 个对象`
+      lastError.value = null
+      visibilityNotice.value = message
+      return { receipt, message, errored: false }
+    } catch (error) {
+      refreshVisibilityUndoState()
+      const message = error instanceof Error ? error.message : String(error)
+      lastError.value = message
+      visibilityNotice.value = null
+      return { receipt: null, message, errored: true }
+    }
   }
 
   /** 应用层调用 — fit scene 到当前加载的 meshes.

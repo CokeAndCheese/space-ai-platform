@@ -4,7 +4,15 @@ import { fallbackParse } from '../../ai/rules/fallbackRules'
 import { clearSspContext, setSspContext } from '../../ssp/core/context'
 import { templateCatalog, resolveAiTemplateId } from '../../templates/catalog'
 import { executeTemplate } from '../../templates/runtime'
-import { executeHostTemplateAction } from '../../templates/hostActions'
+import {
+  executeHostTemplateAction,
+  getVisibilityUndoState,
+  invalidateVisibilityUndo,
+} from '../../templates/hostActions'
+import {
+  VisibilityUndoCoordinator,
+  type VisibilityUndoReceipt,
+} from '../../adapters/visibilityUndo'
 import { ExecutionScope } from '../../templates/v3/execution'
 import { schemaAtPath, validateAndApplyDefaults } from '../../templates/v3/jsonSchema'
 import { SspCapabilityManifest } from '../../templates/v3/manifest'
@@ -684,6 +692,188 @@ const tests: TestCase[] = [
         clearSspContext()
         mesh.geometry.dispose()
         material.dispose()
+      }
+    },
+  },
+  {
+    name: 'query-scene hide and show keep one precise latest visibility undo',
+    run: async () => {
+      const scene = new THREE.Scene()
+      const doorVisible = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      const doorHidden = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      const windowHidden = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      Object.assign(doorVisible.userData, { sid: 'DOOR_A_1F_001', renderType: 'DOOR' })
+      Object.assign(doorHidden.userData, { sid: 'DOOR_A_1F_002', renderType: 'DOOR' })
+      Object.assign(windowHidden.userData, { sid: 'WINDOW_A_1F_001', renderType: 'WINDOW' })
+      doorHidden.visible = false
+      windowHidden.visible = false
+      scene.add(doorVisible, doorHidden, windowHidden)
+      setSspContext({
+        scene,
+        camera: new THREE.PerspectiveCamera(),
+        renderer: {} as THREE.WebGLRenderer,
+        domElement: {} as HTMLElement,
+      })
+      invalidateVisibilityUndo()
+      try {
+        await executeTemplate('query-scene', {
+          operation: 'hide',
+          target: { renderType: 'DOOR' },
+        })
+        equal(doorVisible.visible, false, 'hide visible door')
+        equal(doorHidden.visible, false, 'hide must preserve already hidden door')
+        deepEqual(
+          getVisibilityUndoState(),
+          { canUndo: true, operation: 'hide', changedCount: 1 },
+          'hide transaction state',
+        )
+
+        const hideUndo = await executeHostTemplateAction('undoVisibility') as VisibilityUndoReceipt
+        deepEqual(
+          hideUndo,
+          { action: 'undoVisibility', undone: true, operation: 'hide', changedCount: 1 },
+          'hide undo receipt',
+        )
+        equal(doorVisible.visible, true, 'hide undo restores visible door')
+        equal(doorHidden.visible, false, 'hide undo preserves pre-hidden door')
+
+        await executeTemplate('query-scene', {
+          operation: 'hide',
+          target: { renderType: 'DOOR' },
+        })
+        await executeTemplate('query-scene', {
+          operation: 'show',
+          target: { renderType: 'WINDOW' },
+        })
+        deepEqual(
+          getVisibilityUndoState(),
+          { canUndo: true, operation: 'show', changedCount: 1 },
+          'show replaces the previous hide transaction',
+        )
+        const showUndo = await executeHostTemplateAction('undoVisibility') as VisibilityUndoReceipt
+        equal(showUndo.undone, true, 'show undo succeeds')
+        equal(windowHidden.visible, false, 'show undo restores pre-hidden window')
+        equal(doorVisible.visible, false, 'show undo must not undo the previous hide')
+        const secondUndo = await executeHostTemplateAction('undoVisibility') as VisibilityUndoReceipt
+        equal(secondUndo.undone, false, 'single-step history is consumed')
+        equal(secondUndo.reason, 'no-transaction', 'no second undo or redo history')
+      } finally {
+        invalidateVisibilityUndo()
+        clearSspContext()
+        for (const mesh of [doorVisible, doorHidden, windowHidden]) {
+          mesh.geometry.dispose()
+          ;(mesh.material as THREE.Material).dispose()
+        }
+      }
+    },
+  },
+  {
+    name: 'query-scene isolate undo restores non-SID and pre-hidden meshes exactly',
+    run: async () => {
+      const scene = new THREE.Scene()
+      const target = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      const nonSidVisible = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      const nonSidHidden = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      const helper = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      Object.assign(target.userData, { sid: 'DOOR_A_1F_003', renderType: 'DOOR' })
+      nonSidHidden.visible = false
+      helper.name = 'ssp_helper_route'
+      scene.add(target, nonSidVisible, nonSidHidden, helper)
+      setSspContext({
+        scene,
+        camera: new THREE.PerspectiveCamera(),
+        renderer: {} as THREE.WebGLRenderer,
+        domElement: {} as HTMLElement,
+      })
+      invalidateVisibilityUndo()
+      try {
+        await executeTemplate('query-scene', {
+          operation: 'isolate',
+          target: { renderType: 'DOOR' },
+        })
+        equal(target.visible, true, 'isolate target remains visible')
+        equal(nonSidVisible.visible, false, 'isolate hides visible non-SID mesh')
+        equal(nonSidHidden.visible, false, 'isolate keeps pre-hidden non-SID mesh hidden')
+        equal(helper.visible, true, 'isolate ignores helpers')
+        deepEqual(
+          getVisibilityUndoState(),
+          { canUndo: true, operation: 'isolate', changedCount: 1 },
+          'isolate records every real change rather than returned SIDs',
+        )
+        const receipt = await executeHostTemplateAction('undoVisibility') as VisibilityUndoReceipt
+        equal(receipt.undone, true, 'isolate undo succeeds')
+        equal(nonSidVisible.visible, true, 'isolate undo restores non-SID visible mesh')
+        equal(nonSidHidden.visible, false, 'isolate undo preserves pre-hidden mesh')
+        equal(helper.visible, true, 'isolate undo leaves helper unchanged')
+      } finally {
+        invalidateVisibilityUndo()
+        clearSspContext()
+        for (const mesh of [target, nonSidVisible, nonSidHidden, helper]) {
+          mesh.geometry.dispose()
+          ;(mesh.material as THREE.Material).dispose()
+        }
+      }
+    },
+  },
+  {
+    name: 'visibility undo fails closed for conflicts and rolls back partial undo',
+    run: async () => {
+      const scene = new THREE.Scene()
+      const first = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      const second = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      scene.add(first, second)
+      const coordinator = new VisibilityUndoCoordinator()
+      const setVisible = (object: THREE.Object3D, visible: boolean) => {
+        object.visible = visible
+      }
+
+      const rollbackCoordinator = new VisibilityUndoCoordinator()
+      await expectRejects(
+        () => rollbackCoordinator.run(scene, 'hide', () => {
+          first.visible = false
+          throw new Error('injected operation failure')
+        }, setVisible),
+        'injected operation failure',
+        'failed visibility operation',
+      )
+      equal(first.visible, true, 'failed visibility operation restores the before state')
+      equal(rollbackCoordinator.getState().canUndo, false, 'failed operation creates no undo')
+
+      await coordinator.run(scene, 'hide', () => {
+        first.visible = false
+        second.visible = false
+      }, setVisible)
+      first.visible = true
+      const conflict = coordinator.undo(scene, setVisible)
+      equal(conflict.undone, false, 'after-state conflict rejects undo')
+      equal(conflict.reason, 'after-conflict', 'after-state conflict reason')
+      equal(second.visible, false, 'conflict rejection performs no partial writes')
+      equal(coordinator.getState().canUndo, false, 'stale transaction is invalidated')
+
+      first.visible = true
+      second.visible = true
+      await coordinator.run(scene, 'hide', () => {
+        first.visible = false
+        second.visible = false
+      }, setVisible)
+      const failedUndo = coordinator.undo(scene, (object, visible) => {
+        if (object === second && visible) throw new Error('injected setter failure')
+        object.visible = visible
+      })
+      equal(failedUndo.undone, false, 'partial undo is rejected')
+      equal(failedUndo.reason, 'undo-failed', 'successful compensation reports undo failure')
+      equal(first.visible, false, 'partial undo is compensated to post-operation state')
+      equal(second.visible, false, 'failed entry remains at post-operation state')
+
+      coordinator.invalidate()
+      equal(coordinator.getState().canUndo, false, 'model generation invalidation clears undo')
+      scene.remove(first)
+      const missing = coordinator.undo(scene, setVisible)
+      equal(missing.reason, 'no-transaction', 'invalidated generation cannot be undone')
+
+      for (const mesh of [first, second]) {
+        mesh.geometry.dispose()
+        ;(mesh.material as THREE.Material).dispose()
       }
     },
   },

@@ -46,9 +46,17 @@ R1「通用空间链路可验收版」已完成合同范围内研发、自动化
 | 有路、无路、非法输入、跨层、资源清理 | sidecar、lifecycle、Quick Action 专项负向回归 | PASS |
 | 受控触发到 Three.js 路线闭环 | 真实 Runtime + SSP 集成测试；A_1F 浏览器路线 | PASS |
 | AI/template/topology 边界和类型 | 三组审计与 TypeScript 检查 | PASS |
-| 非污染本地生产构建 | `verify:r1` 9/9；manifest 与完整 porcelain 前后不变 | PASS |
+| 非污染本地生产构建 | `verify:r1` 10/10；manifest 与完整 porcelain 前后不变 | PASS |
 | 浏览器 P0 | [`R1_BROWSER_P0_REPORT.md`](./R1_BROWSER_P0_REPORT.md) | PASS |
 | 独立 QA、架构、产品范围 | 本文件三方结论 | PASS |
+
+## 3A. 2026-08-27 可见性 UX 修正版补充验收
+
+用户在原候选版待关闭期间批准取消 hide 原生确认并新增一步精确可见性撤回。该修正现已完成：hide/show/isolate 共用一个最新事务；“全部显示”仍是独立全局恢复；模型切换或重载使旧撤回失效；没有增加多步撤回或 redo，也没有修改 `src/ssp/**`。
+
+补充验收为 PASS：Template Runtime 15/15、真实浏览器 hide/show/isolate/undo/全部显示/模型切换、独立正确性/复用/性能复核以及 `verify:r1` 10/10 全部通过。manifest 与完整 Git porcelain 在 gate 前后保持不变。详细证据见 [`R1_VISIBILITY_UNDO_REPORT.md`](./R1_VISIBILITY_UNDO_REPORT.md)。
+
+本补充结论替换“原候选证据不覆盖可见性 UX 修正”的临时限制；R1 当前重新具备本地检查点和用户关闭条件。
 
 ## 4. 不阻断 R1 的剩余风险
 

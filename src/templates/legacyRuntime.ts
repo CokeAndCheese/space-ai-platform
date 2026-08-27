@@ -3,6 +3,13 @@ import { ssp } from '../ssp'
 import { templateRegistry } from './registry'
 import { defaultSspManifest } from './v3/manifest'
 import type { TemplateDefinition } from './types'
+import {
+  executeVisibilityUndo,
+  getVisibilityUndoState,
+  invalidateVisibilityUndo,
+  runVisibilityUndoableAction,
+  type VisibilityUndoReceipt,
+} from '../adapters/visibilityUndoRuntime'
 
 type CompiledLegacyTemplate = (
   sspNamespace: typeof ssp,
@@ -64,6 +71,16 @@ async function executeLegacyTemplateInternal(
     : { ...params }
 
   try {
+    const operation = definition.id === 'query-scene' &&
+      (prepared.operation === 'hide' || prepared.operation === 'show' || prepared.operation === 'isolate')
+      ? prepared.operation
+      : null
+    if (operation !== null) {
+      return await runVisibilityUndoableAction(
+        operation,
+        () => compileLegacyTemplate(definition)(ssp, THREE, Object.freeze(prepared)),
+      )
+    }
     return await compileLegacyTemplate(definition)(ssp, THREE, Object.freeze(prepared))
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
@@ -79,7 +96,7 @@ export async function executeLegacyTemplate(
   return executeLegacyTemplateInternal(templateId, params, options)
 }
 
-export type LegacyHostTemplateAction = 'clearAllHighlights'
+export type LegacyHostTemplateAction = 'clearAllHighlights' | 'undoVisibility'
 
 /** Narrow host-only entry point; arbitrary template ids cannot cross this boundary. */
 export async function executeLegacyHostTemplateAction(
@@ -91,5 +108,11 @@ export async function executeLegacyHostTemplateAction(
         aiOnly: false,
         validateParams: true,
       }, true)
+    case 'undoVisibility': {
+      return executeVisibilityUndo()
+    }
   }
 }
+
+export { getVisibilityUndoState, invalidateVisibilityUndo }
+export type { VisibilityUndoReceipt }

@@ -22,6 +22,7 @@ export const R1_COMMANDS = Object.freeze([
     nodeScript('test-topology-scene-lifecycle.mjs'),
   ),
   nodeCommand('test:topology-quick-action', nodeScript('test-topology-quick-action.mjs')),
+  nodeCommand('test:templates-v3', nodeScript('test-template-v3.mjs')),
   nodeCommand('audit:topology-boundary', nodeScript('audit-topology-boundary.mjs')),
   nodeCommand('audit:templates', nodeScript('audit-template-schema.mjs')),
   nodeCommand('audit:ai-boundary', nodeScript('audit-ai-boundary.mjs')),

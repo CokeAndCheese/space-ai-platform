@@ -538,6 +538,7 @@ const lib = useModelLibrary()
 const chat = useChatStore()
 
 function unloadManagedModels(): void {
+  chat.invalidateVisibilityUndo()
   if (!ssp.hasContext()) return
   ssp.topologyTool.removeAll()
   ssp.modelTool.unloadAll()
@@ -578,6 +579,7 @@ let stopUrlWatch: WatchStopHandle | null = null
 
 async function handleUrlChange(url: string): Promise<void> {
   const request = ++modelLoadRequest
+  chat.invalidateVisibilityUndo()
   requestedModelUrl.value = url
   modelError.value = ''
   if (!url) {
@@ -643,6 +645,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   viewDisposed = true
   modelLoadRequest++
+  chat.invalidateVisibilityUndo()
   modelLoading.value = false
   stopUrlWatch?.()
   stopUrlWatch = null

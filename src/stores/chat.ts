@@ -28,6 +28,16 @@ import {
   type QueryOperation,
   type QuerySceneParams,
 } from '@/ai/types/Intent'
+import {
+  executeHostTemplateAction,
+  getVisibilityUndoState,
+  invalidateVisibilityUndo as invalidateVisibilityUndoTransaction,
+} from '@/templates/hostActions'
+import type {
+  VisibilityUndoOperation,
+  VisibilityUndoReceipt,
+  VisibilityUndoState,
+} from '@/adapters/visibilityUndo'
 
 export type StreamStatus = 'idle' | 'thinking' | 'parsing' | 'executing'
 
@@ -43,6 +53,9 @@ export const useChatStore = defineStore('chat', () => {
   const lastIntent = ref<Intent | null>(null)
   const lastResult = ref<ExecutionResult | null>(null)
   const lastError = ref<string | null>(null)
+  const visibilityUndoState = ref<VisibilityUndoState>(getVisibilityUndoState())
+  const visibilityNotice = ref<string | null>(null)
+  const canUndoVisibility = computed(() => visibilityUndoState.value.canUndo)
   /**
    * 主视角 (用户主动设置或场景加载完自动设置).
    * 应用层控制,不走 ssp-shim 内部 mainViewpoint.
@@ -66,6 +79,7 @@ export const useChatStore = defineStore('chat', () => {
     if (!rawQuery.trim()) return
 
     lastError.value = null
+    if (!visibilityUndoState.value.canUndo) visibilityNotice.value = null
     isStreaming.value = true
     status.value = 'thinking'
 
@@ -171,28 +185,7 @@ export const useChatStore = defineStore('chat', () => {
       status.value = 'parsing'
       lastIntent.value = intent
 
-      // 二次确认由模板调用参数决定，AI 不能通过额外字段绕过。
       const operation = querySceneOperation(intent)
-      if (operation === 'hide') {
-        const cancel = !window.confirm(
-          `即将隐藏 ${resultPlaceholder(intent)} 个 mesh. 确认执行?`
-        )
-        if (cancel) {
-          status.value = 'idle'
-          isStreaming.value = false
-          intentLogger.log({
-            query: rawQuery,
-            intent,
-            rawContent,
-            thinking,
-            source,
-            errored: true,
-            errorMsg: '用户取消 (破坏性操作)',
-            durationMs: performance.now() - t0,
-          })
-          return
-        }
-      }
 
       // 2. 记录 Intent (assistant turn)
       const assistantTurn: ChatTurn = {
@@ -213,6 +206,17 @@ export const useChatStore = defineStore('chat', () => {
       assistantTurn.resultGrouped = result.grouped
       assistantTurn.resultMessage = result.message
       assistantTurn.resultData = result.data
+
+      if (intent.templateId === 'resetVisibility') {
+        invalidateVisibilityUndoTransaction()
+        refreshVisibilityUndoState()
+        visibilityNotice.value = '已全部显示；该全局恢复操作不会生成撤回记录'
+      } else if (isVisibilityUndoOperation(operation)) {
+        refreshVisibilityUndoState()
+        visibilityNotice.value = visibilityUndoState.value.canUndo
+          ? `可撤回：上一步${visibilityOperationLabel(visibilityUndoState.value.operation)}（改变 ${visibilityUndoState.value.changedCount} 个对象）`
+          : null
+      }
 
       // 4. audit
       intentLogger.log({
@@ -268,6 +272,40 @@ export const useChatStore = defineStore('chat', () => {
     reloadLLMClientFn()
   }
 
+  async function undoLastVisibility(): Promise<void> {
+    if (isStreaming.value || !visibilityUndoState.value.canUndo) return
+    lastError.value = null
+    isStreaming.value = true
+    status.value = 'executing'
+    try {
+      const receipt = await executeHostTemplateAction('undoVisibility') as VisibilityUndoReceipt
+      refreshVisibilityUndoState()
+      if (!receipt.undone) {
+        visibilityNotice.value = null
+        lastError.value = visibilityUndoFailureMessage(receipt.reason)
+        return
+      }
+      visibilityNotice.value = `已撤回${visibilityOperationLabel(receipt.operation)}，精确恢复 ${receipt.changedCount} 个对象`
+    } catch (error) {
+      refreshVisibilityUndoState()
+      lastError.value = error instanceof Error ? error.message : String(error)
+    } finally {
+      status.value = 'idle'
+      isStreaming.value = false
+    }
+  }
+
+  /** Scene/model lifecycle hook; clearing chat intentionally does not call it. */
+  function invalidateVisibilityUndo(): void {
+    invalidateVisibilityUndoTransaction()
+    refreshVisibilityUndoState()
+    visibilityNotice.value = null
+  }
+
+  function refreshVisibilityUndoState(): void {
+    visibilityUndoState.value = getVisibilityUndoState()
+  }
+
   /** 应用层调用 — fit scene 到当前加载的 meshes.
    *
    * narrow waist: 应用层不直接调 ssp.
@@ -317,12 +355,17 @@ export const useChatStore = defineStore('chat', () => {
     lastIntent,
     lastResult,
     lastError,
+    visibilityUndoState,
+    visibilityNotice,
+    canUndoVisibility,
     mainViewpoint,
     // actions
     sendQuery,
     replayIntent,
     executeRawIntent,
     reloadLLMClient,
+    undoLastVisibility,
+    invalidateVisibilityUndo,
     fitScene,
     clearChat,
   }
@@ -332,18 +375,37 @@ function formatIntentSummary(intent: Intent): string {
   return JSON.stringify(intent, null, 2)
 }
 
-/** 用于二次确认弹窗的 mesh 数估算 */
-function resultPlaceholder(intent: Intent): string {
-  if (intent.templateId !== 'query-scene') return '?'
-  const t = (intent.params as QuerySceneParams).target
-  if (!t) return '?'
-  if (t.sid) return '1'
-  if (t.renderType) return t.fireType || t.spaceType ? '~7' : '~30+'
-  return '~?'
-}
-
 function querySceneOperation(intent: Intent): QueryOperation | null {
   if (intent.templateId !== 'query-scene') return null
   const operation = (intent.params as QuerySceneParams).operation
   return typeof operation === 'string' ? operation : null
+}
+
+function isVisibilityUndoOperation(
+  operation: QueryOperation | null,
+): operation is VisibilityUndoOperation {
+  return operation === 'hide' || operation === 'show' || operation === 'isolate'
+}
+
+function visibilityOperationLabel(operation: VisibilityUndoOperation | null): string {
+  switch (operation) {
+    case 'hide': return '隐藏'
+    case 'show': return '显示'
+    case 'isolate': return '隔离'
+    default: return '显示操作'
+  }
+}
+
+function visibilityUndoFailureMessage(reason: VisibilityUndoReceipt['reason']): string {
+  switch (reason) {
+    case 'no-transaction': return '当前没有可撤回的显示操作'
+    case 'no-scene':
+    case 'scene-mismatch':
+    case 'generation-mismatch': return '场景已经切换或重载，本次撤回已失效'
+    case 'detached': return '部分对象已离开当前场景，本次撤回已安全拒绝'
+    case 'after-conflict': return '对象可见性已被后续操作修改，本次撤回已安全拒绝'
+    case 'undo-failed': return '撤回执行失败，场景已恢复到撤回前状态'
+    case 'rollback-failed': return '撤回失败且补偿不完整，请使用“全部显示”恢复场景'
+    default: return '撤回未执行'
+  }
 }

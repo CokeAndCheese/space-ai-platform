@@ -1,6 +1,6 @@
 # Space AI Platform — 产品与团队上下文
 
-> 产品经理基线：2026-08-26。本文整合当前代码、权威项目文档及历史项目任务中的有效结论，作为后续各角色任务的共同产品上下文。代码契约仍以源码和 API catalog 为准。
+> 产品经理基线：2026-08-27。本文整合当前代码、权威项目文档及历史项目任务中的有效结论，作为后续各角色任务的共同产品上下文。代码契约仍以源码和 API catalog 为准。
 
 治理入口：产品经理的长期角色、权限和汇报机制见 [`PRODUCT_MANAGER_CHARTER.md`](./PRODUCT_MANAGER_CHARTER.md)；最新组织架构见 [`ORG_CHART.md`](./ORG_CHART.md)；研发与备份流程见 [`DEVELOPMENT_WORKFLOW.md`](./DEVELOPMENT_WORKFLOW.md)；用户批准的长期决策见 [`DECISION_LOG.md`](./DECISION_LOG.md)。仓库任务的强制入口规则见根目录 [`AGENTS.md`](../AGENTS.md)。
 
@@ -43,6 +43,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 - ChatPanel 已具备受控路径 Quick Action：仅从当前会话显式选择端点，并经注册模板完成查路、渲染与精确清除；不经过 LLM，也不直连 SSP。
 - R1 已具备非污染本地验收入口：开发与构建不再隐式生成模型清单，固定 gate 在 dirty 基线上校验 manifest 原始字节与完整 Git porcelain 前后不变。
 - AI 只能选择 Registry 明确开放的模板，不能直接调用 SSP。
+- 2026-08-27 用户批准的 R1 可见性 UX 修正已完成：`query-scene` hide 不再弹原生确认；hide/show/isolate 仅保留最新一步精确撤回；“全部显示”继续作为非撤回的全局恢复；模型切换或重载使旧撤回失效。15 项 Template Runtime、真实浏览器、独立三视角复核和 `verify:r1` 10/10 均通过，证据见 [`R1_VISIBILITY_UNDO_REPORT.md`](./R1_VISIBILITY_UNDO_REPORT.md)。
 - 当前模型清单包含医院等测试场景；医院数据只能作为 fixture，不能成为通用产品契约。
 
 ## 4. 已整合的历史决策
@@ -67,7 +68,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 - 墙体是应用/适配层生成 blocker 的依据，不是 topology 核心中的业务节点。
 - “入口→满足必经设施→目标”使用带 requirement bitmask 的精确 Dijkstra，不使用贪心。
 - factory + 闭包不妨碍模板原子化；模板依赖稳定的 `ssp.topologyTool.method()` 路径，而不是源码顶层 named export。
-- 通用“GLB 基础 metadata + 外置 topology sidecar v1”→ world-space graph 适配器、非污染本地构建门禁、真实浏览器 P0、独立 QA、架构和产品验收均已在 R1 完成；当前只待用户批准关闭、创建本地里程碑记录并手动备份。
+- 通用“GLB 基础 metadata + 外置 topology sidecar v1”→ world-space graph 适配器、非污染本地构建门禁、真实浏览器 P0、独立 QA、架构和产品验收均已在 R1 完成；2026-08-27 批准的可见性 UX 修正也已实现并重新通过门禁。当前只待本地检查点和用户外部手动备份确认后关闭 R1。
 
 ### Objects 与模板 Runtime
 
@@ -89,7 +90,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 
 ## 5. 当前验证证据
 
-截至 2026-08-22 已通过：
+截至 2026-08-27 已通过：
 
 - 79/79 模板 schema 审计，0 问题；AI-enabled 实际值为 8。
 - Phase 0 能力分类：10 controllers / 85 methods / 0 unclassified。
@@ -101,8 +102,8 @@ Space Model Studio 产出符合共享契约的标准模型包
 - R1 Quick Action 20 项专项回归：固定 Registry 模板链路、显式端点、NO_PATH、同 graph ID 重载、清除竞态、陈旧渲染补偿、route ID 所有权、诊断去敏和组件卸载均通过；其中 1 项使用真实 Template Runtime + SSP context 验证完整 `findPath → renderRoute → removeRoute`。三视角独立复审无 P0/P1，2 个 P2 已关闭。
 - R1 本地 gate 自测通过 package wiring、dirty 基线、fail-fast / 真实退出码、manifest 漂移不恢复和 Git porcelain 漂移检查。
 - R1 浏览器 P0 已通过 A_1F 可达路线及清除、A_2F `NO_PATH`、A_3F 缺失/非法 sidecar、页面与模型快速切换、结构化失败反馈和控制台检查；报告见 [`R1_BROWSER_P0_REPORT.md`](./R1_BROWSER_P0_REPORT.md)。
-- `npm run verify:r1` 已按顺序通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 20/20、三组边界审计、TypeScript 类型检查和 Vite 生产构建。用户 manifest 前后 SHA-256 均为 `2ed654ea23f091008e8bd91f2996077c938026ade8183dea972205997bea9fbc`，完整 Git porcelain 原始 Buffer 前后相同。
-- R1 独立 QA 与架构终验均为 PASS，0 个未关闭 P0/P1/P2；产品范围核对无漂移，可以提交用户验收。三方结论见 [`R1_FINAL_ACCEPTANCE.md`](./R1_FINAL_ACCEPTANCE.md)。
+- `npm run verify:r1` 已按顺序通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 20/20、Template Runtime 15/15、三组边界审计、TypeScript 类型检查和 Vite 生产构建。用户 manifest 前后 SHA-256 均为 `2ed654ea23f091008e8bd91f2996077c938026ade8183dea972205997bea9fbc`，完整 Git porcelain 原始字节前后相同。
+- R1 原候选版本及 2026-08-27 可见性 UX 修正版均已独立复核为 PASS，当前没有未关闭 P0/P1/P2；修正版证据见 [`R1_VISIBILITY_UNDO_REPORT.md`](./R1_VISIBILITY_UNDO_REPORT.md)，总体验收见 [`R1_FINAL_ACCEPTANCE.md`](./R1_FINAL_ACCEPTANCE.md)。
 
 未作为本轮证据：目标部署环境中的 LLM 通路、CI/CD、浏览器堆/GPU 指标和生产性能。生产构建已通过，但 Vite 仍报告大于 500 kB 的 chunk 警告，尚未设定发布性能预算。
 
@@ -118,7 +119,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 
 ### P1 — 形成可用产品
 
-1. 在 R1 用户验收与手动备份后，扩展更多非医院模型 fixture。
+1. 在 R1 UX 修正重新验收、用户关闭和手动备份后，扩展更多非医院模型 fixture。
 2. 完成 Template Phase 2，迁移组合模板和 `query-scene`，收敛动态代码执行。
 3. 把 AI_LAYER_VERIFICATION 的关键路径转为浏览器 E2E，并完成人工验收签字。
 4. 定义模型资产的对象存储/CDN、版本、哈希、metadata 校验与回滚流程。

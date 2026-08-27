@@ -23,6 +23,7 @@ const chat = useChatStore()
 const topologyLifecycle = useTopologySceneLifecycle()
 
 function unloadManagedModels(): void {
+  chat.invalidateVisibilityUndo()
   topologyLifecycle.invalidateAndCleanup()
 }
 
@@ -54,6 +55,7 @@ let stopUrlWatch: WatchStopHandle | null = null
 
 async function handleUrlChange(url: string): Promise<void> {
   const request = ++modelLoadRequest
+  chat.invalidateVisibilityUndo()
   requestedModelUrl.value = url
   modelError.value = ''
   modelLoading.value = url.length > 0
@@ -111,6 +113,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   viewDisposed = true
   modelLoadRequest++
+  chat.invalidateVisibilityUndo()
   topologyLifecycle.invalidate()
   modelLoading.value = false
   stopUrlWatch?.()

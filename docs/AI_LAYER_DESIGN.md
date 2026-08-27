@@ -1,6 +1,6 @@
 # AI 层设计（v0.1 历史方案 + 当前实现状态）
 
-> 最后核对：2026-08-17
+> 最后核对：2026-08-27
 >
 > 本文第 0-11 节保留 2026-07-29 的方案推演和取舍背景，不应直接当作当前
 > 实现契约。当前代码已经落地，且以下决策覆盖旧方案：
@@ -11,6 +11,7 @@
 > - 浏览器只请求同源 `/api/llm/chat/completions`；API Key 不进入浏览器配置或 localStorage。
 > - 当前模板总数为 79，全部 active、0 placeholder；数量以 `npm run audit:templates` 为准。
 > - 楼层状态操作优先使用 `floorNames`；裸 `level` 多楼栋歧义必须澄清，不能猜楼栋。
+> - 2026-08-27 用户批准的 R1 收口 UX 已实现并验收：`query-scene` hide 不弹原生确认；hide/show/isolate 每次只产生一个最新的一步精确可见性撤回，恢复该次操作涉及对象的操作前状态；显式“全部显示”保留但不等同于撤回，不做多步撤回或 redo；模型切换或重载使旧撤回失效。证据见 [R1_VISIBILITY_UNDO_REPORT.md](./R1_VISIBILITY_UNDO_REPORT.md)。
 >
 > 当前交接入口见 [HANDOFF_PROMPT.md](./HANDOFF_PROMPT.md)，AI 边界验收见
 > [AI_LAYER_VERIFICATION.md](./AI_LAYER_VERIFICATION.md)。
@@ -229,7 +230,7 @@ sid 格式: <RENDERTYPE>_<FLOORNAME>_<SEQ>
 
 - 用户 query 含糊时, 给出最合理猜测 + 限制结果数 + 提示
 - 范围过大 (>500 mesh) 时加 visual 提示
-- isolate / hide 操作是破坏性的, Planner 会弹二次确认 (你在 Intent 层不处理)
+- hide / show / isolate 直接执行，不弹原生确认；执行后由 UI 提供一个最新的一步精确可见性撤回。显式“全部显示”是全局恢复，不是撤回；不提供多步撤回或 redo。模型切换或重载后旧撤回失效。
 - 你不解释, 只输出 JSON
 `
 ```
@@ -429,7 +430,7 @@ function plan(intent: Intent, chatContext: ChatContext): Plan {
       steps.push({ type: 'template', name: 'highlightIsolate', params: {
         sids: '$step[0].result.sids',
       }})
-      // ⚠️ isolate 弹二次确认 (UI 层处理)
+      // hide / show / isolate 均不弹原生确认；UI 在成功执行后记录最新的一步精确撤回
       break
       
     case 'compare':
@@ -616,7 +617,7 @@ UI 加一个"查看审计日志"按钮,弹窗展示最近 100 条,支持重放�
 | LLM JSON 错 | 重试 1 次, 仍错走 fallback |
 | query 完全无法理解 | UI 显示 "我没听懂, 试试: 'A 楼 1 层有哪些消防栓?'" |
 | 结果 >500 mesh | Planner 自动切到"汇总"模式 + UI 提示 |
-| isolate / hide 操作 | UI 弹二次确认 ("将隐藏 X 个 mesh, 确认?") |
+| hide / show / isolate 操作 | 不弹原生确认；UI 仅提供一个最新的一步精确可见性撤回；显式“全部显示”不作为撤回 |
 | 高亮 / 闪烁持续 | 5 秒后自动清除 |
 
 ---
@@ -691,8 +692,10 @@ UI 加一个"查看审计日志"按钮,弹窗展示最近 100 条,支持重放�
 - objects/resetVisibility.json
 - scene/help.json
 
-其中 `resetVisibility` 由同 ID v3 原子模板遮蔽 legacy；`clearAllHighlights` 是
-host-only 紧急恢复动作，只能由显式宿主适配器调用，不进入 Intent、fallback 或 AI 目录。
+其中 `resetVisibility` 由同 ID v3 原子模板遮蔽 legacy，是显式“全部显示”全局恢复动作，
+不等同于可见性撤回；`clearAllHighlights` 是 host-only 紧急恢复动作，只能由显式宿主适配器调用，
+不进入 Intent、fallback 或 AI 目录。2026-08-27 批准的单步精确撤回覆盖 `query-scene` 的
+hide/show/isolate，且模型切换或重载后失效；实现与 R1 回归已经通过。
 
 边界与注册表:
 - src/templates/catalog.ts                   # v3-first 统一目录 + AI 白名单

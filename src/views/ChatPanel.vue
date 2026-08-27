@@ -138,7 +138,7 @@ const QUICK_ACTIONS = [
   { label: '🏠 主视角', query: '__main_viewpoint__' },  // 走应用层逻辑
   { label: '📌 设为主视角', query: '__capture_main_viewpoint__' },  // 走应用层逻辑
   { label: '🧹 清高亮', query: '__clear_highlight__' },  // 走应用层逻辑
-  { label: '👁 重置显示', query: '__reset_visibility__' },  // 走应用层逻辑
+  { label: '👁 全部显示', query: '__reset_visibility__' },  // 全局恢复，不等同于撤回
   { label: '⚙️ 设置', query: '__settings__' },  // 走应用层逻辑
 ]
 
@@ -147,6 +147,10 @@ async function send() {
   if (!q) return
   input.value = ''
   await chat.sendQuery(q)
+}
+
+async function undoVisibility() {
+  await chat.undoLastVisibility()
 }
 
 /**
@@ -261,6 +265,25 @@ function onKeydown(e: KeyboardEvent) {
         class="quick-btn"
         @click="quickAction(a)"
       >{{ a.label }}</button>
+    </div>
+
+    <div
+      v-if="chat.visibilityNotice"
+      class="visibility-undo-notice"
+      data-testid="visibility-undo-notice"
+      role="status"
+      aria-live="polite"
+    >
+      <span>{{ chat.visibilityNotice }}</span>
+      <button
+        v-if="chat.canUndoVisibility"
+        class="visibility-undo-btn"
+        data-testid="visibility-undo"
+        :disabled="chat.isStreaming"
+        @click="undoVisibility"
+      >
+        撤回
+      </button>
     </div>
 
     <section
@@ -635,6 +658,39 @@ function onKeydown(e: KeyboardEvent) {
 .quick-btn:hover {
   background: #333;
   border-color: #555;
+}
+
+.visibility-undo-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 12px;
+  border-bottom: 1px solid #28443e;
+  background: #172923;
+  color: #a7d8ca;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.visibility-undo-btn {
+  flex-shrink: 0;
+  border: 1px solid #4DB6AC;
+  border-radius: 4px;
+  background: transparent;
+  color: #80CBC4;
+  padding: 3px 9px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.visibility-undo-btn:hover:not(:disabled) {
+  background: #21423a;
+}
+
+.visibility-undo-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .topology-quick-action {

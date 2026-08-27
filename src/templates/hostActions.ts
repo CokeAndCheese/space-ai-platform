@@ -1,5 +1,7 @@
 import {
   executeLegacyHostTemplateAction,
+  getVisibilityUndoState,
+  invalidateVisibilityUndo,
   type LegacyHostTemplateAction,
 } from './legacyRuntime'
 
@@ -14,3 +16,5 @@ export async function executeHostTemplateAction(
 ): Promise<unknown> {
   return executeLegacyHostTemplateAction(action)
 }
+
+export { getVisibilityUndoState, invalidateVisibilityUndo }

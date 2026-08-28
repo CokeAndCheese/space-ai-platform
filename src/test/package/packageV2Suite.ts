@@ -1,4 +1,6 @@
-import { strToU8, zipSync } from 'fflate'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { strToU8, unzipSync, zipSync } from 'fflate'
 import {
   DEFAULT_PACKAGE_ZIP_V2_LIMITS,
   PACKAGE_V2_TOPOLOGY_UNAVAILABLE,
@@ -15,6 +17,35 @@ import {
 
 type Test = { readonly name: string; readonly run: () => void | Promise<void> }
 type Floor = { readonly floorName: string; readonly building: string; readonly level: number; readonly floorType: 'FLOOR' }
+type FixtureMutation =
+  | { readonly kind: 'xor-byte'; readonly offset: number; readonly value: number }
+  | { readonly kind: 'append-hex'; readonly value: string }
+  | { readonly kind: 'truncate-tail'; readonly byteCount: number }
+
+interface FixtureIndex {
+  readonly schema: string
+  readonly schemaVersion: number
+  readonly authoritativeSuccessPackage: {
+    readonly file: string
+    readonly sha256: string
+    readonly byteLength: number
+    readonly entries: readonly {
+      readonly name: string
+      readonly sha256: string
+      readonly byteLength: number
+    }[]
+  }
+  readonly failureVectors: readonly {
+    readonly id: string
+    readonly mutation: FixtureMutation
+    readonly sha256: string
+    readonly byteLength: number
+    readonly expectedDiagnostic: {
+      readonly code: string
+      readonly phase: string
+    }
+  }[]
+}
 
 const URI = 'https://space-model-package.invalid/demo/space-model-package.v2.json'
 const FLOOR: Floor = { floorName: 'A_1F', building: 'A', level: 1, floorType: 'FLOOR' }
@@ -29,6 +60,20 @@ const METADATA = {
   version: '3.3-semantic',
   carrier: 'GLB_SCENE_NODE_EXTRAS',
 } as const
+const MIRRORED_FIXTURE_URL = new URL('./fixtures/standard-model-package-v2-success.zip', import.meta.url)
+const MIRRORED_INDEX_URL = new URL('./fixtures/standard-model-package-v2.sha256.json', import.meta.url)
+const MIRRORED_FIXTURE = new Uint8Array(readFileSync(fileURLToPath(MIRRORED_FIXTURE_URL))).slice()
+const MIRRORED_INDEX_BYTES = new Uint8Array(readFileSync(fileURLToPath(MIRRORED_INDEX_URL))).slice()
+const MIRRORED_INDEX = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(
+  MIRRORED_INDEX_BYTES,
+)) as FixtureIndex
+const AUTHORITATIVE_INDEX_SHA256 = 'c559d47222f6d7d61160d74676885e61ea0c0a462f0f67d6c7e5cdd2cc78a91c'
+const AUTHORITATIVE_REVISION = '96fee045700e5bbe18c4b196ae96821a84508860460c3cd2e59455594bc61b22'
+const PLATFORM_FAILURE_CODES = Object.freeze({
+  'zip-first-payload-xor': 'PACKAGE_JSON_INVALID',
+  'zip-append-zero': 'PACKAGE_LIMIT_EXCEEDED',
+  'zip-truncate-tail': 'PACKAGE_JSON_INVALID',
+} as const)
 
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message)
@@ -38,6 +83,35 @@ function equal(actual: unknown, expected: unknown, message: string): void {
   if (!Object.is(actual, expected)) {
     throw new Error(`${message}: expected ${String(expected)}, got ${String(actual)}`)
   }
+}
+
+function mutateAuthoritativeFixture(mutation: FixtureMutation): Uint8Array {
+  if (mutation.kind === 'xor-byte') {
+    assert(
+      Number.isInteger(mutation.offset) && mutation.offset >= 0 && mutation.offset < MIRRORED_FIXTURE.length,
+      'failure vector xor offset',
+    )
+    assert(Number.isInteger(mutation.value) && mutation.value >= 0 && mutation.value <= 0xff, 'failure vector xor value')
+    const result = MIRRORED_FIXTURE.slice()
+    result[mutation.offset] ^= mutation.value
+    return result
+  }
+  if (mutation.kind === 'append-hex') {
+    assert(/^(?:[0-9a-f]{2})+$/iu.test(mutation.value), 'failure vector append hex')
+    const pairs = mutation.value.match(/[0-9a-f]{2}/giu) ?? []
+    const suffix = Uint8Array.from(pairs, (pair) => Number.parseInt(pair, 16))
+    const result = new Uint8Array(MIRRORED_FIXTURE.length + suffix.length)
+    result.set(MIRRORED_FIXTURE)
+    result.set(suffix, MIRRORED_FIXTURE.length)
+    return result
+  }
+  assert(
+    Number.isInteger(mutation.byteCount) &&
+      mutation.byteCount > 0 &&
+      mutation.byteCount <= MIRRORED_FIXTURE.length,
+    'failure vector truncate byte count',
+  )
+  return MIRRORED_FIXTURE.slice(0, MIRRORED_FIXTURE.length - mutation.byteCount)
 }
 
 function fail(
@@ -264,6 +338,87 @@ export async function runPackageV2Suite(): Promise<{
   readonly durationMs: number
 }> {
   const tests: Test[] = [
+    {
+      name: 'mirrored Studio v2 fixture authenticates the full index entries and canonical revision',
+      run: async () => {
+        equal(
+          MIRRORED_INDEX.schema,
+          'space-model-studio/standard-model-package-v2-fixture-sha256-index',
+          'fixture index schema',
+        )
+        equal(MIRRORED_INDEX.schemaVersion, 1, 'fixture index schema version')
+        equal(await sha256Hex(MIRRORED_INDEX_BYTES), AUTHORITATIVE_INDEX_SHA256, 'fixture index SHA-256')
+        equal(
+          MIRRORED_INDEX.authoritativeSuccessPackage.file,
+          'standard-model-package-v2-success.zip',
+          'fixture filename',
+        )
+        equal(
+          await sha256Hex(MIRRORED_FIXTURE),
+          MIRRORED_INDEX.authoritativeSuccessPackage.sha256,
+          'fixture ZIP SHA-256',
+        )
+        equal(
+          MIRRORED_FIXTURE.byteLength,
+          MIRRORED_INDEX.authoritativeSuccessPackage.byteLength,
+          'fixture ZIP byte length',
+        )
+
+        const files = unzipSync(MIRRORED_FIXTURE)
+        equal(
+          JSON.stringify(Object.keys(files).sort()),
+          JSON.stringify(MIRRORED_INDEX.authoritativeSuccessPackage.entries.map((entry) => entry.name).sort()),
+          'fixture entry set',
+        )
+        for (const entry of MIRRORED_INDEX.authoritativeSuccessPackage.entries) {
+          const bytes = files[entry.name]
+          assert(bytes !== undefined, `fixture entry ${entry.name}`)
+          equal(bytes.byteLength, entry.byteLength, `${entry.name} byte length`)
+          equal(await sha256Hex(bytes), entry.sha256, `${entry.name} SHA-256`)
+        }
+
+        const archive = parsePackageZipV2(MIRRORED_FIXTURE.slice(), URI)
+        assert(archive.ok, `mirrored fixture should parse ${JSON.stringify(archive)}`)
+        equal(archive.value.manifestDocument.revision, AUTHORITATIVE_REVISION, 'manifest revision')
+        equal(
+          await computePackageManifestV2Revision(archive.value.manifestDocument),
+          AUTHORITATIVE_REVISION,
+          'canonical revision',
+        )
+        const validated = await validatePackageArchiveV2(archive.value)
+        assert(validated.ok, `mirrored fixture should validate ${JSON.stringify(validated)}`)
+        equal(validated.value.metadata.length, 2, 'mirrored Metadata asset count')
+        equal(validated.value.topologyCapability.code, 'TOPOLOGY_UNAVAILABLE', 'mirrored capability code')
+        fail(
+          parsePackageZipV1(
+            MIRRORED_FIXTURE.slice(),
+            'https://space-model-package.invalid/demo/space-model-package.v1.json',
+          ),
+          'PACKAGE_RESOURCE_NOT_FOUND',
+          'mirrored v2 fixture requires the explicit v2 entry',
+        )
+      },
+    },
+    {
+      name: 'mirrored Studio v2 failure vectors preserve full hashes and fail closed in the Platform parser',
+      run: async () => {
+        equal(MIRRORED_INDEX.failureVectors.length, 3, 'failure vector count')
+        for (const vector of MIRRORED_INDEX.failureVectors) {
+          const mutated = mutateAuthoritativeFixture(vector.mutation)
+          equal(mutated.byteLength, vector.byteLength, `${vector.id} byte length`)
+          equal(await sha256Hex(mutated), vector.sha256, `${vector.id} SHA-256`)
+          equal(vector.expectedDiagnostic.code, 'PACKAGE_FIELD_INVALID', `${vector.id} producer code`)
+          equal(vector.expectedDiagnostic.phase, 'reopen', `${vector.id} producer phase`)
+
+          const platformCode = (PLATFORM_FAILURE_CODES as Readonly<Record<string, string>>)[vector.id]
+          assert(platformCode !== undefined, `${vector.id} Platform diagnostic mapping`)
+          const parsed = parsePackageZipV2(mutated, URI)
+          assert(!parsed.ok, `${vector.id} must fail the Platform parser`)
+          equal(parsed.diagnostic.code, platformCode, `${vector.id} Platform code`)
+          equal(parsed.diagnostic.phase, 'ARCHIVE', `${vector.id} Platform phase`)
+        }
+      },
+    },
     {
       name: 'manifest v2 accepts only the frozen closed identity and capability declaration',
       run: () => {

@@ -1,0 +1,73 @@
+{
+  "schema": "space-model-studio/standard-model-package-v2-fixture-sha256-index",
+  "schemaVersion": 1,
+  "authoritativeSuccessPackage": {
+    "file": "standard-model-package-v2-success.zip",
+    "sha256": "be0b7734ebbb3effb1f220f601d047d69dcf849c5d16bf7fdc1cd54f4f90e0c7",
+    "byteLength": 8310,
+    "entries": [
+      {
+        "name": "space-model-package.v2.json",
+        "sha256": "6fae0e210298e5beae2b7e5df8fb4d94666185dcbb8964249189e0e80b858bc1",
+        "byteLength": 1572
+      },
+      {
+        "name": "A_B1.glb",
+        "sha256": "0f9079f385b057dc773affe2963a1caf4955772fd733b785385c737391e6a2e8",
+        "byteLength": 972
+      },
+      {
+        "name": "A_1F.glb",
+        "sha256": "47edfcd403c4911c17f868d09d2f6590b5641a54eab12bda5898d9b75de6717f",
+        "byteLength": 2052
+      },
+      {
+        "name": "producer-validation.json",
+        "sha256": "d415726648709d903de31a0957a597184bb074a3d0c8c37ada29c35f8dbf5f4c",
+        "byteLength": 3254
+      }
+    ]
+  },
+  "failureVectors": [
+    {
+      "id": "zip-first-payload-xor",
+      "mutation": {
+        "kind": "xor-byte",
+        "offset": 57,
+        "value": 255
+      },
+      "sha256": "81d880e3ea0ef0f49b9ba7c897acb811d08db5360f2100083d3e00aa09a3f60e",
+      "byteLength": 8310,
+      "expectedDiagnostic": {
+        "code": "PACKAGE_FIELD_INVALID",
+        "phase": "reopen"
+      }
+    },
+    {
+      "id": "zip-append-zero",
+      "mutation": {
+        "kind": "append-hex",
+        "value": "00"
+      },
+      "sha256": "2caa9a52145d36e13516115788f612efe5c0d85cc88aaced12267157f00fc393",
+      "byteLength": 8311,
+      "expectedDiagnostic": {
+        "code": "PACKAGE_FIELD_INVALID",
+        "phase": "reopen"
+      }
+    },
+    {
+      "id": "zip-truncate-tail",
+      "mutation": {
+        "kind": "truncate-tail",
+        "byteCount": 1
+      },
+      "sha256": "091b1040e58b6945fac29989f90f91a9731eb9d80f434622753aa871cb1c5eb9",
+      "byteLength": 8309,
+      "expectedDiagnostic": {
+        "code": "PACKAGE_FIELD_INVALID",
+        "phase": "reopen"
+      }
+    }
+  ]
+}

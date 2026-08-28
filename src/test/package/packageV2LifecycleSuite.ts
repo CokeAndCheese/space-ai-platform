@@ -55,6 +55,22 @@ const GOLDEN_V1_MANIFEST = JSON.parse(new TextDecoder().decode(
     readonly floor: { readonly floorName: string }
   }[]
 }
+const GOLDEN_V2 = new Uint8Array(readFileSync(fileURLToPath(new URL(
+  './fixtures/standard-model-package-v2-success.zip',
+  import.meta.url,
+)))).slice()
+const GOLDEN_V2_FILES = unzipSync(GOLDEN_V2)
+const GOLDEN_V2_MANIFEST = JSON.parse(new TextDecoder().decode(
+  GOLDEN_V2_FILES['space-model-package.v2.json']!,
+)) as {
+  readonly revision: string
+  readonly assets: readonly {
+    readonly assetId: string
+    readonly uri: string
+    readonly digest: { readonly value: string }
+    readonly floor: { readonly floorName: string }
+  }[]
+}
 
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message)
@@ -359,9 +375,13 @@ function assertStrictCleanup(harness: ReturnType<typeof createHarness>, message:
 
 const tests: Test[] = [
   {
-    name: 'v2 loads exact bytes and atomically publishes Scene Metadata and immutable resource proofs',
+    name: 'mirrored Studio v2 loads exact bytes and atomically publishes Scene Metadata and immutable resource proofs',
     run: async () => {
-      const fixture = await createTwoAssetV2Fixture()
+      const fixture = {
+        zip: GOLDEN_V2.slice(),
+        manifest: GOLDEN_V2_MANIFEST,
+        assets: GOLDEN_V2_MANIFEST.assets,
+      }
       const sessionId = 'v2_success_session'
       const floorNames = fixture.assets.map((asset) => asset.floor.floorName)
       const harness = createHarness({

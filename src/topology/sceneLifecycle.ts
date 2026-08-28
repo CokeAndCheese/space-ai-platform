@@ -14,10 +14,16 @@ import {
   clonePackageArchiveResources,
   packageDiagnostic,
   parsePackageZipV1,
+  parsePackageZipV2,
   prebindPackageTopologyV1,
   validatePackageArchive,
+  validatePackageArchiveV2,
+  type Digest,
+  type Metadata33Projection,
   type PackageDiagnostic,
+  type PackageTopologyUnavailableV2,
   type PreparedPackageTopologyV1,
+  type ValidatedPackageArchiveV2,
 } from '@/adapters/package'
 import type { ModelRecord } from '@/composables/useModelLibrary'
 import {
@@ -40,6 +46,7 @@ export type TopologySceneSessionStatus =
   | 'idle'
   | 'loading'
   | 'ready'
+  | 'scene-ready'
   | 'unavailable'
   | 'error'
 
@@ -57,7 +64,7 @@ export interface TopologySceneSessionSnapshot {
   nodes: readonly TopologySceneSessionNode[]
   diagnostic: TopologySidecarDiagnostic | null
   packageDiagnostic: PackageDiagnostic | null
-  packageSession: TopologyPackageSessionSnapshot | null
+  packageSession: TopologyPackageSessionState | null
 }
 
 export interface TopologyPackageSessionAsset {
@@ -76,6 +83,44 @@ export interface TopologyPackageSessionSnapshot {
   readonly revision: string
   readonly assets: readonly TopologyPackageSessionAsset[]
 }
+
+export interface PackageAssetResourceProofV2 {
+  readonly assetId: string
+  readonly canonicalUri: string
+  readonly digest: Digest
+  readonly packageRevision: string
+  readonly root: THREE.Object3D
+  readonly selectionGeneration: number
+  readonly provenance: 'SAME_RESPONSE_BYTES'
+}
+
+export type PackageMetadataProjectionV2 = Omit<Metadata33Projection, 'buffer'>
+
+export interface TopologyAbsentPackageSessionAssetV2 {
+  readonly assetId: string
+  readonly canonicalUri: string
+  readonly floorName: string
+  readonly building: string | null
+  readonly level: number | null
+  readonly floorType: string
+  readonly root: THREE.Object3D
+  readonly metadata: PackageMetadataProjectionV2
+  readonly resourceProof: PackageAssetResourceProofV2
+}
+
+export interface TopologyAbsentPackageSessionSnapshotV2 {
+  readonly schemaVersion: 2
+  readonly profile: 'TOPOLOGY_ABSENT_TRANSITION'
+  readonly manifestUri: string
+  readonly packageId: string
+  readonly revision: string
+  readonly assets: readonly TopologyAbsentPackageSessionAssetV2[]
+  readonly topologyCapability: PackageTopologyUnavailableV2
+}
+
+export type TopologyPackageSessionState =
+  | TopologyPackageSessionSnapshot
+  | TopologyAbsentPackageSessionSnapshotV2
 
 export interface TopologyFloorInfo {
   floorName: string
@@ -180,6 +225,12 @@ interface PackageAssetLoadOutcome {
   readonly transportKey: string
 }
 
+interface PackageAssetLoadOutcomeV2 {
+  readonly sessionAsset: TopologyAbsentPackageSessionAssetV2
+  /** modelTool's private basename key; never exposed as package identity. */
+  readonly transportKey: string
+}
+
 class StaleSelectionError extends Error {
   constructor() {
     super('selection is stale')
@@ -203,6 +254,13 @@ class PackageAssetLoadFailure extends Error {
   constructor(readonly diagnostic: TopologySidecarDiagnostic) {
     super(diagnostic.message)
     this.name = 'PackageAssetLoadFailure'
+  }
+}
+
+class PackageAssetLoadFailureV2 extends Error {
+  constructor(readonly diagnostic: PackageDiagnostic) {
+    super(diagnostic.code)
+    this.name = 'PackageAssetLoadFailureV2'
   }
 }
 
@@ -325,6 +383,13 @@ function selectionTicket(generation: number): SelectionTicket {
 function packageManifestUri(origin: string, sessionId: string): string {
   return new URL(
     `/__space-model-package-v1/${sessionId}/space-model-package.v1.json`,
+    canonicalOrigin(origin),
+  ).href
+}
+
+function packageManifestUriV2(origin: string, sessionId: string): string {
+  return new URL(
+    `/__space-model-package-v2/${sessionId}/space-model-package.v2.json`,
     canonicalOrigin(origin),
   ).href
 }
@@ -891,9 +956,42 @@ function freezePackageDiagnostic(value: PackageDiagnostic): PackageDiagnostic {
   })
 }
 
+function isTopologyAbsentPackageSessionV2(
+  value: TopologyPackageSessionState,
+): value is TopologyAbsentPackageSessionSnapshotV2 {
+  return 'schemaVersion' in value && value.schemaVersion === 2
+}
+
+function freezeMetadataProjectionV2(
+  value: PackageMetadataProjectionV2,
+): PackageMetadataProjectionV2 {
+  return Object.freeze({
+    scene: Object.freeze({ ...value.scene }),
+    nodes: Object.freeze(value.nodes.map((node) => Object.freeze({ ...node }))),
+  })
+}
+
 function freezePackageSession(
-  value: TopologyPackageSessionSnapshot,
-): TopologyPackageSessionSnapshot {
+  value: TopologyPackageSessionState,
+): TopologyPackageSessionState {
+  if (isTopologyAbsentPackageSessionV2(value)) {
+    return Object.freeze({
+      schemaVersion: 2,
+      profile: 'TOPOLOGY_ABSENT_TRANSITION',
+      manifestUri: value.manifestUri,
+      packageId: value.packageId,
+      revision: value.revision,
+      assets: Object.freeze(value.assets.map((asset) => Object.freeze({
+        ...asset,
+        metadata: freezeMetadataProjectionV2(asset.metadata),
+        resourceProof: Object.freeze({
+          ...asset.resourceProof,
+          digest: Object.freeze({ ...asset.resourceProof.digest }),
+        }),
+      }))),
+      topologyCapability: Object.freeze({ ...value.topologyCapability }),
+    })
+  }
   return Object.freeze({
     manifestUri: value.manifestUri,
     packageId: value.packageId,
@@ -908,7 +1006,7 @@ interface TopologySceneSessionStateInput {
   nodes: readonly TopologySceneSessionNode[]
   diagnostic: TopologySidecarDiagnostic | null
   packageDiagnostic?: PackageDiagnostic | null
-  packageSession?: TopologyPackageSessionSnapshot | null
+  packageSession?: TopologyPackageSessionState | null
 }
 
 export class TopologySceneLifecycle {
@@ -945,13 +1043,29 @@ export class TopologySceneLifecycle {
   }
 
   getPackageAssetById(assetId: string): TopologyPackageSessionAsset | null {
-    return this.state.packageSession?.assets.find((asset) => asset.assetId === assetId) ?? null
+    const packageSession = this.state.packageSession
+    if (packageSession === null || isTopologyAbsentPackageSessionV2(packageSession)) return null
+    return packageSession.assets.find((asset) => asset.assetId === assetId) ?? null
   }
 
   getPackageAssetsByFloorName(floorName: string): readonly TopologyPackageSessionAsset[] {
+    const packageSession = this.state.packageSession
+    if (packageSession === null || isTopologyAbsentPackageSessionV2(packageSession)) {
+      return Object.freeze([])
+    }
     return Object.freeze(
-      (this.state.packageSession?.assets ?? []).filter((asset) => asset.floorName === floorName),
+      packageSession.assets.filter((asset) => asset.floorName === floorName),
     )
+  }
+
+  getPackageV2AssetById(assetId: string): TopologyAbsentPackageSessionAssetV2 | null {
+    const packageSession = this.state.packageSession
+    if (packageSession === null || !isTopologyAbsentPackageSessionV2(packageSession)) return null
+    return packageSession.assets.find((asset) => asset.assetId === assetId) ?? null
+  }
+
+  getPackageV2ResourceProof(assetId: string): PackageAssetResourceProofV2 | null {
+    return this.getPackageV2AssetById(assetId)?.resourceProof ?? null
   }
 
   isGenerationCurrent(generation: number): boolean {
@@ -1345,6 +1459,139 @@ export class TopologySceneLifecycle {
     return { kind: 'loaded', generation, assetCount: packageAssets.length }
   }
 
+  async selectPackageV2(packageBytes: Uint8Array): Promise<TopologyModelSelectionResult> {
+    const generation = ++this.generation
+    this.active?.settleModelLoads()
+    this.active?.controller.abort()
+    this.active = null
+    const cleanupErrors = this.cleanupResources()
+    if (cleanupErrors.length > 0) {
+      const failure = packageDiagnostic(
+        'PACKAGE_FIELD_INVALID',
+        'LIFECYCLE',
+        '/',
+        {
+          reason: 'old-session-cleanup',
+          failedStageCount: cleanupErrors.length,
+          failedStages: cleanupErrors.map((item) => item.stage).join(','),
+        },
+      )
+      this.publish({
+        status: 'error',
+        graphId: null,
+        nodes: [],
+        diagnostic: null,
+        packageDiagnostic: failure,
+      })
+      return { kind: 'model-error', generation, message: '旧模型资源清理失败' }
+    }
+
+    const ticket = selectionTicket(generation)
+    this.active = ticket
+    this.publish({ status: 'loading', graphId: null, nodes: [], diagnostic: null })
+
+    let sessionId: string
+    let manifestUri: string
+    try {
+      sessionId = packageSessionId(generation, this.ports.createPackageSessionId)
+      manifestUri = packageManifestUriV2(this.ports.origin, sessionId)
+    } catch (error) {
+      const failure = packageDiagnostic(
+        'PACKAGE_FIELD_INVALID',
+        'LIFECYCLE',
+        '/',
+        { reason: 'session-initialization', error: safeErrorName(error) },
+      )
+      return this.failPackageV2Selection(ticket, failure, '模型包会话初始化失败')
+    }
+
+    let validated: ValidatedPackageArchiveV2
+    try {
+      // The v2 ZIP parser produces owned entry byte arrays. Validation therefore
+      // finishes manifest revision, every digest, Metadata 3.3, and cross-asset
+      // identity checks before any model loader can observe an asset.
+      const parsedArchive = parsePackageZipV2(packageBytes, manifestUri)
+      if (!parsedArchive.ok) {
+        return this.failPackageV2Selection(
+          ticket,
+          parsedArchive.diagnostic,
+          '标准模型包校验失败',
+        )
+      }
+      const validatedArchive = await validatePackageArchiveV2(parsedArchive.value)
+      this.assertTicketCurrent(ticket)
+      if (!validatedArchive.ok) {
+        return this.failPackageV2Selection(
+          ticket,
+          validatedArchive.diagnostic,
+          '标准模型包校验失败',
+        )
+      }
+      validated = validatedArchive.value
+    } catch (error) {
+      if (!this.ownsGeneration(ticket) || error instanceof StaleSelectionError) {
+        ticket.settleModelLoads()
+        return { kind: 'stale', generation }
+      }
+      const failure = packageDiagnostic(
+        'PACKAGE_FIELD_INVALID',
+        'LIFECYCLE',
+        '/',
+        { reason: 'package-validation', error: safeErrorName(error) },
+        { manifestUri },
+      )
+      return this.failPackageV2Selection(ticket, failure, '标准模型包校验失败')
+    }
+
+    let packageAssets: readonly PackageAssetLoadOutcomeV2[]
+    try {
+      packageAssets = await this.loadPackageAssetsV2(validated, sessionId, ticket)
+      ticket.settleModelLoads()
+      await this.awaitPriorPackageRetirements(ticket)
+    } catch (error) {
+      ticket.settleModelLoads()
+      if (!this.ownsGeneration(ticket) || error instanceof StaleSelectionError) {
+        return { kind: 'stale', generation }
+      }
+      const failure = error instanceof PackageAssetLoadFailureV2
+        ? error.diagnostic
+        : packageDiagnostic(
+            'PACKAGE_FIELD_INVALID',
+            'LIFECYCLE',
+            '/assets',
+            {
+              reason: error instanceof PackageTransportRetirementFailure
+                ? 'transport-retirement'
+                : 'asset-load',
+              error: safeErrorName(error),
+            },
+            { manifestUri },
+          )
+      return this.failPackageV2Selection(ticket, failure, '标准模型包资产加载失败')
+    }
+
+    if (!this.isTicketCurrent(ticket)) return { kind: 'stale', generation }
+    const manifest = validated.archive.manifestDocument
+    const packageSession: TopologyAbsentPackageSessionSnapshotV2 = {
+      schemaVersion: 2,
+      profile: 'TOPOLOGY_ABSENT_TRANSITION',
+      manifestUri: manifest.manifestUri,
+      packageId: manifest.packageId,
+      revision: manifest.revision,
+      assets: packageAssets.map((asset) => asset.sessionAsset),
+      topologyCapability: validated.topologyCapability,
+    }
+    this.publish({
+      status: 'scene-ready',
+      graphId: null,
+      nodes: [],
+      diagnostic: null,
+      packageDiagnostic: null,
+      packageSession,
+    })
+    return { kind: 'loaded', generation, assetCount: packageAssets.length }
+  }
+
   private failPackageSelection(
     ticket: SelectionTicket,
     failure: {
@@ -1378,6 +1625,44 @@ export class TopologySceneLifecycle {
       kind: 'model-error',
       generation: ticket.generation,
       message: cleanupFailure === null ? modelMessage : '模型包失败且资源清理不完整',
+    }
+  }
+
+  private failPackageV2Selection(
+    ticket: SelectionTicket,
+    failure: PackageDiagnostic,
+    modelMessage: string,
+  ): TopologyModelSelectionResult {
+    ticket.settleModelLoads()
+    if (!this.ownsGeneration(ticket)) return { kind: 'stale', generation: ticket.generation }
+    ticket.controller.abort()
+    if (this.active === ticket) this.active = null
+    const cleanupErrors = this.cleanupResources()
+    const manifestUri = failure.manifestUri
+    const publishedFailure = cleanupErrors.length === 0
+      ? failure
+      : packageDiagnostic(
+          'PACKAGE_FIELD_INVALID',
+          'LIFECYCLE',
+          '/',
+          {
+            reason: 'failed-session-cleanup',
+            failedStageCount: cleanupErrors.length,
+            failedStages: cleanupErrors.map((item) => item.stage).join(','),
+          },
+          { manifestUri },
+        )
+    this.publish({
+      status: 'error',
+      graphId: null,
+      nodes: [],
+      diagnostic: null,
+      packageDiagnostic: publishedFailure,
+    })
+    return {
+      kind: 'model-error',
+      generation: ticket.generation,
+      message: cleanupErrors.length === 0 ? modelMessage : '模型包失败且资源清理不完整',
     }
   }
 
@@ -1585,6 +1870,207 @@ export class TopologySceneLifecycle {
           assetId: manifestAsset.assetId,
           details: { cause: safeErrorName(error) },
         },
+      ))
+    }
+  }
+
+  private async loadPackageAssetsV2(
+    validated: ValidatedPackageArchiveV2,
+    sessionId: string,
+    ticket: SelectionTicket,
+  ): Promise<readonly PackageAssetLoadOutcomeV2[]> {
+    const assets = validated.archive.manifestDocument.assets
+    const outcomes = new Array<PackageAssetLoadOutcomeV2>(assets.length)
+    const concurrency = Math.min(
+      3,
+      Math.max(2, this.ports.assetConcurrency ?? DEFAULT_ASSET_CONCURRENCY),
+    )
+    let cursor = 0
+    let firstFailure: PackageAssetLoadFailureV2 | null = null
+    let stale = false
+
+    const worker = async (): Promise<void> => {
+      while (firstFailure === null) {
+        if (!this.isTicketCurrent(ticket)) {
+          stale = true
+          return
+        }
+        const index = cursor++
+        if (index >= assets.length) return
+        try {
+          outcomes[index] = await this.loadPackageAssetV2(
+            validated,
+            index,
+            sessionId,
+            ticket,
+          )
+        } catch (error) {
+          if (!this.isTicketCurrent(ticket) || error instanceof StaleSelectionError) {
+            stale = true
+            return
+          }
+          const manifestAsset = assets[index]!
+          firstFailure = error instanceof PackageAssetLoadFailureV2
+            ? error
+            : new PackageAssetLoadFailureV2(packageDiagnostic(
+                'PACKAGE_FIELD_INVALID',
+                'LIFECYCLE',
+                `/assets/${index}`,
+                { reason: 'asset-load', error: safeErrorName(error) },
+                {
+                  manifestUri: validated.archive.manifestDocument.manifestUri,
+                  assetId: manifestAsset.assetId,
+                },
+              ))
+          return
+        }
+      }
+    }
+
+    const workers = Array.from(
+      { length: Math.min(concurrency, assets.length) },
+      () => worker(),
+    )
+    await Promise.allSettled(workers)
+    if (stale || !this.isTicketCurrent(ticket)) throw new StaleSelectionError()
+    if (firstFailure !== null) throw firstFailure
+    if (outcomes.some((outcome) => outcome === undefined)) {
+      throw new PackageAssetLoadFailureV2(packageDiagnostic(
+        'PACKAGE_FIELD_INVALID',
+        'LIFECYCLE',
+        '/assets',
+        {
+          reason: 'partial-scene',
+          expected: assets.length,
+          actual: outcomes.filter(Boolean).length,
+        },
+        { manifestUri: validated.archive.manifestDocument.manifestUri },
+      ))
+    }
+    const roots = new Set(outcomes.map((outcome) => outcome.sessionAsset.root))
+    if (roots.size !== outcomes.length) {
+      throw new PackageAssetLoadFailureV2(packageDiagnostic(
+        'PACKAGE_FIELD_INVALID',
+        'LIFECYCLE',
+        '/assets',
+        { reason: 'duplicate-loaded-root', assets: outcomes.length, roots: roots.size },
+        { manifestUri: validated.archive.manifestDocument.manifestUri },
+      ))
+    }
+    return Object.freeze(outcomes)
+  }
+
+  private async loadPackageAssetV2(
+    validated: ValidatedPackageArchiveV2,
+    index: number,
+    sessionId: string,
+    ticket: SelectionTicket,
+  ): Promise<PackageAssetLoadOutcomeV2> {
+    this.assertTicketCurrent(ticket)
+    const manifest = validated.archive.manifestDocument
+    const manifestAsset = manifest.assets[index]!
+    const entry = validated.archive.assets[index]!
+    const metadata = validated.metadata[index]!
+    const transport = packageTransportIdentity(
+      manifest.manifestUri,
+      sessionId,
+      index,
+      manifestAsset.digest.value,
+    )
+    let info: TopologyFloorInfo | null = null
+    try {
+      info = await loadFloorWithSynchronousCacheLease({
+        url: transport.url,
+        canonicalUrl: transport.url,
+        bytes: exactArrayBuffer(entry.bytes),
+        cache: this.ports.cache,
+        resolveLoaderUrl: this.ports.resolveLoaderUrl,
+        assertCurrent: () => this.assertTicketCurrent(ticket),
+        loadFloor: this.ports.loadFloor,
+      })
+      this.assertTicketCurrent(ticket)
+      if (!isVisibleInScene(info.root, this.ports.getScene())) {
+        throw new PackageAssetLoadFailureV2(packageDiagnostic(
+          'PACKAGE_FIELD_INVALID',
+          'LIFECYCLE',
+          `/assets/${index}`,
+          { reason: 'root-not-attached-to-current-scene' },
+          { manifestUri: manifest.manifestUri, assetId: manifestAsset.assetId },
+        ))
+      }
+      if (info.url !== transport.url || info.floorName !== manifestAsset.floor.floorName) {
+        throw new PackageAssetLoadFailureV2(packageDiagnostic(
+          'PACKAGE_FIELD_INVALID',
+          'LIFECYCLE',
+          `/assets/${index}`,
+          {
+            reason: 'loader-identity-mismatch',
+            field: info.url !== transport.url ? 'url' : 'floorName',
+          },
+          { manifestUri: manifest.manifestUri, assetId: manifestAsset.assetId },
+        ))
+      }
+
+      // modelTool keeps its private basename key separately. Public state and
+      // proof retain only manifest identity; the transport URL is never emitted.
+      info.url = manifestAsset.canonicalUri
+      const resourceProof: PackageAssetResourceProofV2 = {
+        assetId: manifestAsset.assetId,
+        canonicalUri: manifestAsset.canonicalUri,
+        digest: { ...manifestAsset.digest },
+        packageRevision: manifest.revision,
+        root: info.root,
+        selectionGeneration: ticket.generation,
+        provenance: 'SAME_RESPONSE_BYTES',
+      }
+      const publicMetadata: PackageMetadataProjectionV2 = {
+        scene: { ...metadata.scene },
+        nodes: metadata.nodes.map((node) => ({ ...node })),
+      }
+      const sessionAsset: TopologyAbsentPackageSessionAssetV2 = {
+        assetId: manifestAsset.assetId,
+        canonicalUri: manifestAsset.canonicalUri,
+        floorName: manifestAsset.floor.floorName,
+        building: manifestAsset.floor.building,
+        level: manifestAsset.floor.level,
+        floorType: manifestAsset.floor.floorType,
+        root: info.root,
+        metadata: publicMetadata,
+        resourceProof,
+      }
+      return Object.freeze({ sessionAsset, transportKey: transport.key })
+    } catch (error) {
+      let retirementError: unknown | null = null
+      if (info !== null) {
+        try {
+          await this.retirePackageTransport(transport.key, ticket)
+        } catch (retirementFailure) {
+          retirementError = retirementFailure
+        }
+      }
+      if (retirementError !== null && !this.isTicketCurrent(ticket)) {
+        if (this.active === null) this.cleanupResources()
+        throw new StaleSelectionError()
+      }
+      if (!this.isTicketCurrent(ticket) || error instanceof StaleSelectionError) {
+        throw new StaleSelectionError()
+      }
+      if (retirementError !== null) {
+        throw new PackageAssetLoadFailureV2(packageDiagnostic(
+          'PACKAGE_FIELD_INVALID',
+          'LIFECYCLE',
+          `/assets/${index}`,
+          { reason: 'transport-retirement', error: safeErrorName(retirementError) },
+          { manifestUri: manifest.manifestUri, assetId: manifestAsset.assetId },
+        ))
+      }
+      if (error instanceof PackageAssetLoadFailureV2) throw error
+      throw new PackageAssetLoadFailureV2(packageDiagnostic(
+        'PACKAGE_FIELD_INVALID',
+        'LIFECYCLE',
+        `/assets/${index}`,
+        { reason: 'asset-load', error: safeErrorName(error) },
+        { manifestUri: manifest.manifestUri, assetId: manifestAsset.assetId },
       ))
     }
   }

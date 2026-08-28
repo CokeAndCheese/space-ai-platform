@@ -233,6 +233,12 @@ async function validPackage(options: {
   return { zip: storedZip(entries), manifest, assets }
 }
 
+export type PackageV2FixtureFloor = Floor
+export const PACKAGE_V2_FIXTURE_FLOOR = FLOOR
+export const createPackageV2GlbFixture = validGlb
+export const createPackageV2Fixture = validPackage
+export const createStoredPackageZipV2Fixture = storedZip
+
 function manifestVector(revision: string, overrides: Record<string, unknown> = {}) {
   return {
     schema: 'space-model-package',

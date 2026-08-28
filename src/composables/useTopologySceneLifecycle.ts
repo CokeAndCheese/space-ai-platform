@@ -9,8 +9,10 @@ import {
   createTopologySceneLifecycle,
   type TopologyCachePort,
   type TopologyModelSelectionResult,
+  type PackageAssetResourceProofV2,
+  type TopologyAbsentPackageSessionAssetV2,
   type TopologyPackageSessionAsset,
-  type TopologyPackageSessionSnapshot,
+  type TopologyPackageSessionState,
   type TopologySceneSessionNode,
   type TopologySceneSessionSnapshot,
   type TopologySceneSessionStatus,
@@ -22,7 +24,7 @@ export interface TopologySceneSession {
   nodes: ComputedRef<readonly TopologySceneSessionNode[]>
   diagnostic: ComputedRef<TopologySidecarDiagnostic | null>
   packageDiagnostic: ComputedRef<PackageDiagnostic | null>
-  packageSession: ComputedRef<TopologyPackageSessionSnapshot | null>
+  packageSession: ComputedRef<TopologyPackageSessionState | null>
 }
 
 export interface UseTopologySceneLifecycleReturn {
@@ -32,8 +34,11 @@ export interface UseTopologySceneLifecycleReturn {
     manifest: readonly ModelRecord[],
   ): Promise<TopologyModelSelectionResult>
   selectPackage(packageBytes: Uint8Array): Promise<TopologyModelSelectionResult>
+  selectPackageV2(packageBytes: Uint8Array): Promise<TopologyModelSelectionResult>
   getPackageAssetById(assetId: string): TopologyPackageSessionAsset | null
   getPackageAssetsByFloorName(floorName: string): readonly TopologyPackageSessionAsset[]
+  getPackageV2AssetById(assetId: string): TopologyAbsentPackageSessionAssetV2 | null
+  getPackageV2ResourceProof(assetId: string): PackageAssetResourceProofV2 | null
   isGenerationCurrent(generation: number): boolean
   invalidate(): number
   invalidateAndCleanup(): number
@@ -98,10 +103,13 @@ export function useTopologySceneLifecycle(): UseTopologySceneLifecycleReturn {
     session,
     select: (selectedUrl, manifest) => activeLifecycle.select(selectedUrl, manifest),
     selectPackage: (packageBytes) => activeLifecycle.selectPackage(packageBytes),
+    selectPackageV2: (packageBytes) => activeLifecycle.selectPackageV2(packageBytes),
     getPackageAssetById: (assetId) => activeLifecycle.getPackageAssetById(assetId),
     getPackageAssetsByFloorName: (floorName) => (
       activeLifecycle.getPackageAssetsByFloorName(floorName)
     ),
+    getPackageV2AssetById: (assetId) => activeLifecycle.getPackageV2AssetById(assetId),
+    getPackageV2ResourceProof: (assetId) => activeLifecycle.getPackageV2ResourceProof(assetId),
     isGenerationCurrent: (generation) => activeLifecycle.isGenerationCurrent(generation),
     invalidate: () => activeLifecycle.invalidate(),
     invalidateAndCleanup: () => activeLifecycle.invalidateAndCleanup(),

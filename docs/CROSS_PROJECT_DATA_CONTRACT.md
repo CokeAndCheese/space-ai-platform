@@ -9,6 +9,7 @@
 - Studio 当前实现基线：Metadata `3.3-semantic`；GLB 内嵌 `scene.extras.sspTopology` schema v1
 - Platform 当前实现基线：GLB Metadata v3.1；外置 `space-ai-platform/topology-sidecar` schema v1
 - 当前兼容结论：**双端技术候选已通过共同验证，但尚未获得用户里程碑确认、尚未发布或合并，不得提前声明 `main` 已兼容**
+- v2 过渡状态：用户已批准能力声明型 Standard Model Package v2 的临时方向；当前仅有过程设计，机器 schema/code/fixtures/diagnostics 尚未联合冻结或实现
 
 本记录只固化长期产品边界、当前事实和变更门禁，不修改任何现有字段、枚举、坐标、ID、发现或绑定语义。
 
@@ -29,6 +30,7 @@ Space AI Platform
 - Platform 的 SSP、Template、AI、数据库和 UI 状态不是 Studio 的生产依赖。
 - 双方应共享版本化机器契约、兼容承诺、golden fixture 和 validator 预期，而不是源代码。
 - Standard Model Package v1 已在双方任务分支完成机器实现和联合技术验收，满足提交用户里程碑确认的技术条件；在用户确认前，它仍是候选而不是已发布兼容承诺。
+- 用户已批准以独立 v2 身份临时承载“严格几何与 Metadata 已验证、topology 明确缺席”的标准包。该批准允许进入联合设计和后续获准实施，不表示当前 Platform 已能接受 v2；过程与回滚基线见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。
 - 任一方不得为快速对齐，在已发布版本名下静默改变字段、枚举、必填性、坐标、单位、ID、发现、资产绑定、connector、blocker 或摘要语义。
 
 ### Studio 内部 authoring 输入不进入共享契约
@@ -38,6 +40,7 @@ Space AI Platform
 - Platform 不扫描目录、不猜楼层、不直接读取或适配 raw `Building.glb`；本决策不产生 Platform reader、adapter、SSP、模板或 UI 研发动作。
 - Studio 内部拆层不得生成未经发布契约声明的跨层 connector/路由，也不得改变 Package v1、Metadata v3.1/`3.3-semantic`、embedded topology v1 或 sidecar v1 的既有语义。
 - Studio 最终产物仍须经过既有标准模型发布门禁；整体建筑 authoring input 与旧 building-release ZIP 不因 Package v1 候选而自动升级，Platform 仍拒绝缺少显式 v1 manifest identity 的旧 ZIP。
+- 后续 v2 若完成联合机器契约与实现，只消费 Studio 严格验证并最终回读的显式 v2 package；Platform 仍不直接读取 raw `Building.glb`，也不把旧 building-release ZIP、`*-unvalidated` 中间产物或 v1 topology 失败自动升级为 v2。
 
 ## 2. 当前 Metadata 差异
 
@@ -115,6 +118,17 @@ Standard Model Package v1 已完成双端技术验收，但在用户确认兼容
 - 两端全门禁与真实浏览器联合验收通过；最终独立 Reviewer 结论为 P0/P1/P2 均为 0。
 - 候选保持 Platform 旧 v3.1 reader 不变，不读取 embedded topology fallback，拒绝旧 Studio building-release ZIP；Standard Model Package v1 不提供跨层 routing。
 
+### 6.2 临时方案：能力声明型 Standard Model Package v2
+
+用户于 2026-08-28 批准 v2 临时方向，详细过程设计见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。长期边界为：
+
+- v1 继续强制 strict sidecar topology；v1 reader/fixtures 与旧 v3.1 reader 不变。
+- v2 以新版本身份显式声明 topology `ABSENT` 语义；不得缺省猜测、使用空/伪 sidecar或读取 embedded topology fallback。
+- v2 不是 unvalidated package。GLB 几何、Metadata `3.3-semantic`、SPACE/语义、最终发布物回读、URI、SHA-256、revision、identity 与资源限制仍须由 Studio 和 Platform 分别严格验证。
+- Platform 只开放 scene、Metadata 和其他不依赖 topology 的能力；routing/rendering/connector/blocker/topology AI/Quick Action 以结构化 `TOPOLOGY_UNAVAILABLE` 产品语义关闭，不得误报包加载失败或 Graph ready。
+- 当前只完成批准方向和过程计划；machine schema、字段拼写、manifest 发现、fixtures、diagnostics 与双端代码均未冻结或实现，因此不得宣布 v2 已可交付或 Platform 已兼容。
+- v2 退出必须由完整 topology 的 Studio authoring、Platform consumer、共同 fixtures、真实整栋验收和用户里程碑批准共同触发。双方同步停止新生产/新接收，存量只读迁移回 Studio 补 topology 后重发 v1；最终删除 v2 reader 仍需用户批准，不得单方回滚。
+
 ### 未采用方案
 
 - 方案 A「长期冻结隔离」未采用；仅作为双端实现完成前的临时运行状态。
@@ -137,3 +151,4 @@ Standard Model Package v1 已完成双端技术验收，但在用户确认兼容
 | 2026-08-22 | 采用方案 B，新增 Standard Model Package v1；Studio dual-write，Platform dual-read，保留四个既有契约 | 已批准 | 无新增编制；现有岗位承担联合实现 |
 | 2026-08-26 | Studio V1「整体建筑导入」属于 Studio 内部 authoring input profile；raw `Building.glb` 不进入 Platform 或共享发布契约 | 已批准 | Platform 无研发动作、无人员变动 |
 | 2026-08-28 | 双端任务分支机器实现和联合技术验收完成，形成待用户里程碑确认的 Standard Model Package v1 兼容候选 | 技术候选；未发布、未合并 | 无人员变动 |
+| 2026-08-28 | 新增能力声明型 Standard Model Package v2 作为 topology 明确缺席时的临时严格标准包；v1 与 legacy reader 不变 | 方向已批准；机器契约与实现待完成 | 无人员变动 |

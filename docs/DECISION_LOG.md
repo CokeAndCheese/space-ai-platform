@@ -154,6 +154,19 @@
 - **保留边界**：Platform 旧 v3.1 reader 保持不变；Platform 不读取 embedded topology fallback；旧 Studio building-release ZIP 继续拒绝；v1 不提供跨层 routing。
 - **人员影响**：不新增、撤销或调整人员、职责和汇报关系，不触发 `ORG_CHART.md` 或 `PRODUCT_MANAGER_CHARTER.md` 变更。
 
+## 2026-08-28 — 批准能力声明型 Standard Model Package v2 作为临时放行
+
+- **状态**：有效；方向已批准，机器契约和双端实现尚未完成。
+- **背景**：完整 topology 的 Studio authoring 与 Platform consumer 尚未形成可用于真实整栋交付的共同闭环，但需要临时交付已经完成严格几何、Metadata `3.3-semantic` 与 SPACE/语义验证的整栋标准包。
+- **决策**：新增独立版本身份的能力声明型 Standard Model Package v2。v2 必须显式声明 topology `ABSENT` 语义，同时继续严格验证 GLB 几何与自包含资源、Metadata 3.3、SPACE/语义、最终发布物回读、URI、SHA-256、不可变 revision、package/asset/floor identity、唯一性和资源限制。
+- **拒绝边界**：v2 不是 `*-unvalidated` 包；不接受旧 building-release ZIP、无显式身份 ZIP、v1 topology 失败降级、缺省猜测、空/伪 sidecar或 embedded topology fallback。v1 继续强制 strict sidecar topology；v1 reader/fixtures 和旧 v3.1 reader 保持不变。
+- **能力边界**：Platform 对合法 v2 只开放 scene、Metadata 和其他不依赖 topology 的能力。routing、route rendering、connector、blocker、topology AI 与 Quick Action 必须投影为结构化 `TOPOLOGY_UNAVAILABLE` 产品语义，不得把正常能力缺席误报为加载失败、`NO_PATH` 或 Graph ready。
+- **回滚决策**：只有 Studio authoring 与 Platform consumer 的完整 topology、共同 fixtures、真实整栋联合验收和用户里程碑批准全部满足，双方才同步停止新生产/新接收 v2。存量 v2 只读迁移，回 Studio 补 topology 后重发新的 v1 revision；最终删除 v2 reader仍需用户明确批准，任何一方不得单方回滚。
+- **当前门禁**：本轮仅固化过程设计。v2 machine schema、精确字段、manifest discovery、fixtures、diagnostics 和 producer/consumer code 尚未联合冻结或实现；当前 Platform 不得宣称接受或兼容 v2。
+- **记录**：过程、影响矩阵、实施工作包和待对齐机器字段见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。
+- **人员影响**：不新增、撤销或迁移人员、职责和汇报关系，不触发组织架构变更。
+- **替换关系**：不替换 Standard Model Package v1、Metadata v3.1/`3.3-semantic`、Studio embedded topology v1 或 Platform sidecar v1；只新增临时、显式隔离的 v2 路径。
+
 ## 新决策模板
 
 ```markdown

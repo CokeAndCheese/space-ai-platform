@@ -34,6 +34,7 @@ const {
   result: topologyResult,
   currentRouteId: topologyCurrentRouteId,
   busy: topologyBusy,
+  capabilityUnavailable: topologyCapabilityUnavailable,
   sessionReady: topologySessionReady,
   canExecute: topologyCanExecute,
   canClear: topologyCanClear,
@@ -291,65 +292,82 @@ function onKeydown(e: KeyboardEvent) {
       data-testid="topology-quick-action"
       :data-state="topologyStatus"
       :data-busy="topologyBusy ? 'true' : 'false'"
+      :data-capability-code="topologyCapabilityUnavailable?.code"
+      :data-reason-code="topologyCapabilityUnavailable?.reasonCode"
     >
       <div class="topology-quick-header">
         <strong>🧭 路径 Quick Action</strong>
         <span class="topology-phase">{{ topologyPhase }}</span>
       </div>
 
-      <div class="topology-graph">
-        <span>Graph</span>
-        <code data-testid="topology-graph-id">{{ topologyGraphId ?? '—' }}</code>
+      <div
+        v-if="topologyCapabilityUnavailable"
+        class="topology-capability-unavailable"
+        data-testid="topology-capability-unavailable"
+      >
+        <strong>Scene/Metadata ready</strong>
+        <span>Topology 未提供，路径能力不可用。</span>
+        <code>
+          {{ topologyCapabilityUnavailable.code }} /
+          {{ topologyCapabilityUnavailable.reasonCode }}
+        </code>
       </div>
 
-      <div class="topology-endpoints">
-        <label>
-          <span>起点</span>
-          <select
-            v-model="topologyStartNodeId"
-            data-testid="topology-start-select"
-            :disabled="!topologySessionReady || topologyBusy"
+      <template v-else>
+        <div class="topology-graph">
+          <span>Graph</span>
+          <code data-testid="topology-graph-id">{{ topologyGraphId ?? '—' }}</code>
+        </div>
+
+        <div class="topology-endpoints">
+          <label>
+            <span>起点</span>
+            <select
+              v-model="topologyStartNodeId"
+              data-testid="topology-start-select"
+              :disabled="!topologySessionReady || topologyBusy"
+            >
+              <option disabled value="">请选择起点</option>
+              <option v-for="node in topologyNodes" :key="`start:${node.id}`" :value="node.id">
+                {{ topologyNodeLabel(node) }}
+              </option>
+            </select>
+          </label>
+
+          <label>
+            <span>终点</span>
+            <select
+              v-model="topologyGoalNodeId"
+              data-testid="topology-goal-select"
+              :disabled="!topologySessionReady || topologyBusy"
+            >
+              <option disabled value="">请选择终点</option>
+              <option v-for="node in topologyNodes" :key="`goal:${node.id}`" :value="node.id">
+                {{ topologyNodeLabel(node) }}
+              </option>
+            </select>
+          </label>
+        </div>
+
+        <div class="topology-controls">
+          <button
+            class="topology-run-btn"
+            data-testid="topology-execute"
+            :disabled="!topologyCanExecute"
+            @click="executeTopologyRoute"
           >
-            <option disabled value="">请选择起点</option>
-            <option v-for="node in topologyNodes" :key="`start:${node.id}`" :value="node.id">
-              {{ topologyNodeLabel(node) }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          <span>终点</span>
-          <select
-            v-model="topologyGoalNodeId"
-            data-testid="topology-goal-select"
-            :disabled="!topologySessionReady || topologyBusy"
+            {{ topologyBusy ? '处理中…' : '查找并显示' }}
+          </button>
+          <button
+            class="topology-clear-btn"
+            data-testid="topology-clear"
+            :disabled="!topologyCanClear"
+            @click="clearTopologyRoute"
           >
-            <option disabled value="">请选择终点</option>
-            <option v-for="node in topologyNodes" :key="`goal:${node.id}`" :value="node.id">
-              {{ topologyNodeLabel(node) }}
-            </option>
-          </select>
-        </label>
-      </div>
-
-      <div class="topology-controls">
-        <button
-          class="topology-run-btn"
-          data-testid="topology-execute"
-          :disabled="!topologyCanExecute"
-          @click="executeTopologyRoute"
-        >
-          {{ topologyBusy ? '处理中…' : '查找并显示' }}
-        </button>
-        <button
-          class="topology-clear-btn"
-          data-testid="topology-clear"
-          :disabled="!topologyCanClear"
-          @click="clearTopologyRoute"
-        >
-          清除路线
-        </button>
-      </div>
+            清除路线
+          </button>
+        </div>
+      </template>
 
       <p
         class="topology-status"
@@ -821,6 +839,10 @@ function onKeydown(e: KeyboardEvent) {
   color: #FFD54F;
 }
 
+.topology-quick-action[data-state='capability-unavailable'] .topology-status {
+  color: #80CBC4;
+}
+
 .topology-quick-action[data-state='error'] .topology-status {
   color: #FF8A80;
 }
@@ -832,6 +854,24 @@ function onKeydown(e: KeyboardEvent) {
   margin-top: 5px;
   color: #90A4AE;
   font-size: 9px;
+}
+
+.topology-capability-unavailable {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid #38635f;
+  border-radius: 4px;
+  background: #172925;
+  color: #b2dfdb;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.topology-capability-unavailable code {
+  color: #80cbc4;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
 .messages {

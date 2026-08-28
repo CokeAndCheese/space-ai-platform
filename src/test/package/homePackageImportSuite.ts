@@ -14,8 +14,10 @@ import {
   type HomeSceneSelectionController,
 } from '@/composables/useHomeSceneSelection'
 import type {
+  TopologyAbsentPackageSessionSnapshotV2,
   TopologyModelSelectionResult,
   TopologyPackageSessionSnapshot,
+  TopologyPackageSessionState,
   TopologySceneSessionStatus,
 } from '@/topology'
 
@@ -29,6 +31,7 @@ interface Deferred<T> {
 
 interface PendingPackageCall {
   readonly generation: number
+  readonly kind: 'v1' | 'v2'
   readonly bytes: Uint8Array
   readonly deferred: Deferred<TopologyModelSelectionResult>
 }
@@ -91,7 +94,7 @@ class FakeLifecycle implements HomeSceneLifecyclePort {
   readonly graphId = ref<string | null>(null)
   readonly diagnostic = ref<TopologySidecarDiagnostic | null>(null)
   readonly packageDiagnostic = ref<PackageDiagnostic | null>(null)
-  readonly packageSession = ref<TopologyPackageSessionSnapshot | null>(null)
+  readonly packageSession = ref<TopologyPackageSessionState | null>(null)
   readonly session = {
     status: this.status,
     graphId: this.graphId,
@@ -104,6 +107,7 @@ class FakeLifecycle implements HomeSceneLifecyclePort {
   cleanupCalls = 0
   visibleRoots = 0
   readonly packageCalls: PendingPackageCall[] = []
+  readonly packageV2Calls: PendingPackageCall[] = []
   readonly legacyCalls: PendingLegacyCall[] = []
 
   private clearPublishedState(): void {
@@ -128,8 +132,27 @@ class FakeLifecycle implements HomeSceneLifecyclePort {
   selectPackage(bytes: Uint8Array): Promise<TopologyModelSelectionResult> {
     const generation = ++this.generation
     this.clearPublishedState()
-    const call = { generation, bytes, deferred: deferred<TopologyModelSelectionResult>() }
+    const call = {
+      generation,
+      kind: 'v1' as const,
+      bytes,
+      deferred: deferred<TopologyModelSelectionResult>(),
+    }
     this.packageCalls.push(call)
+    this.status.value = 'loading'
+    return call.deferred.promise
+  }
+
+  selectPackageV2(bytes: Uint8Array): Promise<TopologyModelSelectionResult> {
+    const generation = ++this.generation
+    this.clearPublishedState()
+    const call = {
+      generation,
+      kind: 'v2' as const,
+      bytes,
+      deferred: deferred<TopologyModelSelectionResult>(),
+    }
+    this.packageV2Calls.push(call)
     this.status.value = 'loading'
     return call.deferred.promise
   }
@@ -162,6 +185,27 @@ class FakeLifecycle implements HomeSceneLifecyclePort {
     call.deferred.resolve({ kind: 'loaded', generation: call.generation, assetCount: floorCount })
   }
 
+  resolvePackageV2(
+    index: number,
+    identity: { packageId: string; revision: string; floorCount?: number },
+  ): void {
+    const call = this.packageV2Calls[index]
+    assert(call, `missing package v2 call ${index}`)
+    const floorCount = identity.floorCount ?? 2
+    if (this.isGenerationCurrent(call.generation)) {
+      this.status.value = 'scene-ready'
+      this.graphId.value = null
+      this.visibleRoots = floorCount
+      this.packageSession.value = packageSessionV2(
+        identity.packageId,
+        identity.revision,
+        floorCount,
+        call.generation,
+      )
+    }
+    call.deferred.resolve({ kind: 'loaded', generation: call.generation, assetCount: floorCount })
+  }
+
   rejectPackage(
     index: number,
     diagnostic: PackageDiagnostic | TopologySidecarDiagnostic,
@@ -181,6 +225,21 @@ class FakeLifecycle implements HomeSceneLifecyclePort {
       kind: 'model-error',
       generation: call.generation,
       message: '标准模型包校验失败',
+    })
+  }
+
+  rejectPackageV2(index: number, diagnostic: PackageDiagnostic): void {
+    const call = this.packageV2Calls[index]
+    assert(call, `missing package v2 call ${index}`)
+    if (this.isGenerationCurrent(call.generation)) {
+      this.status.value = 'error'
+      this.visibleRoots = 0
+      this.packageDiagnostic.value = diagnostic
+    }
+    call.deferred.resolve({
+      kind: 'model-error',
+      generation: call.generation,
+      message: 'Standard Model Package v2 校验失败',
     })
   }
 
@@ -222,13 +281,66 @@ function packageSession(
   }
 }
 
+function packageSessionV2(
+  packageId: string,
+  revision: string,
+  floorCount: number,
+  selectionGeneration: number,
+): TopologyAbsentPackageSessionSnapshotV2 {
+  const scene = new THREE.Scene()
+  return {
+    schemaVersion: 2,
+    profile: 'TOPOLOGY_ABSENT_TRANSITION',
+    manifestUri: `https://space.test/__space-model-package-v2/${packageId}/space-model-package.v2.json`,
+    packageId,
+    revision,
+    assets: Object.freeze(Array.from({ length: floorCount }, (_, index) => {
+      const root = new THREE.Group()
+      scene.add(root)
+      const floor = Object.freeze({
+        floorName: `F${index}`,
+        building: 'A',
+        level: index,
+        floorType: 'FLOOR',
+      })
+      return Object.freeze({
+        assetId: `${packageId}/asset-${index}`,
+        canonicalUri: `https://space.test/__space-model-package-v2/${packageId}/floor-${index}.glb`,
+        ...floor,
+        root,
+        metadata: Object.freeze({
+          scene: Object.freeze({ ...floor, name: `Floor ${index}` }),
+          nodes: Object.freeze([]),
+        }),
+        resourceProof: Object.freeze({
+          assetId: `${packageId}/asset-${index}`,
+          canonicalUri: `https://space.test/__space-model-package-v2/${packageId}/floor-${index}.glb`,
+          digest: Object.freeze({ algorithm: 'SHA-256' as const, value: 'a'.repeat(64) }),
+          packageRevision: revision,
+          root,
+          selectionGeneration,
+          provenance: 'SAME_RESPONSE_BYTES' as const,
+        }),
+      })
+    })),
+    topologyCapability: Object.freeze({
+      capability: 'topology',
+      status: 'UNAVAILABLE',
+      code: 'TOPOLOGY_UNAVAILABLE',
+      reasonCode: 'PACKAGE_DECLARED_ABSENT',
+      packageSchemaVersion: 2,
+    }),
+  }
+}
+
 function packageDiagnostic(
-  code = 'PACKAGE_DIGEST_MISMATCH' as const,
+  code: PackageDiagnostic['code'] = 'PACKAGE_DIGEST_MISMATCH',
   path = '/assets/0/digest',
+  phase: PackageDiagnostic['phase'] = 'HASH',
 ): PackageDiagnostic {
   return {
     code,
-    phase: 'HASH',
+    phase,
     path,
     manifestUri: 'https://space.test/.transport/private?token=secret',
     details: Object.freeze({ token: 'must-not-render' }),
@@ -335,13 +447,86 @@ const tests: Test[] = [
       equal(harness.controller.state.visibleAssetCount, 2, 'visible asset count')
       deepEqual(harness.controller.state.packageSummary, {
         fileName: 'hospital-standard.zip',
+        kind: 'v1',
         packageId: 'hospital-a',
         revision: 'revision-7',
         floorCount: 2,
+        readiness: 'graph-ready',
         graphId: 'hospital-graph',
+        topologyCapability: null,
       }, 'safe package summary')
       assert(!JSON.stringify(harness.controller.state).includes('.transport'), 'summary hides transport identity')
       deepEqual(harness.events, ['fit:hospital-standard.zip', 'capture:hospital-standard.zip'], 'post-load sequence')
+    },
+  },
+  {
+    name: 'explicit v2 selection uses only the v2 lifecycle and publishes Scene Metadata readiness',
+    run: async () => {
+      const harness = createHarness()
+      const input = fileFixture('building-v2.zip', new Uint8Array([2, 0, 2, 6]))
+      const promise = harness.controller.selectPackageFile(input.file, 'v2')
+      await until(() => harness.lifecycle.packageV2Calls.length === 1, 'package v2 call should start')
+
+      equal(harness.lifecycle.packageCalls.length, 0, 'v2 never probes the v1 reader')
+      equal(harness.controller.state.packageKind, 'v2', 'explicit v2 UI state')
+      assert(harness.controller.statusText().includes('v2 ZIP'), 'v2 processing text')
+      const call = harness.lifecycle.packageV2Calls[0]!
+      equal(call.kind, 'v2', 'v2 call kind')
+      equal(call.bytes.buffer, input.buffer, 'v2 receives exact File ArrayBuffer')
+
+      harness.lifecycle.resolvePackageV2(0, {
+        packageId: 'building-v2',
+        revision: 'revision-v2',
+        floorCount: 3,
+      })
+      await promise
+
+      equal(harness.controller.state.phase, 'ready', 'v2 ready phase')
+      equal(
+        harness.controller.statusText(),
+        'Scene/Metadata ready / Topology 未提供',
+        'v2 readiness text',
+      )
+      equal(harness.controller.state.hasVisibleScene, true, 'v2 scene remains visible')
+      equal(harness.controller.state.visibleAssetCount, 3, 'v2 visible floor count')
+      deepEqual(harness.controller.state.packageSummary, {
+        fileName: 'building-v2.zip',
+        kind: 'v2',
+        packageId: 'building-v2',
+        revision: 'revision-v2',
+        floorCount: 3,
+        readiness: 'scene-metadata-ready',
+        graphId: null,
+        topologyCapability: {
+          code: 'TOPOLOGY_UNAVAILABLE',
+          reasonCode: 'PACKAGE_DECLARED_ABSENT',
+        },
+      }, 'safe v2 package summary')
+      deepEqual(
+        harness.events,
+        ['fit:building-v2.zip', 'capture:building-v2.zip'],
+        'v2 reuses scene finalization',
+      )
+      assert(!JSON.stringify(harness.controller.state).includes('.transport'), 'v2 UI hides transport')
+    },
+  },
+  {
+    name: 'v1 failure never retries the v2 reader',
+    run: async () => {
+      const harness = createHarness()
+      const input = fileFixture('looks-like-v2.zip', new Uint8Array([1]))
+      const promise = harness.controller.selectPackageFile(input.file, 'v1')
+      await until(() => harness.lifecycle.packageCalls.length === 1, 'v1 call should start')
+      harness.lifecycle.rejectPackage(0, packageDiagnostic('PACKAGE_RESOURCE_NOT_FOUND', '/topology'))
+      await promise
+
+      equal(harness.lifecycle.packageCalls.length, 1, 'one v1 attempt')
+      equal(harness.lifecycle.packageV2Calls.length, 0, 'no v2 fallback')
+      equal(harness.controller.state.phase, 'error', 'v1 failure stays failure')
+      assert(
+        harness.controller.state.errorText.includes('PACKAGE_RESOURCE_NOT_FOUND'),
+        'v1 diagnostic remains visible',
+      )
     },
   },
   {
@@ -363,6 +548,26 @@ const tests: Test[] = [
       equal(harness.lifecycle.packageCalls.length, 2, 'same ZIP starts two lifecycle selections')
       equal(harness.controller.state.packageSummary?.revision, 'r2', 'second generation wins')
       equal(harness.lifecycle.visibleRoots, 2, 'only current package roots remain')
+    },
+  },
+  {
+    name: 'the same v2 ZIP can be explicitly retried without falling through to v1',
+    run: async () => {
+      const harness = createHarness()
+      const input = fileFixture('same-v2.zip', new Uint8Array([2, 2]))
+      const first = harness.controller.selectPackageFile(input.file, 'v2')
+      await until(() => harness.lifecycle.packageV2Calls.length === 1, 'first v2 call')
+      harness.lifecycle.resolvePackageV2(0, { packageId: 'same-v2', revision: 'r1' })
+      await first
+
+      const second = harness.controller.selectPackageFile(input.file, 'v2')
+      await until(() => harness.lifecycle.packageV2Calls.length === 2, 'second v2 call')
+      harness.lifecycle.resolvePackageV2(1, { packageId: 'same-v2', revision: 'r2' })
+      await second
+
+      equal(input.readCount(), 2, 'same v2 File read twice')
+      equal(harness.lifecycle.packageCalls.length, 0, 'retry never calls v1')
+      equal(harness.controller.state.packageSummary?.revision, 'r2', 'second v2 generation wins')
     },
   },
   {
@@ -449,6 +654,40 @@ const tests: Test[] = [
     },
   },
   {
+    name: 'v1 v2 and legacy switch atomically through the shared controller',
+    run: async () => {
+      const harness = createHarness()
+      const v1File = fileFixture('switch-v1.zip', new Uint8Array([1]))
+      const v2File = fileFixture('switch-v2.zip', new Uint8Array([2]))
+
+      const staleV1 = harness.controller.selectPackageFile(v1File.file, 'v1')
+      await until(() => harness.lifecycle.packageCalls.length === 1, 'switch v1 starts')
+      const freshV2 = harness.controller.selectPackageFile(v2File.file, 'v2')
+      await until(() => harness.lifecycle.packageV2Calls.length === 1, 'switch v2 starts')
+      harness.lifecycle.resolvePackage(0, { packageId: 'stale-v1', revision: 'r1' })
+      await staleV1
+      harness.lifecycle.resolvePackageV2(0, { packageId: 'fresh-v2', revision: 'r2' })
+      await freshV2
+      equal(harness.controller.state.packageSummary?.kind, 'v2', 'v2 replaces stale v1')
+      equal(harness.controller.state.packageSummary?.graphId, null, 'v2 has no graph')
+
+      const legacy = harness.controller.selectLegacy(LEGACY_RECORD.url)
+      await until(() => harness.lifecycle.legacyCalls.length === 1, 'legacy after v2 starts')
+      harness.lifecycle.resolveLegacy(0)
+      await legacy
+      equal(harness.controller.state.source, 'legacy', 'legacy replaces v2')
+      equal(harness.controller.state.packageKind, null, 'legacy clears package kind')
+      equal(harness.lifecycle.packageSession.value, null, 'legacy clears package session')
+
+      const finalV1 = harness.controller.selectPackageFile(v1File.file, 'v1')
+      await until(() => harness.lifecycle.packageCalls.length === 2, 'final v1 starts')
+      harness.lifecycle.resolvePackage(1, { packageId: 'final-v1', revision: 'r3' })
+      await finalV1
+      equal(harness.controller.state.packageSummary?.kind, 'v1', 'v1 replaces legacy')
+      equal(harness.controller.state.packageSummary?.graphId, 'graph-final-v1', 'v1 graph ready')
+    },
+  },
+  {
     name: 'unmount cleanup invalidates pending file/lifecycle work and blocks later use',
     run: async () => {
       const harness = createHarness()
@@ -500,6 +739,26 @@ const tests: Test[] = [
       )
       assert(!harness.controller.state.errorText.includes('.transport'), 'sidecar transport hidden')
       assert(!harness.controller.state.errorText.includes('secret'), 'sidecar message/details hidden')
+
+      const third = fileFixture('bad-v2.zip', new Uint8Array([6]))
+      const thirdPromise = harness.controller.selectPackageFile(third.file, 'v2')
+      await until(() => harness.lifecycle.packageV2Calls.length === 1, 'v2 package starts')
+      harness.lifecycle.rejectPackageV2(
+        0,
+        packageDiagnostic('PACKAGE_METADATA_INVALID', '/assets/0/metadata', 'METADATA'),
+      )
+      await thirdPromise
+      equal(harness.controller.state.phase, 'error', 'v2 package failure is an error')
+      equal(harness.controller.state.hasVisibleScene, false, 'failed v2 has no scene')
+      equal(harness.controller.state.packageSummary, null, 'failed v2 has no ready summary')
+      assert(
+        harness.controller.state.errorText.includes('PACKAGE_METADATA_INVALID · METADATA · /assets/0/metadata'),
+        'v2 package diagnostic stays distinct from capability absence',
+      )
+      assert(
+        !harness.controller.state.errorText.includes('TOPOLOGY_UNAVAILABLE'),
+        'v2 package failure is not capability absence',
+      )
     },
   },
   {
@@ -543,15 +802,23 @@ const tests: Test[] = [
       const homePath = fileURLToPath(new URL('../../views/HomeView.vue', import.meta.url))
       const source = readFileSync(homePath, 'utf8')
       equal(STANDARD_MODEL_PACKAGE_INPUT_ACCEPT, '.zip,application/zip', 'file accept contract')
-      assert(source.includes('导入标准模型包 ZIP'), 'primary ZIP action')
+      assert(source.includes('导入标准模型包 v1 ZIP'), 'explicit v1 ZIP action')
+      assert(source.includes('导入标准模型包 v2 ZIP'), 'explicit v2 ZIP action')
+      assert(source.includes("openPackagePicker('v1')"), 'v1 picker dispatch')
+      assert(source.includes("openPackagePicker('v2')"), 'v2 picker dispatch')
       assert(source.includes('type="file"'), 'file input')
       assert(source.includes(':accept="STANDARD_MODEL_PACKAGE_INPUT_ACCEPT"'), 'ZIP accept binding')
       assert(source.includes('hidden'), 'file input hidden')
-      assert(source.includes('sceneSelection.selectPackageFile(file)'), 'controller wiring')
+      assert(source.includes('sceneSelection.selectPackageFile(file, packageKind)'), 'versioned controller wiring')
+      assert(source.includes('Scene/Metadata ready'), 'v2 scene readiness copy')
+      assert(source.includes('Topology 未提供'), 'v2 topology absence copy')
+      assert(source.includes('data-capability-code'), 'v2 capability code projection')
+      assert(source.includes('data-reason-code'), 'v2 capability reason projection')
       assert(source.includes("input.value = ''"), 'same-file reset')
       assert(source.includes('sceneSelection.invalidateAndCleanup(true)'), 'unmount cleanup')
       assert(source.includes('!sceneSelection.state.hasVisibleScene'), 'package-aware empty state')
       assert(!source.includes('parsePackageZipV1'), 'Home does not parse packages')
+      assert(!source.includes('parsePackageZipV2'), 'Home does not parse v2 packages')
       assert(!source.includes("from 'fflate'"), 'Home does not unzip packages')
       assert(!source.includes('URL.createObjectURL'), 'Home creates no object URL')
       assert(!source.includes('.transport'), 'Home renders no transport URI')

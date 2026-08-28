@@ -17,6 +17,7 @@ import { useTopologySceneLifecycle } from '@/composables/useTopologySceneLifecyc
 import {
   createHomeSceneSelectionController,
   STANDARD_MODEL_PACKAGE_INPUT_ACCEPT,
+  type HomePackageKind,
 } from '@/composables/useHomeSceneSelection'
 import { ssp } from '@/ssp'
 import { useChatStore } from '@/stores/chat'
@@ -70,14 +71,16 @@ let viewDisposed = false
 let contextRetryTimer: number | null = null
 let stopUrlWatch: WatchStopHandle | null = null
 let suppressClearedLegacySelection = false
+let pendingPackageKind: HomePackageKind | null = null
 
 async function handleUrlChange(url: string): Promise<void> {
   await sceneSelection.selectLegacy(url)
 }
 
-function openPackagePicker(): void {
+function openPackagePicker(kind: HomePackageKind): void {
   const input = packageInputRef.value
   if (input === null) return
+  pendingPackageKind = kind
   // Reset before opening as well as after processing so choosing the same ZIP
   // can deliberately supersede an in-flight import.
   input.value = ''
@@ -87,8 +90,10 @@ function openPackagePicker(): void {
 async function handlePackageFileChange(event: Event): Promise<void> {
   const input = event.currentTarget as HTMLInputElement
   const file = input.files?.item(0)
+  const packageKind = pendingPackageKind
+  pendingPackageKind = null
   try {
-    if (file === null || file === undefined) return
+    if (file === null || file === undefined || packageKind === null) return
 
     // A package is intentionally session-only. Clear the persisted legacy
     // selection instead of writing a ZIP or synthetic URI to model storage.
@@ -96,7 +101,7 @@ async function handlePackageFileChange(event: Event): Promise<void> {
       suppressClearedLegacySelection = true
       lib.selectModel('')
     }
-    await sceneSelection.selectPackageFile(file)
+    await sceneSelection.selectPackageFile(file, packageKind)
   } finally {
     input.value = ''
   }
@@ -128,6 +133,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   viewDisposed = true
   sceneReady.value = false
+  pendingPackageKind = null
   sceneSelection.invalidateAndCleanup(true)
   stopUrlWatch?.()
   stopUrlWatch = null
@@ -142,14 +148,24 @@ onBeforeUnmount(() => {
   <div class="home">
     <div ref="containerRef" class="three-container">
       <div class="package-import">
-        <button
-          type="button"
-          class="package-import-button"
-          :disabled="!sceneReady"
-          @click="openPackagePicker"
-        >
-          导入标准模型包 ZIP
-        </button>
+        <div class="package-import-actions" aria-label="标准模型包版本选择">
+          <button
+            type="button"
+            class="package-import-button"
+            :disabled="!sceneReady"
+            @click="openPackagePicker('v1')"
+          >
+            导入标准模型包 v1 ZIP
+          </button>
+          <button
+            type="button"
+            class="package-import-button package-import-button-v2"
+            :disabled="!sceneReady"
+            @click="openPackagePicker('v2')"
+          >
+            导入标准模型包 v2 ZIP
+          </button>
+        </div>
         <input
           ref="packageInputRef"
           class="package-file-input"
@@ -171,7 +187,21 @@ onBeforeUnmount(() => {
           <template v-if="packageSummary">
             <span>Package：{{ packageSummary.packageId }}</span>
             <span>Revision：{{ packageSummary.revision }}</span>
-            <span>{{ packageSummary.floorCount }} 个楼层 · Graph ready</span>
+            <span v-if="packageSummary.kind === 'v1'">
+              {{ packageSummary.floorCount }} 个楼层 · Graph ready
+            </span>
+            <template v-else>
+              <span>{{ packageSummary.floorCount }} 个楼层 · Scene/Metadata ready</span>
+              <span
+                class="package-capability-unavailable"
+                data-testid="package-topology-unavailable"
+                :data-capability-code="packageSummary.topologyCapability?.code"
+                :data-reason-code="packageSummary.topologyCapability?.reasonCode"
+              >
+                Topology 未提供 · {{ packageSummary.topologyCapability?.code }} /
+                {{ packageSummary.topologyCapability?.reasonCode }}
+              </span>
+            </template>
           </template>
         </section>
       </div>
@@ -188,7 +218,7 @@ onBeforeUnmount(() => {
         v-if="!loading && !errorMsg && !sceneSelection.state.hasVisibleScene"
         class="overlay empty"
       >
-        <p>从顶部选择清单模型，或导入 Studio 标准模型包 ZIP</p>
+        <p>从顶部选择清单模型，或显式导入 Studio 标准模型包 v1 / v2 ZIP</p>
         <p class="hint">ZIP 仅用于当前会话，不会写入模型清单或本地存储</p>
       </div>
     </div>
@@ -233,6 +263,17 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
+.package-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.package-import-button-v2 {
+  border-color: rgba(128, 203, 196, 0.75);
+  background: rgba(24, 57, 55, 0.92);
+}
+
 .package-import-button:hover:not(:disabled) {
   border-color: #7dd8ff;
   background: rgba(26, 58, 78, 0.96);
@@ -264,6 +305,11 @@ onBeforeUnmount(() => {
 
 .package-file-name {
   color: #a9b7c0;
+}
+
+.package-capability-unavailable {
+  color: #80cbc4;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
 .overlay {

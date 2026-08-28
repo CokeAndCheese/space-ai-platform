@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import * as THREE from 'three'
 import { effectScope, ref, type EffectScope, type Ref } from 'vue'
 import { ssp } from '../../ssp'
@@ -130,14 +132,28 @@ function sessionHarness(
   graphId: Ref<string | null>
   nodes: Ref<readonly TopologySceneSessionNode[]>
   diagnostic: Ref<TopologySidecarDiagnostic | null>
+  packageSession: Ref<unknown>
 } {
   return {
     status: ref<TopologySceneSessionStatus>('ready'),
     graphId: ref<string | null>(graphIdValue),
     nodes: ref<readonly TopologySceneSessionNode[]>(nodes(layerId)),
     diagnostic: ref<TopologySidecarDiagnostic | null>(null),
+    packageSession: ref<unknown>(null),
   }
 }
+
+const V2_TOPOLOGY_ABSENT_SESSION = Object.freeze({
+  schemaVersion: 2,
+  profile: 'TOPOLOGY_ABSENT_TRANSITION',
+  topologyCapability: Object.freeze({
+    capability: 'topology',
+    status: 'UNAVAILABLE',
+    code: 'TOPOLOGY_UNAVAILABLE',
+    reasonCode: 'PACKAGE_DECLARED_ABSENT',
+    packageSchemaVersion: 2,
+  }),
+})
 
 function routeFixture(
   graphId = 'graph-a',
@@ -324,6 +340,58 @@ const tests: TestCase[] = [
     },
   },
   {
+    name: 'validated v2 capability absence is a distinct disabled UI state with zero runtime calls',
+    run: async () => {
+      const harness = runtimeHarness(() => {
+        throw new Error('runtime must not be called for unavailable topology')
+      })
+      const session = sessionHarness()
+      const { scope, controller } = mountController(session, harness.runtime)
+      session.graphId.value = null
+      session.nodes.value = Object.freeze([])
+      session.packageSession.value = V2_TOPOLOGY_ABSENT_SESSION
+      session.status.value = 'scene-ready'
+
+      equal(controller.phase.value, 'capability-unavailable', 'v2 Quick Action phase')
+      equal(controller.status.value, 'capability-unavailable', 'v2 Quick Action status')
+      equal(controller.sessionReady.value, false, 'v2 has no routing session')
+      equal(controller.canExecute.value, false, 'v2 execute is disabled')
+      equal(controller.canClear.value, false, 'v2 clear is disabled')
+      equal(controller.capabilityUnavailable.value?.code, 'TOPOLOGY_UNAVAILABLE', 'capability code')
+      equal(
+        controller.capabilityUnavailable.value?.reasonCode,
+        'PACKAGE_DECLARED_ABSENT',
+        'capability reason',
+      )
+      equal(
+        controller.statusMessage.value,
+        '当前模型包未提供 Topology（TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT）。',
+        'capability absence copy',
+      )
+      await controller.execute()
+      await controller.clear()
+      equal(harness.calls.length, 0, 'disabled v2 UI makes no runtime call')
+      equal(controller.result.value, null, 'normal capability absence is not a failed path result')
+      scope.stop()
+    },
+  },
+  {
+    name: 'ChatPanel renders a dedicated v2 unavailable branch and preserves non-topology actions',
+    run: () => {
+      const chatPath = fileURLToPath(new URL('../../views/ChatPanel.vue', import.meta.url))
+      const source = readFileSync(chatPath, 'utf8')
+      assert(source.includes('v-if="topologyCapabilityUnavailable"'), 'dedicated capability branch')
+      assert(source.includes('data-testid="topology-capability-unavailable"'), 'capability UI hook')
+      assert(source.includes(':data-capability-code="topologyCapabilityUnavailable?.code"'), 'code hook')
+      assert(source.includes(':data-reason-code="topologyCapabilityUnavailable?.reasonCode"'), 'reason hook')
+      assert(source.includes('Scene/Metadata ready'), 'scene readiness copy')
+      assert(source.includes('Topology 未提供，路径能力不可用。'), 'topology absence copy')
+      assert(source.includes("{ label: '🔥 消防栓', query: '所有消防栓' }"), 'object query preserved')
+      assert(source.includes("{ label: '🧹 清高亮', query: '__clear_highlight__' }"), 'highlight action preserved')
+      assert(source.includes("{ label: '👁 全部显示', query: '__reset_visibility__' }"), 'visibility action preserved')
+    },
+  },
+  {
     name: 'session diagnostics expose only structured code and phase in unavailable UI',
     run: () => {
       const harness = runtimeHarness(() => {
@@ -364,6 +432,7 @@ const tests: TestCase[] = [
         '拓扑会话不可用（SIDECAR_JSON_INVALID / PARSE）。',
         'safe error diagnostic',
       )
+      equal(controller.status.value, 'error', 'package or topology load error stays error')
       equal(harness.calls.length, 0, 'diagnostic projection runtime calls')
       scope.stop()
     },

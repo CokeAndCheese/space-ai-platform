@@ -6,8 +6,10 @@ import {
 import type { TopologySidecarDiagnostic } from '@/adapters/topology'
 import type { ModelRecord } from '@/composables/useModelLibrary'
 import type {
+  TopologyAbsentPackageSessionSnapshotV2,
   TopologyModelSelectionResult,
   TopologyPackageSessionSnapshot,
+  TopologyPackageSessionState,
   TopologySceneSessionStatus,
 } from '@/topology'
 
@@ -15,6 +17,7 @@ export const STANDARD_MODEL_PACKAGE_INPUT_ACCEPT = '.zip,application/zip'
 export const STANDARD_MODEL_PACKAGE_MAX_BYTES = DEFAULT_PACKAGE_ZIP_LIMITS.maxArchiveBytes
 
 export type HomeSceneSource = 'empty' | 'legacy' | 'package'
+export type HomePackageKind = 'v1' | 'v2'
 export type HomeScenePhase =
   | 'idle'
   | 'reading'
@@ -32,10 +35,16 @@ export interface HomePackageFile {
 
 export interface HomePackageSummary {
   readonly fileName: string
+  readonly kind: HomePackageKind
   readonly packageId: string
   readonly revision: string
   readonly floorCount: number
-  readonly graphId: string
+  readonly readiness: 'graph-ready' | 'scene-metadata-ready'
+  readonly graphId: string | null
+  readonly topologyCapability: Readonly<{
+    readonly code: 'TOPOLOGY_UNAVAILABLE'
+    readonly reasonCode: 'PACKAGE_DECLARED_ABSENT'
+  }> | null
 }
 
 export interface HomeSceneSelectionState {
@@ -45,6 +54,7 @@ export interface HomeSceneSelectionState {
   hasVisibleScene: boolean
   visibleAssetCount: number
   selectionLabel: string
+  packageKind: HomePackageKind | null
   errorText: string
   packageSummary: HomePackageSummary | null
 }
@@ -59,13 +69,14 @@ export interface HomeSceneLifecyclePort {
     readonly graphId: ReadonlyValue<string | null>
     readonly diagnostic: ReadonlyValue<TopologySidecarDiagnostic | null>
     readonly packageDiagnostic: ReadonlyValue<PackageDiagnostic | null>
-    readonly packageSession: ReadonlyValue<TopologyPackageSessionSnapshot | null>
+    readonly packageSession: ReadonlyValue<TopologyPackageSessionState | null>
   }
   select(
     selectedUrl: string,
     manifest: readonly ModelRecord[],
   ): Promise<TopologyModelSelectionResult>
   selectPackage(packageBytes: Uint8Array): Promise<TopologyModelSelectionResult>
+  selectPackageV2(packageBytes: Uint8Array): Promise<TopologyModelSelectionResult>
   isGenerationCurrent(generation: number): boolean
   invalidateAndCleanup(): number
 }
@@ -84,7 +95,7 @@ export interface HomeSceneSelectionController {
   readonly state: Readonly<HomeSceneSelectionState>
   readonly statusText: () => string
   selectLegacy(url: string): Promise<void>
-  selectPackageFile(file: HomePackageFile): Promise<void>
+  selectPackageFile(file: HomePackageFile, kind?: HomePackageKind): Promise<void>
   invalidateAndCleanup(dispose?: boolean): void
 }
 
@@ -134,17 +145,61 @@ export function isStandardModelPackageFile(file: HomePackageFile): boolean {
   return /\.zip$/i.test(file.name.trim())
 }
 
-function packageSummary(
+function v1PackageSummary(
   fileName: string,
   session: TopologyPackageSessionSnapshot,
   graphId: string,
 ): HomePackageSummary {
   return Object.freeze({
     fileName,
+    kind: 'v1',
     packageId: session.packageId,
     revision: session.revision,
     floorCount: session.assets.length,
+    readiness: 'graph-ready',
     graphId,
+    topologyCapability: null,
+  })
+}
+
+function isV2PackageSession(
+  session: TopologyPackageSessionState | null,
+): session is TopologyAbsentPackageSessionSnapshotV2 {
+  if (session === null || !('schemaVersion' in session)) return false
+  const capability = session.topologyCapability
+  return (
+    session.schemaVersion === 2 &&
+    session.profile === 'TOPOLOGY_ABSENT_TRANSITION' &&
+    capability.capability === 'topology' &&
+    capability.status === 'UNAVAILABLE' &&
+    capability.code === 'TOPOLOGY_UNAVAILABLE' &&
+    capability.reasonCode === 'PACKAGE_DECLARED_ABSENT' &&
+    capability.packageSchemaVersion === 2
+  )
+}
+
+function isV1PackageSession(
+  session: TopologyPackageSessionState | null,
+): session is TopologyPackageSessionSnapshot {
+  return session !== null && !('schemaVersion' in session)
+}
+
+function v2PackageSummary(
+  fileName: string,
+  session: TopologyAbsentPackageSessionSnapshotV2,
+): HomePackageSummary {
+  return Object.freeze({
+    fileName,
+    kind: 'v2',
+    packageId: session.packageId,
+    revision: session.revision,
+    floorCount: session.assets.length,
+    readiness: 'scene-metadata-ready',
+    graphId: null,
+    topologyCapability: Object.freeze({
+      code: session.topologyCapability.code,
+      reasonCode: session.topologyCapability.reasonCode,
+    }),
   })
 }
 
@@ -159,6 +214,7 @@ export function createHomeSceneSelectionController(
     hasVisibleScene: false,
     visibleAssetCount: 0,
     selectionLabel: '',
+    packageKind: null,
     errorText: '',
     packageSummary: null,
   })
@@ -181,11 +237,16 @@ export function createHomeSceneSelectionController(
     state.hasVisibleScene = false
     state.visibleAssetCount = 0
     state.selectionLabel = ''
+    state.packageKind = null
     state.errorText = ''
     state.packageSummary = null
   }
 
-  const beginSelection = (source: Exclude<HomeSceneSource, 'empty'>, label: string): number => {
+  const beginSelection = (
+    source: Exclude<HomeSceneSource, 'empty'>,
+    label: string,
+    packageKind: HomePackageKind | null = null,
+  ): number => {
     const request = ++requestGeneration
     lifecycleResourcesClean = false
     options.invalidateVisibilityUndo()
@@ -195,6 +256,7 @@ export function createHomeSceneSelectionController(
     state.hasVisibleScene = false
     state.visibleAssetCount = 0
     state.selectionLabel = label
+    state.packageKind = packageKind
     state.errorText = ''
     state.packageSummary = null
     return request
@@ -291,9 +353,12 @@ export function createHomeSceneSelectionController(
     }
   }
 
-  const selectPackageFile = async (file: HomePackageFile): Promise<void> => {
+  const selectPackageFile = async (
+    file: HomePackageFile,
+    kind: HomePackageKind = 'v1',
+  ): Promise<void> => {
     if (disposed) return
-    const request = beginSelection('package', file.name)
+    const request = beginSelection('package', file.name, kind)
     try {
       // File reading has no AbortSignal. Invalidate the active lifecycle first,
       // then use the UI request generation to discard a late File read.
@@ -339,9 +404,13 @@ export function createHomeSceneSelectionController(
     try {
       // This is the exact byte range returned by File.arrayBuffer(). Package
       // parsing, digest verification, Metadata 3.3 validation, cache leases,
-      // sidecar compilation, and graph commit remain lifecycle responsibilities.
+      // and the version-specific topology policy remain lifecycle responsibilities.
+      // The explicit UI choice is the only dispatcher; a v1 failure never retries v2.
       lifecycleResourcesClean = false
-      const result = await options.lifecycle.selectPackage(new Uint8Array(buffer))
+      const packageBytes = new Uint8Array(buffer)
+      const result = kind === 'v2'
+        ? await options.lifecycle.selectPackageV2(packageBytes)
+        : await options.lifecycle.selectPackage(packageBytes)
       if (!ownsResult(request, result)) return
       if (result.kind !== 'loaded') {
         const headline = result.kind === 'model-error'
@@ -353,16 +422,31 @@ export function createHomeSceneSelectionController(
 
       const session = options.lifecycle.session.packageSession.value
       const graphId = options.lifecycle.session.graphId.value
-      if (
-        options.lifecycle.session.status.value !== 'ready' ||
-        session === null ||
-        graphId === null ||
-        result.assetCount === 0 ||
-        session.assets.length !== result.assetCount
-      ) {
+      const assetSessionComplete = (
+        session !== null &&
+        result.assetCount > 0 &&
+        session.assets.length === result.assetCount
+      )
+      const v2Session = isV2PackageSession(session) ? session : null
+      const sessionReady = kind === 'v2'
+        ? (
+            options.lifecycle.session.status.value === 'scene-ready' &&
+            v2Session !== null &&
+            graphId === null &&
+            assetSessionComplete
+          )
+        : (
+            options.lifecycle.session.status.value === 'ready' &&
+            isV1PackageSession(session) &&
+            graphId !== null &&
+            assetSessionComplete
+          )
+      if (!sessionReady) {
         failPackage(
           request,
-          '标准模型包未形成完整可用会话',
+          kind === 'v2'
+            ? 'Standard Model Package v2 未形成完整 Scene/Metadata 会话'
+            : '标准模型包 v1 未形成完整可用会话',
           LOCAL_DIAGNOSTICS.lifecycleFailure,
           true,
         )
@@ -374,7 +458,9 @@ export function createHomeSceneSelectionController(
       state.phase = 'finalizing'
       const finalized = await enqueueSceneFinalizer(request, result.generation)
       if (!ownsRequest(request) || !finalized) return
-      state.packageSummary = packageSummary(file.name, session, graphId)
+      state.packageSummary = kind === 'v2'
+        ? v2PackageSummary(file.name, v2Session as TopologyAbsentPackageSessionSnapshotV2)
+        : v1PackageSummary(file.name, session as TopologyPackageSessionSnapshot, graphId as string)
       state.phase = 'ready'
     } catch {
       if (!ownsRequest(request)) return
@@ -401,11 +487,21 @@ export function createHomeSceneSelectionController(
   const statusText = (): string => {
     if (state.phase === 'reading') return '正在读取 ZIP 原始字节…'
     if (state.phase === 'processing' && state.source === 'package') {
-      return '正在解析 ZIP、校验摘要与 Metadata，并逐楼层加载…'
+      return state.packageKind === 'v2'
+        ? '正在解析 v2 ZIP、校验摘要与 Metadata，并逐楼层加载…'
+        : '正在解析 v1 ZIP、校验摘要与 Metadata，并逐楼层加载…'
     }
     if (state.phase === 'processing') return '正在加载清单模型…'
-    if (state.phase === 'finalizing') return 'Topology 图已就绪，正在调整主视角…'
-    if (state.phase === 'ready' && state.source === 'package') return 'Topology 图就绪'
+    if (state.phase === 'finalizing') {
+      return state.packageKind === 'v2'
+        ? 'Scene/Metadata 已就绪，正在调整主视角…'
+        : 'Topology 图已就绪，正在调整主视角…'
+    }
+    if (state.phase === 'ready' && state.source === 'package') {
+      return state.packageKind === 'v2'
+        ? 'Scene/Metadata ready / Topology 未提供'
+        : 'Topology 图就绪'
+    }
     if (state.phase === 'ready') return '模型已加载'
     if (state.phase === 'error') return '加载失败'
     return '等待选择模型'

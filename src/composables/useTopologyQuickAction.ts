@@ -9,6 +9,7 @@ import {
 } from 'vue'
 import { useTopologySceneLifecycle } from '@/composables/useTopologySceneLifecycle'
 import type { TopologySidecarDiagnostic } from '@/adapters/topology'
+import { currentTopologyUnavailableResult } from '@/templates/topologyCapabilityGate'
 import {
   normalizeTopologyQuickActionError,
   topologyQuickActionFacade,
@@ -25,6 +26,7 @@ import type {
 
 export type TopologyQuickActionPhase =
   | 'unavailable'
+  | 'capability-unavailable'
   | 'idle'
   | 'clearing'
   | 'finding'
@@ -74,6 +76,7 @@ export interface TopologyQuickActionSession {
   graphId: Readonly<Ref<string | null>>
   nodes: Readonly<Ref<readonly TopologySceneSessionNode[]>>
   diagnostic: Readonly<Ref<TopologySidecarDiagnostic | null>>
+  packageSession: Readonly<Ref<unknown>>
 }
 
 export interface UseTopologyQuickActionReturn {
@@ -87,6 +90,7 @@ export interface UseTopologyQuickActionReturn {
   result: ComputedRef<TopologyQuickActionResult | null>
   currentRouteId: ComputedRef<string | null>
   busy: ComputedRef<boolean>
+  capabilityUnavailable: ComputedRef<TopologyCapabilityUnavailable | null>
   sessionReady: ComputedRef<boolean>
   canExecute: ComputedRef<boolean>
   canClear: ComputedRef<boolean>
@@ -101,6 +105,14 @@ function isNonEmpty(value: string | null): value is string {
 function diagnosticLabel(diagnostic: TopologySidecarDiagnostic | null): string {
   return diagnostic === null ? '' : `（${diagnostic.code} / ${diagnostic.phase}）`
 }
+
+const TOPOLOGY_CAPABILITY_UNAVAILABLE_UI: TopologyCapabilityUnavailable = Object.freeze({
+  kind: 'capability-unavailable',
+  ok: false,
+  code: 'TOPOLOGY_UNAVAILABLE',
+  reasonCode: 'PACKAGE_DECLARED_ABSENT',
+  message: '当前模型包未提供 Topology。',
+})
 
 export function createTopologyQuickAction(
   session: TopologyQuickActionSession,
@@ -117,6 +129,14 @@ export function createTopologyQuickAction(
 
   const nodes = computed(() => session.nodes.value)
   const graphId = computed(() => session.graphId.value)
+  const capabilityUnavailable = computed<TopologyCapabilityUnavailable | null>(() => (
+    currentTopologyUnavailableResult({
+      status: session.status.value,
+      packageSession: session.packageSession.value,
+    }) === null
+      ? null
+      : TOPOLOGY_CAPABILITY_UNAVAILABLE_UI
+  ))
   const sessionReady = computed(() => (
     session.status.value === 'ready' &&
     isNonEmpty(session.graphId.value) &&
@@ -141,23 +161,32 @@ export function createTopologyQuickAction(
   ))
 
   const status = computed<TopologyQuickActionStatus>(() => {
-    if (busy.value || activePhase.value === 'unavailable') return activePhase.value
+    if (capabilityUnavailable.value !== null) return 'capability-unavailable'
+    if (busy.value) return activePhase.value
     if (activeResult.value?.kind === 'success') return 'success'
     if (activeResult.value?.kind === 'path-failure') {
       return activeResult.value.code === 'NO_PATH' ? 'no-path' : 'error'
     }
     if (
       activeResult.value?.kind === 'render-failure' ||
-      activeResult.value?.kind === 'capability-unavailable' ||
       activeResult.value?.kind === 'error'
     ) {
       return 'error'
     }
+    if (activeResult.value?.kind === 'capability-unavailable') return 'capability-unavailable'
     if (activeResult.value?.kind === 'cleared') return 'cleared'
+    if (activePhase.value === 'unavailable' && session.status.value === 'error') return 'error'
+    if (
+      activePhase.value === 'unavailable' ||
+      activePhase.value === 'capability-unavailable'
+    ) return activePhase.value
     return 'idle'
   })
 
   const statusMessage = computed(() => {
+    if (capabilityUnavailable.value !== null) {
+      return '当前模型包未提供 Topology（TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT）。'
+    }
     if (activePhase.value === 'clearing') return '正在清除当前路线…'
     if (activePhase.value === 'finding') return '正在查找路径…'
     if (activePhase.value === 'rendering') return '正在显示路线…'
@@ -338,7 +367,9 @@ export function createTopologyQuickAction(
     activeResult.value = null
 
     if (!isNonEmpty(expectedGraphId) || routeId === null || !sessionReady.value) {
-      activePhase.value = sessionReady.value ? 'idle' : 'unavailable'
+      activePhase.value = sessionReady.value
+        ? 'idle'
+        : capabilityUnavailable.value === null ? 'unavailable' : 'capability-unavailable'
       return
     }
 
@@ -384,6 +415,7 @@ export function createTopologyQuickAction(
       session.graphId.value,
       session.nodes.value,
       session.diagnostic.value,
+      session.packageSession.value,
     ] as const,
     () => {
       sceneEpoch++
@@ -393,7 +425,9 @@ export function createTopologyQuickAction(
       ownedRouteId.value = null
       startNodeId.value = ''
       goalNodeId.value = ''
-      activePhase.value = sessionReady.value ? 'idle' : 'unavailable'
+      activePhase.value = sessionReady.value
+        ? 'idle'
+        : capabilityUnavailable.value === null ? 'unavailable' : 'capability-unavailable'
       if (routeId !== null) void compensateRoute(routeId)
     },
     { immediate: true, flush: 'sync' },
@@ -404,7 +438,9 @@ export function createTopologyQuickAction(
     () => {
       operationToken++
       activeResult.value = null
-      activePhase.value = sessionReady.value ? 'idle' : 'unavailable'
+      activePhase.value = sessionReady.value
+        ? 'idle'
+        : capabilityUnavailable.value === null ? 'unavailable' : 'capability-unavailable'
     },
     { flush: 'sync' },
   )
@@ -434,6 +470,7 @@ export function createTopologyQuickAction(
     result: computed(() => activeResult.value),
     currentRouteId: computed(() => ownedRouteId.value),
     busy,
+    capabilityUnavailable,
     sessionReady,
     canExecute,
     canClear,

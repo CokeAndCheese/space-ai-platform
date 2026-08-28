@@ -144,6 +144,16 @@
 - **人员影响**：本决策不新增、拆分、合并、撤销人员任务，不迁移职责，不改变汇报关系或组织架构，因此不触发 `ORG_CHART.md` 变更。
 - **替换关系**：本决策补充并细化同日“具体实施优先委派与产品经理主线程聚焦”决策，不撤销其余内容。
 
+## 2026-08-28 — Standard Model Package v1 形成兼容候选，待用户里程碑确认
+
+- **状态**：有效；技术候选，未发布、未合并。
+- **背景**：用户已批准 Standard Model Package v1 方案 B；双方现已完成任务分支机器实现、共同 fixture/validator、双端全门禁、真实浏览器联合验收和最终独立复核。
+- **候选检查点**：Platform consumer 为 `786e3f3123d24dde264aca0536ef04f6e4fe8e07`；Studio producer 为 `02b560a`。
+- **共同证据**：双仓同字节 golden ZIP SHA-256 为 `d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`，双方 SHA index 已分别验签；最终独立 Reviewer P0/P1/P2 均为 0。
+- **当前结论**：Standard Model Package v1 已形成可提交用户里程碑确认的兼容候选。该结论不等于用户已确认里程碑，不构成发布批准，也不表示候选已合并或任一仓库 `main` 已兼容。
+- **保留边界**：Platform 旧 v3.1 reader 保持不变；Platform 不读取 embedded topology fallback；旧 Studio building-release ZIP 继续拒绝；v1 不提供跨层 routing。
+- **人员影响**：不新增、撤销或调整人员、职责和汇报关系，不触发 `ORG_CHART.md` 或 `PRODUCT_MANAGER_CHARTER.md` 变更。
+
 ## 新决策模板
 
 ```markdown

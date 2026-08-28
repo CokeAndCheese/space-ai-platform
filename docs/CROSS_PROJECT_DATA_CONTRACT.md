@@ -3,12 +3,12 @@
 ## 决策记录
 
 - 生效日期：`2026-08-22`
-- 状态：产品分离、契约治理和方案 B 已批准；双端设计基线已确认，机器 schema/fixtures/validators 与实现尚未开始
+- 状态：产品分离、契约治理和方案 B 已批准；双端任务分支机器实现与联合技术验收完成，形成待用户里程碑确认的兼容候选
 - 生产方：Space Model Studio
 - 消费方：Space AI Platform
 - Studio 当前实现基线：Metadata `3.3-semantic`；GLB 内嵌 `scene.extras.sspTopology` schema v1
 - Platform 当前实现基线：GLB Metadata v3.1；外置 `space-ai-platform/topology-sidecar` schema v1
-- 当前兼容结论：**迁移方向已确定，但双端实现与共同验证未完成，仍不得声明为可直接互操作**
+- 当前兼容结论：**双端技术候选已通过共同验证，但尚未获得用户里程碑确认、尚未发布或合并，不得提前声明 `main` 已兼容**
 
 本记录只固化长期产品边界、当前事实和变更门禁，不修改任何现有字段、枚举、坐标、ID、发现或绑定语义。
 
@@ -28,7 +28,7 @@ Space AI Platform
 - Studio 的 Domain Model、编辑器状态和 Three.js 投影不是 Platform API。
 - Platform 的 SSP、Template、AI、数据库和 UI 状态不是 Studio 的生产依赖。
 - 双方应共享版本化机器契约、兼容承诺、golden fixture 和 validator 预期，而不是源代码。
-- 当前双端实现尚未对齐；用户所要求的“同一套数据契约连接”是必须完成的目标架构，不是已经满足的现状。
+- Standard Model Package v1 已在双方任务分支完成机器实现和联合技术验收，满足提交用户里程碑确认的技术条件；在用户确认前，它仍是候选而不是已发布兼容承诺。
 - 任一方不得为快速对齐，在已发布版本名下静默改变字段、枚举、必填性、坐标、单位、ID、发现、资产绑定、connector、blocker 或摘要语义。
 
 ### Studio 内部 authoring 输入不进入共享契约
@@ -37,7 +37,7 @@ Space AI Platform
 - raw `Building.glb`、楼层识别规则和内部拆层视图都不是 Standard Model Package、Metadata `3.3-semantic`、topology sidecar 或 Platform 输入接口。
 - Platform 不扫描目录、不猜楼层、不直接读取或适配 raw `Building.glb`；本决策不产生 Platform reader、adapter、SSP、模板或 UI 研发动作。
 - Studio 内部拆层不得生成未经发布契约声明的跨层 connector/路由，也不得改变 Package v1、Metadata v3.1/`3.3-semantic`、embedded topology v1 或 sidecar v1 的既有语义。
-- Studio 最终产物仍须经过既有标准模型发布门禁；Standard Model Package v1 的共同 schema、fixtures 和 validators 未完成前，不得用本能力宣称跨项目兼容。
+- Studio 最终产物仍须经过既有标准模型发布门禁；整体建筑 authoring input 与旧 building-release ZIP 不因 Package v1 候选而自动升级，Platform 仍拒绝缺少显式 v1 manifest identity 的旧 ZIP。
 
 ## 2. 当前 Metadata 差异
 
@@ -68,17 +68,17 @@ Space AI Platform
 | blocker | edge `initialState.blockerIds` | 顶层 `blockers[]` 是唯一真源 | 不兼容 |
 | 容量与稳定性 | embedded validator 有图结构、ID 和几何门禁 | sidecar 另有文本、实体、字符串和 JSON 深度上限 | 约束集合不同 |
 
-## 4. 方案 B 实施期间的发布冻结
+## 4. 兼容候选确认前的发布冻结
 
-在 Standard Model Package v1 双端验收前：
+Standard Model Package v1 已完成双端技术验收，但在用户确认兼容里程碑前：
 
-1. Studio 继续按 `3.3-semantic + embedded sspTopology v1` 实现和验证自身发布物。
-2. Platform 继续按 `v3.1 + topology sidecar v1` fail closed。
-3. Studio 当前发布物不得标注为已经通过 Platform 冻结基线的兼容交付。
+1. Studio legacy 路径继续按 `3.3-semantic + embedded sspTopology v1` 工作；Package v1 只由显式 package identity 选择。
+2. Platform 旧入口继续按 `v3.1 + topology sidecar v1` fail closed，旧 reader 的接受/拒绝结果不变。
+3. 双端任务分支候选不得标注为已发布、已合并或 `main` 已兼容。
 4. 不允许把 embedded topology 改名或复制后冒充 sidecar v1。
 5. 不允许把 Studio 输出静默降级为 v3.1，也不允许 Platform 猜测 3.3。
 6. Platform R1 的内部适配和浏览器验收仍有效，但不构成 Studio → Platform 端到端兼容证据。
-7. 当前差异阻断跨项目兼容发布声明，不要求任一方回滚已冻结的内部里程碑实现。
+7. 用户确认前继续阻断跨项目兼容发布声明，不要求任一方回滚已通过技术验收的任务分支实现。
 
 ## 5. 变更门禁
 
@@ -103,9 +103,17 @@ Space AI Platform
 - Studio 保留 embedded topology 供本端回开，并从同一 Domain topology 额外编译严格符合 Platform sidecar v1 的正式 sidecar。
 - Platform 保留旧 v3.1 reader，并新增 package v1 + 3.3 的显式 reader/validator；Platform 仍只消费 sidecar，不读取 embedded topology 作为 fallback。
 - 已冻结的四个既有契约均不就地修改；若 sidecar v1 无法承载未来语义，则另发 v2。
-- 两端先冻结共同 fixture/validator，再实现 exporter/reader；共同验证前不宣布兼容。
+- 两端共同 fixture/validator、exporter/reader、交叉验证与浏览器验收均已完成；用户里程碑确认前不宣布兼容发布。
 
-2026-08-22，两个项目总控已逐项确认 package identity、manifest 字段、URI/摘要、版本与资源限制、Metadata dual-read、embedded→sidecar 映射、diagnostics、fixture 权威索引和非规范审计附件，当前没有需要用户再次裁决的设计分歧。下一门禁是共同机器 schema、diagnostic envelope 和同字节 fixture SHA-256 index。
+2026-08-22，两个项目总控已逐项确认 package identity、manifest 字段、URI/摘要、版本与资源限制、Metadata dual-read、embedded→sidecar 映射、diagnostics、fixture 权威索引和非规范审计附件，没有遗留设计分歧。2026-08-28，双方任务分支已完成机器实现、共同 fixture/validator、交叉验证、真实浏览器联合验收与独立复核；下一门禁是用户兼容里程碑确认。
+
+### 6.1 当前候选证据
+
+- Platform consumer 检查点：`786e3f3123d24dde264aca0536ef04f6e4fe8e07`（`codex/r2-standard-model-package`）。
+- Studio producer 检查点：`02b560a`（Studio 对应任务分支）。
+- 双仓同字节 golden ZIP SHA-256：`d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`；SHA index 已由两端分别验签。
+- 两端全门禁与真实浏览器联合验收通过；最终独立 Reviewer 结论为 P0/P1/P2 均为 0。
+- 候选保持 Platform 旧 v3.1 reader 不变，不读取 embedded topology fallback，拒绝旧 Studio building-release ZIP；Standard Model Package v1 不提供跨层 routing。
 
 ### 未采用方案
 
@@ -128,3 +136,4 @@ Space AI Platform
 | 2026-08-22 | 破坏性变化必须新版本；双端影响、共同 golden/validator、迁移、回滚和用户批准成为强制门禁 | 已批准 | 两端现有技术/数据岗位增加协同职责 |
 | 2026-08-22 | 采用方案 B，新增 Standard Model Package v1；Studio dual-write，Platform dual-read，保留四个既有契约 | 已批准 | 无新增编制；现有岗位承担联合实现 |
 | 2026-08-26 | Studio V1「整体建筑导入」属于 Studio 内部 authoring input profile；raw `Building.glb` 不进入 Platform 或共享发布契约 | 已批准 | Platform 无研发动作、无人员变动 |
+| 2026-08-28 | 双端任务分支机器实现和联合技术验收完成，形成待用户里程碑确认的 Standard Model Package v1 兼容候选 | 技术候选；未发布、未合并 | 无人员变动 |

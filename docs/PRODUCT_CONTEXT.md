@@ -1,6 +1,6 @@
 # Space AI Platform — 产品与团队上下文
 
-> 产品经理基线：2026-08-27。本文整合当前代码、权威项目文档及历史项目任务中的有效结论，作为后续各角色任务的共同产品上下文。代码契约仍以源码和 API catalog 为准。
+> 产品经理基线：2026-08-28。本文整合当前代码、权威项目文档及历史项目任务中的有效结论，作为后续各角色任务的共同产品上下文。代码契约仍以源码和 API catalog 为准。
 
 治理入口：产品经理的长期角色、权限和汇报机制见 [`PRODUCT_MANAGER_CHARTER.md`](./PRODUCT_MANAGER_CHARTER.md)；最新组织架构见 [`ORG_CHART.md`](./ORG_CHART.md)；研发与备份流程见 [`DEVELOPMENT_WORKFLOW.md`](./DEVELOPMENT_WORKFLOW.md)；用户批准的长期决策见 [`DECISION_LOG.md`](./DECISION_LOG.md)。仓库任务的强制入口规则见根目录 [`AGENTS.md`](../AGENTS.md)。
 
@@ -8,7 +8,7 @@
 
 Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器加载 GLB/BIM 场景，SSP 将场景能力封装成稳定的 controller，Template Registry 再把受控能力提供给 AI 和业务代码。
 
-Space Model Studio 与 Space AI Platform 是两个独立产品：前者负责生产和校验标准模型，后者负责上层空间应用。两者不共享内部实现，只通过共同的版本化数据契约连接。用户已批准新增 Standard Model Package v1：Studio dual-write `3.3-semantic + embedded topology v1 + sidecar v1`，Platform dual-read 旧 v3.1 路径和新 package + 3.3 路径。双端实现与共同验证尚未完成，仍禁止宣称已经兼容；边界见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)，联合设计见 [`STANDARD_MODEL_PACKAGE_V1.md`](./STANDARD_MODEL_PACKAGE_V1.md)。
+Space Model Studio 与 Space AI Platform 是两个独立产品：前者负责生产和校验标准模型，后者负责上层空间应用。两者不共享内部实现，只通过共同的版本化数据契约连接。用户已批准新增 Standard Model Package v1：Studio dual-write `3.3-semantic + embedded topology v1 + sidecar v1`，Platform dual-read 旧 v3.1 路径和新 package + 3.3 路径。双端任务分支的机器实现和联合技术验收已完成，形成待用户里程碑确认的兼容候选；它尚未发布、尚未合并，也不表示 Platform 本地 `main` 已兼容。边界见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)，联合设计见 [`STANDARD_MODEL_PACKAGE_V1.md`](./STANDARD_MODEL_PACKAGE_V1.md)。
 
 当前目标用户首先是空间应用开发者和方案实施人员，而不是已经具备账户、权限、项目管理和多人协作的终端 SaaS 用户。
 
@@ -28,7 +28,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 → 场景动作、查询结果与本地审计记录
 ```
 
-当前 Studio 产物仍不能直接进入这条 Platform 链路并宣称契约兼容；在 package v1 双端实现和共同验证前，两边继续按各自冻结基线工作。
+Standard Model Package v1 候选已经在双方任务分支和真实浏览器联合链路中通过技术验收，但仍需用户确认里程碑后才能宣称兼容交付；普通 Studio 产物、旧 building-release ZIP 和没有显式 v1 manifest identity 的 ZIP 仍不能进入该链路。
 
 应用目前提供两个主要界面：3D 场景主页和 Template/Models/SSP Sandbox。模型选择、Intent 审计和 Sandbox 状态主要保存在浏览器 `localStorage`。
 
@@ -42,6 +42,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 - R1 已具备版本化外置 topology sidecar v1 适配、可信资产证明、world-space graph 编译和 Three.js 场景生命周期；正式 A_1F/A_2F sidecar 分别提供可达与显式 blocker 无路 fixture。
 - ChatPanel 已具备受控路径 Quick Action：仅从当前会话显式选择端点，并经注册模板完成查路、渲染与精确清除；不经过 LLM，也不直连 SSP。
 - R1 已具备非污染本地验收入口：开发与构建不再隐式生成模型清单，固定 gate 在 dirty 基线上校验 manifest 原始字节与完整 Git porcelain 前后不变。
+- R2 Standard Model Package v1 已在 Platform checkpoint `786e3f3` 与 Studio producer checkpoint `02b560a` 完成机器实现和联合技术验收；双仓同字节 golden ZIP SHA-256 为 `d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`，SHA index 已分别验签，双方全门禁、真实浏览器联合验收及最终独立 Reviewer 均通过且 P0/P1/P2 为 0。当前仅为待用户里程碑确认的兼容候选，不是发布或 `main` 合并结论。
 - AI 只能选择 Registry 明确开放的模板，不能直接调用 SSP。
 - 2026-08-27 用户批准的 R1 可见性 UX 修正已完成：`query-scene` hide 不再弹原生确认；hide/show/isolate 仅保留最新一步精确撤回；“全部显示”继续作为非撤回的全局恢复；模型切换或重载使旧撤回失效。随后发现的自然语言“撤回”缺陷也已闭环：聊天“撤回”现由确定性 host-only 路由处理，按钮与聊天共用同一 helper，不进入 Intent/Planner/AI catalog；host UI turns `llmVisible=false` 并与 context ring 解耦，审计语义保持一致。18 项 Template Runtime、A_1F/A_2F 真实浏览器路径、三轮 QA 和 `verify:r1` 10/10 均通过，最终无 P0/P1/P2，证据见 [`R1_VISIBILITY_UNDO_REPORT.md`](./R1_VISIBILITY_UNDO_REPORT.md)。
 - 当前模型清单包含医院等测试场景；医院数据只能作为 fixture，不能成为通用产品契约。
@@ -51,14 +52,14 @@ Space Model Studio 产出符合共享契约的标准模型包
 ### 跨项目数据契约
 
 - Space Model Studio 是标准模型生产方，Space AI Platform 是上层应用消费方；两个产品独立演进、独立发布，目标上只通过共同版本化数据契约连接。
-- 当前 Studio 生产基线是 Metadata `3.3-semantic` 与 GLB 内嵌 `scene.extras.sspTopology` v1；Platform 消费基线是 Metadata v3.1 与外置 topology sidecar v1。两端尚未对齐，两个名为 v1 的 topology schema 也不是同一接口。
-- 双方内部源码/API 不自动成为共享契约；Platform R1 的内部验收有效，但不构成 Studio → Platform 端到端兼容证据。
+- Studio 的 legacy 生产基线仍是 Metadata `3.3-semantic` 与 GLB 内嵌 `scene.extras.sspTopology` v1；Platform 的 legacy 消费基线仍是 Metadata v3.1 与外置 topology sidecar v1。两个名为 v1 的 topology schema 仍不是同一接口；Standard Model Package v1 只通过显式 manifest 和正式 sidecar 建立新窄腰。
+- 双方内部源码/API 不自动成为共享契约；现已具备独立 producer/consumer 实现、同字节 fixture、联合浏览器和 Reviewer 证据，但兼容里程碑仍待用户确认。
 - 已发布版本不得单方静默修改。字段、枚举、ID、单位、坐标、发现或资产绑定等破坏性变化必须新版本、双端影响评估、共同 fixture/validator、迁移与回滚方案，并取得用户批准。
 - Space AI Platform 优先以 SSP 外适配层吸收应用差异，不能为单个上层需求轻易要求 Studio 改动共享契约。
 - 用户已批准 Standard Model Package v1：package manifest 显式声明 `3.3-semantic`、GLB/sidecar SHA-256、不可变 revision、资产与楼层身份；Studio 额外输出严格 sidecar v1，Platform 新增显式 3.3 reader 并保留 v3.1 reader。
-- Platform 不读取 embedded topology 作为 fallback；新 reader、摘要核验和 AssetProof 集成都位于 `src/ssp/**` 之外。共同 fixtures/validators 通过前不得宣布跨项目兼容。
+- Platform 不读取 embedded topology 作为 fallback；新 reader、摘要核验和 AssetProof 集成都位于 `src/ssp/**` 之外。技术门禁已经通过，但用户里程碑确认前不得宣布跨项目兼容、发布或 `main` 已合并。
 - 用户已批准 Studio V1「整体建筑导入」，但它仅是 Studio 的内部 authoring input profile：单个 raw `Building.glb` 在 Studio 内识别楼层并形成逐层只读源视图，再复用 Studio 既有 Metadata/SPACE/Topology 能力。raw `Building.glb` 不是 Standard Model Package、不是 Metadata/Topology 发布契约，也不是 Platform 输入；Platform 不扫描、不猜测、不直接读取该文件，不产生研发动作或人员变动。
-- 「整体建筑导入」不得借内部拆层静默扩展跨层 connector/路由，也不改变 Package v1、Metadata v3.1/`3.3-semantic`、embedded topology v1 或 sidecar v1。Studio 仍须经过既有发布门禁输出标准模型；双端 fixtures/validators 完成前不得宣称 Package 兼容。
+- 「整体建筑导入」不得借内部拆层静默扩展跨层 connector/路由，也不改变 Package v1、Metadata v3.1/`3.3-semantic`、embedded topology v1 或 sidecar v1。Studio 仍须经过既有发布门禁输出标准模型；Standard Model Package v1 候选不提供跨层 routing，旧 building-release ZIP 也继续由 Platform 拒绝。
 
 ### Topology
 
@@ -90,7 +91,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 
 ## 5. 当前验证证据
 
-截至 2026-08-27 已通过：
+截至 2026-08-28 已通过：
 
 - 79/79 模板 schema 审计，0 问题；AI-enabled 实际值为 8。
 - Phase 0 能力分类：10 controllers / 85 methods / 0 unclassified。
@@ -104,6 +105,8 @@ Space Model Studio 产出符合共享契约的标准模型包
 - R1 浏览器 P0 已通过 A_1F 可达路线及清除、A_2F `NO_PATH`、A_3F 缺失/非法 sidecar、页面与模型快速切换、结构化失败反馈和控制台检查；报告见 [`R1_BROWSER_P0_REPORT.md`](./R1_BROWSER_P0_REPORT.md)。
 - `npm run verify:r1` 已按顺序通过 topology 10/10、sidecar 18/18、场景生命周期 27/27、Quick Action 20/20、Template Runtime 18/18、三组边界审计、TypeScript 类型检查和 Vite 生产构建。用户 manifest 前后 SHA-256 均为 `2ed654ea23f091008e8bd91f2996077c938026ade8183dea972205997bea9fbc`，完整 Git porcelain 原始字节前后相同。
 - R1 原候选版本及 2026-08-27 可见性 UX 修正版均已独立复核为 PASS，当前没有未关闭 P0/P1/P2；修正版证据见 [`R1_VISIBILITY_UNDO_REPORT.md`](./R1_VISIBILITY_UNDO_REPORT.md)，总体验收见 [`R1_FINAL_ACCEPTANCE.md`](./R1_FINAL_ACCEPTANCE.md)。
+- R2 Platform consumer 实现检查点为 `786e3f3123d24dde264aca0536ef04f6e4fe8e07`，Studio producer 实现检查点为 `02b560a`；两端分别完成全门禁，且没有修改 Platform 旧 v3.1 reader、embedded fallback 或 `src/ssp/**`。
+- 双仓同字节 golden ZIP 与 SHA index 已验签；ZIP SHA-256 为 `d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`。真实浏览器完成 Studio ZIP → Platform 直接解析导入、复用现有场景和 topology 功能的联合验收；最终独立 Reviewer P0/P1/P2 均为 0。
 
 未作为本轮证据：目标部署环境中的 LLM 通路、CI/CD、浏览器堆/GPU 指标和生产性能。生产构建已通过，但 Vite 仍报告大于 500 kB 的 chunk 警告，尚未设定发布性能预算。
 
@@ -115,7 +118,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 2. **交付门禁仍不完整**：R1 已有本地统一 gate，但仍没有 CI workflow、浏览器 E2E、覆盖率门槛和发布级构建制品验证。
 3. **凭据治理**：本地环境存在真实 LLM 凭据配置；必须轮换并确认不会进入构建、日志或备份。
 4. **本地备份纪律**：暂停 GitHub 后，里程碑外部手动备份成为磁盘或目录级故障的主要恢复保障，必须在进入下一里程碑前确认完成。
-5. **跨项目契约尚未实现**：Standard Model Package v1 方向已批准，但 package/exporter、3.3 reader、共同 fixtures/validators 和双端端到端验证尚未交付。完成前必须阻断跨项目兼容发布声明，并防止 legacy reader 自动猜版本。
+5. **跨项目兼容候选尚待用户确认**：Standard Model Package v1 的双端任务分支实现、共同 fixtures/validators、真实浏览器联合验收和独立 Reviewer 已通过，但尚未获得用户里程碑确认、尚未发布或合并到 `main`。确认前继续阻断兼容发布声明，并保持 legacy reader 不猜版本。
 
 ### P1 — 形成可用产品
 
@@ -166,7 +169,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 ## 8. 建议近期里程碑
 
 1. **R1 通用空间链路可验收版（研发完成，待用户验收）**：采用版本化外置 topology sidecar v1，在不修改 SSP 核心的前提下完成“GLB 基础 metadata + sidecar”→ world-space graph 适配、Three.js 路线显示、受控触发链路、非污染本地构建、浏览器 P0、独立 QA 和架构验收。合同见 [`R1_MILESTONE.md`](./R1_MILESTONE.md)，终验结论见 [`R1_FINAL_ACCEPTANCE.md`](./R1_FINAL_ACCEPTANCE.md)。
-2. **R2 Standard Model Package v1（方案已批准，联合设计已确认）**：下一门禁为共同机器 schema、diagnostics 与 fixture SHA index，随后执行 Studio exporter/producer validator → Platform package/3.3 reader → 双端交叉验证与浏览器验收。R1 关闭和手动备份完成前不启动高风险实现。
+2. **R2 Standard Model Package v1（机器实现与联合技术验收完成，待用户里程碑确认）**：Studio exporter/producer validator、Platform package/3.3 reader、同字节 fixture/SHA index、双端全门禁、真实浏览器联合验收和最终独立 Reviewer 均已通过。当前候选尚未发布、合并或进入 `main` 兼容基线；下一步是用户里程碑确认及后续本地合入/备份流程。
 3. **后续发布基础（未批准）**：生产 LLM gateway、凭据治理、CI/CD、生产构建制品和发布级 E2E。
 4. **后续 AI Runtime 收敛（未批准）**：完成 Phase 2，迁移关键 combo/query，降低 v2 动态执行面。
 5. **后续产品化（未批准）**：项目/场景管理、权限、服务端审计、模型资产服务和生产可观测性。

@@ -2,7 +2,7 @@
 
 > 日期：2026-08-22
 >
-> 状态：方案 B 已获用户批准；双端产品经理已确认设计基线，机器 schema/fixtures/validators 待冻结
+> 状态：方案 B 已获用户批准；双端任务分支机器实现与联合技术验收完成，形成待用户里程碑确认的兼容候选；尚未发布、合并或进入 `main` 兼容基线
 >
 > 生产方：Space Model Studio
 >
@@ -19,7 +19,7 @@ Standard Model Package v1 是两个独立产品之间的新窄腰。它不替换
 
 新包把 `3.3-semantic` GLB、严格 Platform sidecar v1、不可变资源摘要和版本声明组合成一个可验证交付。Platform 继续保留旧 v3.1 reader；Studio 继续保留 embedded topology 供本端回开。任何 reader 都必须由显式 contract identity 选择，禁止按字段形状猜版本。
 
-在共同 fixtures、producer validator、consumer validator 和端到端验收全部通过前，包状态只能是“设计/候选”，不得声明跨项目兼容交付。
+共同 fixtures、producer validator、consumer validator、双端全门禁、真实浏览器端到端验收和最终独立复核现已全部通过，因此可提交用户兼容里程碑确认；用户确认前仍只能称为“兼容候选”，不得声明已发布、已合并或 `main` 已兼容。
 
 ## 2. Package identity 与发现
 
@@ -29,6 +29,7 @@ Standard Model Package v1 是两个独立产品之间的新窄腰。它不替换
 - Platform 只接受用户、模型清单或受控选择流程明确给出的 manifest URI；若入口是目录，只尝试上述固定文件名。
 - Package 内 topology 资源始终由 manifest URI 显式指定；可以沿用 sidecar v1 的 basename 约定，但 basename 不再充当 package reader 的猜测或 fallback 入口。
 - 不扫描目录、不根据 GLB 文件名猜包、不回退到 GLB extras，也不把普通 v3.1 GLB 自动升级为 package v1。
+- 旧 Studio building-release ZIP 若不具备显式 v1 manifest identity，继续 fail closed，不因文件内容或 basename 自动升级。
 - 未知 `schema`、未知版本、未知结构字段或重复 ID 均 fail closed。
 
 ## 3. Manifest v1
@@ -149,7 +150,7 @@ Platform 新增独立 package v1 reader 与 `3.3-semantic` validator/adapter，�
 | edge `initialState.blockerIds` | 按 blocker ID 聚合为顶层 `blockers[]`，当前 embedded 语义映射为 `active: true`，并保留关联 edge IDs |
 | graph/node/edge tags 与 data | 在 sidecar v1 JSON 安全与容量限制内原样保留 |
 
-当前结论：节点、层、同层边、polyline、权重、enabled/weightOverride、tags/data 与当前 active blocker 路由行为可无损承载；Studio 单楼层中未成对的 `connectorId` 没有跨层路由语义，只能作为 namespaced provenance 保留。真正跨层 connector 不属于当前 Studio 发布能力，未来必须由完整多楼层 fixture 验证，不能由 v1 exporter 猜边。
+当前结论：节点、层、同层边、polyline、权重、enabled/weightOverride、tags/data 与当前 active blocker 路由行为可无损承载；Studio 单楼层中未成对的 `connectorId` 没有跨层路由语义，只能作为 namespaced provenance 保留。Standard Model Package v1 不提供跨层 routing；真正跨层 connector 属于未来能力，必须由完整多楼层 fixture 和新验收证明，不能由 v1 exporter 猜边。
 
 若任何 Studio 图超过 sidecar v1 限制、无法证明米制 +Y/资产局部坐标、无法形成合法 connector/blocker，exporter 必须拒绝生成 package v1。若产品需要扩大这些语义，应另发 sidecar v2，不得放宽 v1。
 
@@ -188,7 +189,15 @@ Studio 负责 golden package 的生产与 producer validator；Platform 负责 c
 
 权威 fixture index 由生产方 Studio 维护，Platform 保存同字节镜像并在本地独立验签；任一端 index 或资源 SHA-256 不同即停止联验。由于项目当前均为本地模式，fixture 通过受控人工复制同步，不建立运行时跨仓依赖。
 
-### 7.1 共同 diagnostics 基线
+### 7.1 候选验证证据（2026-08-28）
+
+- Platform consumer 检查点：`786e3f3123d24dde264aca0536ef04f6e4fe8e07`（`codex/r2-standard-model-package`）。
+- Studio producer 检查点：`02b560a`（Studio 对应任务分支）。
+- 双仓同字节 golden ZIP SHA-256：`d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`；双方 SHA index 已分别验签。
+- Studio 与 Platform 全门禁、真实浏览器联合验收均通过；最终独立 Reviewer P0/P1/P2 均为 0。
+- 这些证据只支持“待用户里程碑确认的兼容候选”，不证明候选已发布、已合并或任一仓库 `main` 已兼容。
+
+### 7.2 共同 diagnostics 基线
 
 Sidecar 解析、绑定和编译失败继续原样使用已冻结的 `SIDECAR_*` diagnostic code，不在 package 层改名。Package/Metadata 层下一门禁至少冻结以下共同 code：
 
@@ -206,7 +215,7 @@ Sidecar 解析、绑定和编译失败继续原样使用已冻结的 `SIDECAR_*`
 - `PACKAGE_LIMIT_EXCEEDED`
 - `PACKAGE_REQUEST_STALE`
 
-双方必须同时冻结每个 code 的触发条件、phase、JSON Pointer path 和去敏 envelope；在机器 schema/fixture 门禁完成前，上述名称仍是设计基线而不是已发布 API。
+双方候选实现已共同冻结每个 code 的触发条件、phase、JSON Pointer path 和去敏 envelope；用户里程碑确认前，它们仍是候选兼容基线而不是已发布 API 承诺。
 
 ## 8. 迁移、回滚与发布门禁
 
@@ -216,7 +225,7 @@ Sidecar 解析、绑定和编译失败继续原样使用已冻结的 `SIDECAR_*`
 - 每个 package revision 不可变；回滚是切回上一个完整 revision，而不是局部替换 GLB 或 sidecar。
 - 存量 Studio 模型必须经当前 exporter 重新发布并通过双端 fixtures/validator，不能只补一个 manifest 宣称升级。
 - Studio 可额外输出 `producer-validation.json` 作为非规范审计附件；它不进入 package v1 manifest，也不影响 Platform 对 package 的接受或拒绝。
-- 双端实现、共享 fixture、自动验证、浏览器加载和独立 QA 全部通过后，才可申请“跨项目兼容”里程碑验收。
+- 双端实现、共享 fixture、自动验证、浏览器加载和独立 QA 已全部通过，当前可申请“跨项目兼容”里程碑验收；只有用户确认后才能进入后续发布、合入和备份流程。
 
 ## 9. 工作包与所有权
 
@@ -239,10 +248,10 @@ Platform 的实现边界位于 SSP 外的 adapter/integration 层；`src/ssp/**`
 ## 10. 当前实施顺序
 
 1. **已完成**：双方产品经理确认本文与 Studio 对应文档内容一致，9 项设计问题全部关闭。
-2. 冻结共同 JSON Schema/TypeScript contract、fixture index 与 diagnostics 预期。
-3. Studio 实现 exporter/producer validator；Platform 实现 package/3.3 consumer reader。
-4. 双端交换同字节 fixtures 并交叉运行 validators。
-5. 完成 Platform 浏览器链路、独立架构复核和 QA。
-6. 向用户提交兼容里程碑验收与手动备份要求。
+2. **已完成**：冻结共同 JSON Schema/TypeScript contract、fixture index 与 diagnostics 预期。
+3. **已完成**：Studio 实现 exporter/producer validator；Platform 实现 package/3.3 consumer reader。
+4. **已完成**：双端交换同字节 fixtures、分别验签 SHA index 并交叉运行 validators。
+5. **已完成**：真实浏览器联合链路、独立架构/QA 复核及最终 Reviewer 通过，P0/P1/P2 均为 0。
+6. **当前门禁**：向用户提交兼容里程碑确认；确认后再执行获准的本地合入与手动备份流程。
 
-Platform 当前 R1 尚待用户关闭并完成手动备份；在该门禁完成前，本项目只进行本契约的设计固化，不启动新的高风险实现写入。
+当前两端成果仍位于各自任务分支。本文不表示已发布、已合并或 `main` 已兼容；用户里程碑确认是下一必经门禁。

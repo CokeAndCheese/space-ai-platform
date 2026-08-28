@@ -1,0 +1,81 @@
+{
+  "schema": "space-model-studio/standard-model-package-v1-fixture-sha256-index",
+  "schemaVersion": 1,
+  "platformSidecars": [
+    {
+      "file": "platform-rotated-single-root.topology.v1.json",
+      "sha256": "6f3220a06e8be46b2ee8eb7ceb68610c5f06f70da1cab21b61d6248d0d621b7f"
+    },
+    {
+      "file": "platform-multi-root-cross-layer.topology.v1.json",
+      "sha256": "2821cb6adc4c4e2225408c8a558e9f05afa48e1571df759150bd74b8461fb197"
+    }
+  ],
+  "authoritativeSuccessPackage": {
+    "file": "standard-model-package-v1-success.zip",
+    "sha256": "d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0",
+    "byteLength": 21956,
+    "routeAssertion": {
+      "assetUri": "./A_1F.glb",
+      "sourceNodeId": "semantic:SPACE_A_1F_OFFICE_02",
+      "targetNodeId": "fixture:route-target:A_1F",
+      "edgeId": "fixture:route-edge:A_1F",
+      "direction": "BIDIRECTIONAL",
+      "mode": "WALK"
+    }
+  },
+  "syntheticTwoFloorPackage": {
+    "archiveSha256": "d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0",
+    "byteLength": 21956,
+    "entries": [
+      {
+        "name": "space-model-package.v1.json",
+        "sha256": "843ff1124683c4abb1ed3d80694121c09502a6bb3d6afc4513db6d95c163d873",
+        "byteLength": 1617
+      },
+      {
+        "name": "A_B1.glb",
+        "sha256": "abd4d1ae86330695d758ee4169e545b611a691c3d81bc5f471b6234a0e00eb30",
+        "byteLength": 3720
+      },
+      {
+        "name": "A_1F.glb",
+        "sha256": "3db2afefd53e478325402b7b166e4381656f784d65cd6f49d210f9da55d977d4",
+        "byteLength": 4208
+      },
+      {
+        "name": "topology.v1.json",
+        "sha256": "ee6e2b53819b3920ab76e7f417b8874fcf76bdfc2ea44e4872713f10e1cc878a",
+        "byteLength": 6474
+      },
+      {
+        "name": "producer-validation.json",
+        "sha256": "78806ef366459ca93e9d7abe4441149daa43684be73c9ac856b9d37ce844aa41",
+        "byteLength": 5369
+      }
+    ]
+  },
+  "failureVectors": [
+    {
+      "id": "zip-first-payload-xor",
+      "mutation": { "kind": "xor-byte", "offset": 57, "value": 255 },
+      "sha256": "dc377c0f451a842ef9d408a2bcd88f99a2696f97c880acb3379e2bd593e13103",
+      "byteLength": 21956,
+      "expectedDiagnostic": { "code": "PACKAGE_FIELD_INVALID", "phase": "reopen" }
+    },
+    {
+      "id": "zip-append-zero",
+      "mutation": { "kind": "append-hex", "value": "00" },
+      "sha256": "93b9f7794dcea73e1563a49d651728f38a61e55c2e161b041a6261e9ed3b767d",
+      "byteLength": 21957,
+      "expectedDiagnostic": { "code": "PACKAGE_FIELD_INVALID", "phase": "reopen" }
+    },
+    {
+      "id": "zip-truncate-tail",
+      "mutation": { "kind": "truncate-tail", "byteCount": 1 },
+      "sha256": "3abcea7b8737f3c1066ec0bbd961efe605e2945459a64df84873764433a19968",
+      "byteLength": 21955,
+      "expectedDiagnostic": { "code": "PACKAGE_FIELD_INVALID", "phase": "reopen" }
+    }
+  ]
+}

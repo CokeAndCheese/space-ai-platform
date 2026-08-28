@@ -6,6 +6,8 @@ export {
 export type {
   TopologyCachePort,
   TopologyModelSelectionResult,
+  TopologyPackageSessionAsset,
+  TopologyPackageSessionSnapshot,
   TopologySceneSessionNode,
   TopologySceneSessionSnapshot,
   TopologySceneSessionStatus,

@@ -27,10 +27,14 @@
     "test:topology": "node scripts/test-topology.mjs",
     "test:topology-quick-action": "node scripts/test-topology-quick-action.mjs",
     "test:topology-sidecar": "node scripts/test-topology-sidecar.mjs",
+    "test:standard-model-package": "node scripts/test-standard-model-package.mjs",
+    "test:standard-model-package-lifecycle": "node scripts/test-standard-model-package-lifecycle.mjs",
+    "test:home-package-import": "node scripts/test-home-package-import.mjs",
     "test:topology-scene-lifecycle": "node scripts/test-topology-scene-lifecycle.mjs",
     "audit:topology-boundary": "node scripts/audit-topology-boundary.mjs"
   },
   "dependencies": {
+    "fflate": "0.8.2",
     "pinia": "^4.0.2",
     "three": "^0.165.0",
     "vue": "^3.4.27",

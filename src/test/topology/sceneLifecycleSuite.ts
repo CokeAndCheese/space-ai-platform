@@ -325,6 +325,14 @@ function createHarness(options: {
         }
         return behavior.loadFloor(url)
       },
+      unloadFloor: (transportKey) => {
+        const match = [...loadedRoots.entries()].find(([url]) => (
+          url.split('/').at(-1)?.replace(/\.glb$/iu, '') === transportKey
+        ))
+        if (match === undefined) return
+        scene.remove(match[1])
+        loadedRoots.delete(match[0])
+      },
       getScene: () => scene,
       compileSidecar: (text, context) => behavior.compileSidecar(text, context),
       createGraph: (input) => behavior.createGraph(input),

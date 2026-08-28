@@ -10,6 +10,15 @@ import {
   type TopologySidecarCompileResult,
   type TopologySidecarDiagnostic,
 } from '@/adapters/topology'
+import {
+  clonePackageArchiveResources,
+  packageDiagnostic,
+  parsePackageZipV1,
+  prebindPackageTopologyV1,
+  validatePackageArchive,
+  type PackageDiagnostic,
+  type PreparedPackageTopologyV1,
+} from '@/adapters/package'
 import type { ModelRecord } from '@/composables/useModelLibrary'
 import {
   TopologyError,
@@ -47,10 +56,32 @@ export interface TopologySceneSessionSnapshot {
   graphId: string | null
   nodes: readonly TopologySceneSessionNode[]
   diagnostic: TopologySidecarDiagnostic | null
+  packageDiagnostic: PackageDiagnostic | null
+  packageSession: TopologyPackageSessionSnapshot | null
+}
+
+export interface TopologyPackageSessionAsset {
+  readonly assetId: string
+  readonly canonicalUri: string
+  readonly floorName: string
+  readonly building: string | null
+  readonly level: number | null
+  readonly floorType: string
+  readonly root: THREE.Object3D
+}
+
+export interface TopologyPackageSessionSnapshot {
+  readonly manifestUri: string
+  readonly packageId: string
+  readonly revision: string
+  readonly assets: readonly TopologyPackageSessionAsset[]
 }
 
 export interface TopologyFloorInfo {
   floorName: string
+  building?: string | null
+  level?: number | null
+  floorType?: string | null
   url: string
   root: THREE.Object3D
 }
@@ -85,6 +116,12 @@ export interface TopologySceneLifecyclePorts {
   cache: TopologyCachePort
   resolveLoaderUrl(url: string): string
   loadFloor(url: string): Promise<TopologyFloorInfo>
+  /**
+   * Receives modelTool's basename key, not a public URI. SSP advances its
+   * global pending-load generation here, so lifecycle calls this only after
+   * the current selection's model loads have settled.
+   */
+  unloadFloor(transportKey: string): void
   getScene(): THREE.Scene
   compileSidecar(
     jsonText: string,
@@ -96,8 +133,10 @@ export interface TopologySceneLifecyclePorts {
   removeAllRoutes(): number
   removeAllGraphs(): number
   removeAllLegacyTopologies(): number
+  /** Must invalidate/reject older pending model loads before they can attach. */
   unloadAllModels(): void
   assetConcurrency?: number
+  createPackageSessionId?(): string
 }
 
 export interface TopologySelectionPlan {
@@ -115,6 +154,8 @@ export type TopologyModelSelectionResult =
 interface SelectionTicket {
   generation: number
   controller: AbortController
+  modelLoadsSettled: Promise<void>
+  settleModelLoads(): void
 }
 
 interface SelectionAssets {
@@ -129,6 +170,14 @@ interface SelectionAssetOutcome {
   proof: TopologyAssetProof | null
   visualFailure: TopologySidecarDiagnostic | null
   proofFailure: TopologySidecarDiagnostic | null
+}
+
+interface PackageAssetLoadOutcome {
+  readonly loaded: TopologyLoadedAsset
+  readonly proof: TopologyAssetProof
+  readonly sessionAsset: TopologyPackageSessionAsset
+  /** modelTool's private basename key; never exposed as package identity. */
+  readonly transportKey: string
 }
 
 class StaleSelectionError extends Error {
@@ -149,6 +198,20 @@ class SelectionFailure extends Error {
 }
 
 class AssetAuthorizationError extends SelectionFailure {}
+
+class PackageAssetLoadFailure extends Error {
+  constructor(readonly diagnostic: TopologySidecarDiagnostic) {
+    super(diagnostic.message)
+    this.name = 'PackageAssetLoadFailure'
+  }
+}
+
+class PackageTransportRetirementFailure extends Error {
+  constructor() {
+    super('a superseded package transport could not be retired')
+    this.name = 'PackageTransportRetirementFailure'
+  }
+}
 
 class LoaderResolvedUrlMismatchError extends Error {
   constructor(
@@ -222,6 +285,72 @@ function canonicalOrigin(origin: string): URL {
     throw new Error('application origin must be credential-free HTTP(S)')
   }
   return parsed
+}
+
+function packageSessionId(
+  generation: number,
+  factory: (() => string) | undefined,
+): string {
+  let candidate: string
+  if (factory !== undefined) {
+    candidate = factory()
+  } else if (typeof globalThis.crypto?.randomUUID === 'function') {
+    candidate = globalThis.crypto.randomUUID()
+  } else {
+    candidate = `generation-${generation.toString(36).padStart(8, '0')}`
+  }
+  if (!/^[A-Za-z0-9_-]{8,128}$/.test(candidate)) {
+    throw new Error('package session id must be an opaque URL-safe token')
+  }
+  return candidate
+}
+
+function selectionTicket(generation: number): SelectionTicket {
+  const controller = new AbortController()
+  let settled = false
+  let settle!: () => void
+  const modelLoadsSettled = new Promise<void>((resolve) => { settle = resolve })
+  return {
+    generation,
+    controller,
+    modelLoadsSettled,
+    settleModelLoads: () => {
+      if (settled) return
+      settled = true
+      settle()
+    },
+  }
+}
+
+function packageManifestUri(origin: string, sessionId: string): string {
+  return new URL(
+    `/__space-model-package-v1/${sessionId}/space-model-package.v1.json`,
+    canonicalOrigin(origin),
+  ).href
+}
+
+function packageTransportIdentity(
+  manifestUri: string,
+  sessionId: string,
+  index: number,
+  digest: string,
+): { readonly url: string; readonly key: string } {
+  const key = `${sessionId}-${String(index).padStart(3, '0')}-${digest.slice(0, 16)}`
+  return Object.freeze({
+    key,
+    url: new URL(`./.transport/${key}.glb`, manifestUri).href,
+  })
+}
+
+function exactArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  if (
+    bytes.byteOffset === 0 &&
+    bytes.byteLength === bytes.buffer.byteLength &&
+    bytes.buffer instanceof ArrayBuffer
+  ) {
+    return bytes.buffer
+  }
+  return bytes.slice().buffer
 }
 
 function canonicalManifestAsset(record: ModelRecord, origin: string, sidecarUri: string): string {
@@ -755,14 +884,53 @@ function freezeDiagnostic(value: TopologySidecarDiagnostic): TopologySidecarDiag
   })
 }
 
+function freezePackageDiagnostic(value: PackageDiagnostic): PackageDiagnostic {
+  return Object.freeze({
+    ...value,
+    details: Object.freeze({ ...value.details }),
+  })
+}
+
+function freezePackageSession(
+  value: TopologyPackageSessionSnapshot,
+): TopologyPackageSessionSnapshot {
+  return Object.freeze({
+    manifestUri: value.manifestUri,
+    packageId: value.packageId,
+    revision: value.revision,
+    assets: Object.freeze(value.assets.map((asset) => Object.freeze({ ...asset }))),
+  })
+}
+
+interface TopologySceneSessionStateInput {
+  status: TopologySceneSessionStatus
+  graphId: string | null
+  nodes: readonly TopologySceneSessionNode[]
+  diagnostic: TopologySidecarDiagnostic | null
+  packageDiagnostic?: PackageDiagnostic | null
+  packageSession?: TopologyPackageSessionSnapshot | null
+}
+
 export class TopologySceneLifecycle {
   private generation = 0
   private active: SelectionTicket | null = null
+  /**
+   * modelTool.unloadFloor invalidates its global pending-load generation even
+   * though it removes one basename key. A stale package retirement therefore
+   * waits for the current selection's model loads, while the current selection
+   * waits for that retirement before compiling or committing a graph.
+   */
+  private readonly packageRetirements = new Set<{
+    readonly sourceGeneration: number
+    readonly promise: Promise<void>
+  }>()
   private state: TopologySceneSessionSnapshot = {
     status: 'idle',
     graphId: null,
     nodes: [],
     diagnostic: null,
+    packageDiagnostic: null,
+    packageSession: null,
   }
 
   constructor(
@@ -776,12 +944,23 @@ export class TopologySceneLifecycle {
     return this.state
   }
 
+  getPackageAssetById(assetId: string): TopologyPackageSessionAsset | null {
+    return this.state.packageSession?.assets.find((asset) => asset.assetId === assetId) ?? null
+  }
+
+  getPackageAssetsByFloorName(floorName: string): readonly TopologyPackageSessionAsset[] {
+    return Object.freeze(
+      (this.state.packageSession?.assets ?? []).filter((asset) => asset.floorName === floorName),
+    )
+  }
+
   isGenerationCurrent(generation: number): boolean {
     return this.generation === generation
   }
 
   invalidate(): number {
     const generation = ++this.generation
+    this.active?.settleModelLoads()
     this.active?.controller.abort()
     this.active = null
     this.publish({ status: 'idle', graphId: null, nodes: [], diagnostic: null })
@@ -790,6 +969,7 @@ export class TopologySceneLifecycle {
 
   invalidateAndCleanup(): number {
     const generation = ++this.generation
+    this.active?.settleModelLoads()
     this.active?.controller.abort()
     this.active = null
     const cleanupErrors = this.cleanupResources()
@@ -817,6 +997,7 @@ export class TopologySceneLifecycle {
     manifest: readonly ModelRecord[],
   ): Promise<TopologyModelSelectionResult> {
     const generation = ++this.generation
+    this.active?.settleModelLoads()
     this.active?.controller.abort()
     this.active = null
     const cleanupErrors = this.cleanupResources()
@@ -837,8 +1018,7 @@ export class TopologySceneLifecycle {
       return { kind: 'empty', generation }
     }
 
-    const controller = new AbortController()
-    const ticket: SelectionTicket = { generation, controller }
+    const ticket = selectionTicket(generation)
     this.active = ticket
     this.publish({ status: 'loading', graphId: null, nodes: [], diagnostic: null })
 
@@ -846,10 +1026,11 @@ export class TopologySceneLifecycle {
     try {
       plan = resolveTopologySelectionPlan(selectedUrl, manifest, this.ports.origin)
     } catch (error) {
+      ticket.settleModelLoads()
       if (!this.ownsGeneration(ticket)) return { kind: 'stale', generation }
       const sidecarUri = new URL('/topology.v1.json', canonicalOrigin(this.ports.origin)).href
       const failure = modelFailureFromUnknown(sidecarUri, error)
-      controller.abort()
+      ticket.controller.abort()
       this.publish({ status: 'error', graphId: null, nodes: [], diagnostic: failure.diagnostic })
       return { kind: 'model-error', generation, message: failure.modelMessage }
     }
@@ -857,8 +1038,23 @@ export class TopologySceneLifecycle {
     let assets: SelectionAssets
     try {
       assets = await this.loadSelectionAssets(plan, ticket)
+      ticket.settleModelLoads()
+      await this.awaitPriorPackageRetirements(ticket)
     } catch (error) {
+      ticket.settleModelLoads()
       if (!this.ownsGeneration(ticket)) return { kind: 'stale', generation }
+      if (error instanceof PackageTransportRetirementFailure) {
+        const cleanupErrors = this.cleanupResources()
+        const failure = diagnostic(
+          plan.sidecarUri,
+          'SIDECAR_GRAPH_COMMIT_FAILED',
+          'LIFECYCLE',
+          'a superseded package transport could not be retired before legacy model commit',
+          { details: { failedStages: cleanupErrors.map((item) => item.stage) } },
+        )
+        this.publish({ status: 'error', graphId: null, nodes: [], diagnostic: failure })
+        return { kind: 'model-error', generation, message: '旧模型包资源清理失败' }
+      }
       const failure = modelFailureFromUnknown(plan.sidecarUri, error)
       this.publish({
         status: 'error',
@@ -954,7 +1150,489 @@ export class TopologySceneLifecycle {
     return { kind: 'loaded', generation, assetCount: visibleAssetCount }
   }
 
-  private publish(state: TopologySceneSessionSnapshot): void {
+  async selectPackage(packageBytes: Uint8Array): Promise<TopologyModelSelectionResult> {
+    const generation = ++this.generation
+    this.active?.settleModelLoads()
+    this.active?.controller.abort()
+    this.active = null
+    const cleanupErrors = this.cleanupResources()
+    if (cleanupErrors.length > 0) {
+      const sidecarUri = new URL('/topology.v1.json', canonicalOrigin(this.ports.origin)).href
+      const failure = diagnostic(
+        sidecarUri,
+        'SIDECAR_GRAPH_COMMIT_FAILED',
+        'LIFECYCLE',
+        'old model-session resources could not be fully released before package import',
+        { details: { failedStages: cleanupErrors.map((item) => item.stage) } },
+      )
+      this.publish({ status: 'error', graphId: null, nodes: [], diagnostic: failure })
+      return { kind: 'model-error', generation, message: '旧模型资源清理失败' }
+    }
+
+    const ticket = selectionTicket(generation)
+    this.active = ticket
+    this.publish({ status: 'loading', graphId: null, nodes: [], diagnostic: null })
+
+    let sessionId: string
+    let manifestUri: string
+    try {
+      sessionId = packageSessionId(generation, this.ports.createPackageSessionId)
+      manifestUri = packageManifestUri(this.ports.origin, sessionId)
+    } catch (error) {
+      const failure = packageDiagnostic(
+        'PACKAGE_FIELD_INVALID',
+        'LIFECYCLE',
+        '/',
+        { cause: safeErrorName(error) },
+      )
+      return this.failPackageSelection(ticket, { packageDiagnostic: failure }, '模型包会话初始化失败')
+    }
+
+    let prepared: PreparedPackageTopologyV1
+    try {
+      // parsePackageZipV1 is synchronous. It completes before this async method
+      // yields, then resource entries are copied so later caller mutation cannot
+      // alter the bytes that are hashed, validated, and handed to GLTFLoader.
+      const parsedArchive = parsePackageZipV1(packageBytes, manifestUri)
+      if (!parsedArchive.ok) {
+        return this.failPackageSelection(
+          ticket,
+          { packageDiagnostic: parsedArchive.diagnostic },
+          '标准模型包校验失败',
+        )
+      }
+      const ownedArchive = clonePackageArchiveResources(parsedArchive.value)
+      const validated = await validatePackageArchive(ownedArchive)
+      this.assertTicketCurrent(ticket)
+      if (!validated.ok) {
+        return this.failPackageSelection(
+          ticket,
+          { packageDiagnostic: validated.diagnostic },
+          '标准模型包校验失败',
+        )
+      }
+      const binding = prebindPackageTopologyV1(ownedArchive, validated.value)
+      if (!binding.ok) {
+        return this.failPackageSelection(
+          ticket,
+          binding.kind === 'package'
+            ? { packageDiagnostic: binding.diagnostic }
+            : { sidecarDiagnostic: binding.diagnostic },
+          '标准模型包拓扑绑定失败',
+        )
+      }
+      prepared = binding.value
+    } catch (error) {
+      if (!this.ownsGeneration(ticket) || error instanceof StaleSelectionError) {
+        ticket.settleModelLoads()
+        return { kind: 'stale', generation }
+      }
+      const failure = packageDiagnostic(
+        'PACKAGE_FIELD_INVALID',
+        'LIFECYCLE',
+        '/',
+        { cause: safeErrorName(error) },
+        { manifestUri },
+      )
+      return this.failPackageSelection(ticket, { packageDiagnostic: failure }, '标准模型包校验失败')
+    }
+
+    let packageAssets: readonly PackageAssetLoadOutcome[]
+    try {
+      packageAssets = await this.loadPackageAssets(prepared, sessionId, ticket)
+      ticket.settleModelLoads()
+      await this.awaitPriorPackageRetirements(ticket)
+    } catch (error) {
+      ticket.settleModelLoads()
+      if (!this.ownsGeneration(ticket) || error instanceof StaleSelectionError) {
+        return { kind: 'stale', generation }
+      }
+      const failure = error instanceof PackageTransportRetirementFailure
+        ? diagnostic(
+            prepared.manifest.topology.canonicalUri,
+            'SIDECAR_GRAPH_COMMIT_FAILED',
+            'LIFECYCLE',
+            'a superseded package transport could not be retired before graph compilation',
+          )
+        : error instanceof PackageAssetLoadFailure
+          ? error.diagnostic
+          : diagnostic(
+            prepared.manifest.topology.canonicalUri,
+            'SIDECAR_ASSET_NOT_LOADED',
+            'BIND',
+            'package asset loading failed without a trustworthy loaded root',
+            { details: { cause: safeErrorName(error) } },
+            )
+      return this.failPackageSelection(
+        ticket,
+        { sidecarDiagnostic: failure },
+        '标准模型包资产加载失败',
+      )
+    }
+
+    if (!this.isTicketCurrent(ticket)) return { kind: 'stale', generation }
+    const context: TopologySidecarCompileContext = {
+      sidecarUri: prepared.manifest.topology.canonicalUri,
+      scene: this.ports.getScene(),
+      selectionGeneration: generation,
+      isSelectionCurrent: (candidate) => candidate === generation && this.isTicketCurrent(ticket),
+      loadedAssets: packageAssets.map((asset) => asset.loaded),
+      assetProofs: packageAssets.map((asset) => asset.proof),
+    }
+
+    let compiled: TopologySidecarCompileResult
+    try {
+      compiled = this.ports.compileSidecar(prepared.topologyText, context)
+    } catch (error) {
+      compiled = {
+        ok: false,
+        diagnostics: [diagnostic(
+          prepared.manifest.topology.canonicalUri,
+          'SIDECAR_FIELD_INVALID',
+          'COMPILE',
+          'topology sidecar compiler failed unexpectedly',
+          { details: safeCaughtErrorDetails(error) },
+        )],
+      }
+    }
+    if (!this.isTicketCurrent(ticket)) return { kind: 'stale', generation }
+    if (!compiled.ok) {
+      return this.failPackageSelection(
+        ticket,
+        { sidecarDiagnostic: compiled.diagnostics[0] ?? diagnostic(
+          prepared.manifest.topology.canonicalUri,
+          'SIDECAR_FIELD_INVALID',
+          'COMPILE',
+          'topology sidecar compilation failed without a diagnostic',
+        ) },
+        '标准模型包拓扑编译失败',
+      )
+    }
+
+    const commit = this.commitGraph(
+      compiled.input,
+      prepared.manifest.topology.canonicalUri,
+      ticket,
+    )
+    if (commit.kind === 'stale') return { kind: 'stale', generation }
+    if (commit.kind === 'error') {
+      return this.failPackageSelection(
+        ticket,
+        { sidecarDiagnostic: commit.diagnostic },
+        '标准模型包拓扑提交失败',
+      )
+    }
+
+    const packageSession: TopologyPackageSessionSnapshot = {
+      manifestUri: prepared.manifest.manifestUri,
+      packageId: prepared.manifest.packageId,
+      revision: prepared.manifest.revision,
+      assets: packageAssets.map((asset) => asset.sessionAsset),
+    }
+    this.publish({
+      status: 'ready',
+      graphId: commit.snapshot.id,
+      nodes: compiled.input.nodes.map((node) => ({
+        id: node.id,
+        layerId: node.layerId,
+        ...(node.label === undefined ? {} : { label: node.label }),
+        ...(node.kind === undefined ? {} : { kind: node.kind }),
+        ...(node.subtype === undefined ? {} : { subtype: node.subtype }),
+      })),
+      diagnostic: null,
+      packageSession,
+    })
+    return { kind: 'loaded', generation, assetCount: packageAssets.length }
+  }
+
+  private failPackageSelection(
+    ticket: SelectionTicket,
+    failure: {
+      readonly packageDiagnostic?: PackageDiagnostic
+      readonly sidecarDiagnostic?: TopologySidecarDiagnostic
+    },
+    modelMessage: string,
+  ): TopologyModelSelectionResult {
+    ticket.settleModelLoads()
+    if (!this.ownsGeneration(ticket)) return { kind: 'stale', generation: ticket.generation }
+    ticket.controller.abort()
+    if (this.active === ticket) this.active = null
+    const cleanupErrors = this.cleanupResources()
+    const cleanupFailure = cleanupErrors.length === 0
+      ? null
+      : diagnostic(
+          new URL('/topology.v1.json', canonicalOrigin(this.ports.origin)).href,
+          'SIDECAR_GRAPH_COMMIT_FAILED',
+          'LIFECYCLE',
+          'failed package session could not be fully released',
+          { details: { failedStages: cleanupErrors.map((item) => item.stage) } },
+        )
+    this.publish({
+      status: 'error',
+      graphId: null,
+      nodes: [],
+      diagnostic: cleanupFailure ?? failure.sidecarDiagnostic ?? null,
+      packageDiagnostic: failure.packageDiagnostic ?? null,
+    })
+    return {
+      kind: 'model-error',
+      generation: ticket.generation,
+      message: cleanupFailure === null ? modelMessage : '模型包失败且资源清理不完整',
+    }
+  }
+
+  private async loadPackageAssets(
+    prepared: PreparedPackageTopologyV1,
+    sessionId: string,
+    ticket: SelectionTicket,
+  ): Promise<readonly PackageAssetLoadOutcome[]> {
+    const outcomes = new Array<PackageAssetLoadOutcome>(prepared.assets.length)
+    const concurrency = Math.min(
+      3,
+      Math.max(2, this.ports.assetConcurrency ?? DEFAULT_ASSET_CONCURRENCY),
+    )
+    let cursor = 0
+    let firstFailure: PackageAssetLoadFailure | null = null
+    let stale = false
+
+    const worker = async (): Promise<void> => {
+      while (firstFailure === null) {
+        if (!this.isTicketCurrent(ticket)) {
+          stale = true
+          return
+        }
+        const index = cursor++
+        if (index >= prepared.assets.length) return
+        try {
+          outcomes[index] = await this.loadPackageAsset(
+            prepared,
+            prepared.assets[index]!,
+            index,
+            sessionId,
+            ticket,
+          )
+        } catch (error) {
+          if (!this.isTicketCurrent(ticket) || error instanceof StaleSelectionError) {
+            stale = true
+            return
+          }
+          firstFailure = error instanceof PackageAssetLoadFailure
+            ? error
+            : new PackageAssetLoadFailure(diagnostic(
+                prepared.manifest.topology.canonicalUri,
+                'SIDECAR_ASSET_NOT_LOADED',
+                'BIND',
+                'package asset loading failed without a trustworthy loaded root',
+                {
+                  assetId: prepared.assets[index]!.manifestAsset.assetId,
+                  details: { cause: safeErrorName(error) },
+                },
+              ))
+          return
+        }
+      }
+    }
+
+    const workers = Array.from(
+      { length: Math.min(concurrency, prepared.assets.length) },
+      () => worker(),
+    )
+    await Promise.allSettled(workers)
+    if (stale || !this.isTicketCurrent(ticket)) throw new StaleSelectionError()
+    if (firstFailure !== null) throw firstFailure
+    if (outcomes.some((outcome) => outcome === undefined)) {
+      throw new PackageAssetLoadFailure(diagnostic(
+        prepared.manifest.topology.canonicalUri,
+        'SIDECAR_PARTIAL_SCENE',
+        'BIND',
+        'package asset workers did not produce a complete loaded scene',
+        { details: { expected: prepared.assets.length, actual: outcomes.filter(Boolean).length } },
+      ))
+    }
+    const roots = new Set(outcomes.map((outcome) => outcome.loaded.root))
+    if (roots.size !== outcomes.length) {
+      throw new PackageAssetLoadFailure(diagnostic(
+        prepared.manifest.topology.canonicalUri,
+        'SIDECAR_ASSET_NOT_LOADED',
+        'BIND',
+        'one loaded root cannot satisfy multiple package assets',
+        { details: { assets: outcomes.length, roots: roots.size } },
+      ))
+    }
+    return Object.freeze(outcomes)
+  }
+
+  private async loadPackageAsset(
+    prepared: PreparedPackageTopologyV1,
+    asset: PreparedPackageTopologyV1['assets'][number],
+    index: number,
+    sessionId: string,
+    ticket: SelectionTicket,
+  ): Promise<PackageAssetLoadOutcome> {
+    this.assertTicketCurrent(ticket)
+    const manifestAsset = asset.manifestAsset
+    const transport = packageTransportIdentity(
+      prepared.manifest.manifestUri,
+      sessionId,
+      index,
+      manifestAsset.digest.value,
+    )
+    let info: TopologyFloorInfo | null = null
+    try {
+      info = await loadFloorWithSynchronousCacheLease({
+        url: transport.url,
+        canonicalUrl: transport.url,
+        bytes: exactArrayBuffer(asset.entry.bytes),
+        cache: this.ports.cache,
+        resolveLoaderUrl: this.ports.resolveLoaderUrl,
+        assertCurrent: () => this.assertTicketCurrent(ticket),
+        loadFloor: this.ports.loadFloor,
+      })
+      this.assertTicketCurrent(ticket)
+      if (!isVisibleInScene(info.root, this.ports.getScene())) {
+        throw new PackageAssetLoadFailure(diagnostic(
+          prepared.manifest.topology.canonicalUri,
+          'SIDECAR_ASSET_NOT_LOADED',
+          'BIND',
+          'package model loader did not attach the asset root to the current scene',
+          { assetId: manifestAsset.assetId, details: { requirement: 'SAME_THREE_SCENE' } },
+        ))
+      }
+      if (info.url !== transport.url || info.floorName !== manifestAsset.floor.floorName) {
+        throw new PackageAssetLoadFailure(diagnostic(
+          prepared.manifest.topology.canonicalUri,
+          'SIDECAR_ASSET_BINDING_MISMATCH',
+          'BIND',
+          'package model loader result does not match the authorized transport and floor identity',
+          {
+            assetId: manifestAsset.assetId,
+            details: {
+              field: info.url !== transport.url ? 'url' : 'floorName',
+            },
+          },
+        ))
+      }
+
+      // modelTool retains this same FloorInfo object internally. Replacing its
+      // private transport URL immediately prevents it from becoming an external
+      // asset identity while preserving the modelTool key needed for unloadAll.
+      info.url = manifestAsset.canonicalUri
+      const loaded: TopologyLoadedAsset = {
+        canonicalUri: manifestAsset.canonicalUri,
+        root: info.root,
+        selectionGeneration: ticket.generation,
+      }
+      const proof: TopologyAssetProof = {
+        canonicalUri: manifestAsset.canonicalUri,
+        root: info.root,
+        selectionGeneration: ticket.generation,
+        digest: { ...manifestAsset.digest },
+        ...(asset.sidecarAsset.revision === undefined
+          ? { provenance: 'SAME_RESPONSE_BYTES' as const }
+          : {
+              revision: asset.sidecarAsset.revision,
+              provenance: 'IMMUTABLE_PACKAGE_REVISION' as const,
+            }),
+      }
+      const sessionAsset: TopologyPackageSessionAsset = {
+        assetId: manifestAsset.assetId,
+        canonicalUri: manifestAsset.canonicalUri,
+        floorName: manifestAsset.floor.floorName,
+        building: manifestAsset.floor.building,
+        level: manifestAsset.floor.level,
+        floorType: manifestAsset.floor.floorType,
+        root: info.root,
+      }
+      return Object.freeze({ loaded, proof, sessionAsset, transportKey: transport.key })
+    } catch (error) {
+      let retirementError: unknown | null = null
+      if (info !== null) {
+        try {
+          await this.retirePackageTransport(transport.key, ticket)
+        } catch (retirementFailure) {
+          retirementError = retirementFailure
+        }
+      }
+      if (retirementError !== null && !this.isTicketCurrent(ticket)) {
+        // A newer ticket observes the registered rejection and owns fail-closed
+        // cleanup. The stale ticket must never globally clear that newer state.
+        // With no active successor (for example unmount), global cleanup is safe.
+        if (this.active === null) this.cleanupResources()
+        throw new StaleSelectionError()
+      }
+      if (!this.isTicketCurrent(ticket) || error instanceof StaleSelectionError) {
+        throw new StaleSelectionError()
+      }
+      if (retirementError !== null) {
+        throw new PackageAssetLoadFailure(diagnostic(
+          prepared.manifest.topology.canonicalUri,
+          'SIDECAR_GRAPH_COMMIT_FAILED',
+          'LIFECYCLE',
+          'a failed package asset could not be retired by its private transport key',
+          {
+            assetId: manifestAsset.assetId,
+            details: { cause: safeErrorName(retirementError) },
+          },
+        ))
+      }
+      if (error instanceof PackageAssetLoadFailure) throw error
+      throw new PackageAssetLoadFailure(diagnostic(
+        prepared.manifest.topology.canonicalUri,
+        'SIDECAR_ASSET_NOT_LOADED',
+        'BIND',
+        'package GLB bytes could not be loaded into a trustworthy scene root',
+        {
+          assetId: manifestAsset.assetId,
+          details: { cause: safeErrorName(error) },
+        },
+      ))
+    }
+  }
+
+  private async awaitPriorPackageRetirements(ticket: SelectionTicket): Promise<void> {
+    const retirements = [...this.packageRetirements]
+      .filter((entry) => entry.sourceGeneration < ticket.generation)
+      .map((entry) => entry.promise)
+    if (retirements.length > 0) await Promise.all(retirements)
+    this.assertTicketCurrent(ticket)
+  }
+
+  private retirePackageTransport(
+    transportKey: string,
+    sourceTicket: SelectionTicket,
+  ): Promise<void> {
+    const promise = (async (): Promise<void> => {
+      let waitedFor: SelectionTicket | null = null
+      while (true) {
+        const current = this.active
+        if (
+          current === null ||
+          current.generation <= sourceTicket.generation ||
+          current === waitedFor
+        ) {
+          break
+        }
+        waitedFor = current
+        await current.modelLoadsSettled
+      }
+      try {
+        // SSP's precise unload still advances its global load generation. The
+        // current selection has no pending model load at this point.
+        this.ports.unloadFloor(transportKey)
+      } catch {
+        throw new PackageTransportRetirementFailure()
+      }
+    })()
+    const entry = { sourceGeneration: sourceTicket.generation, promise }
+    this.packageRetirements.add(entry)
+    void promise.then(
+      () => this.packageRetirements.delete(entry),
+      () => this.packageRetirements.delete(entry),
+    )
+    return promise
+  }
+
+  private publish(state: TopologySceneSessionStateInput): void {
     const nodes = Object.freeze(state.nodes.map((node) => Object.freeze({ ...node })))
     this.state = Object.freeze({
       status: state.status,
@@ -963,6 +1641,12 @@ export class TopologySceneLifecycle {
       diagnostic: state.diagnostic === null
         ? null
         : freezeDiagnostic(state.diagnostic),
+      packageDiagnostic: state.packageDiagnostic == null
+        ? null
+        : freezePackageDiagnostic(state.packageDiagnostic),
+      packageSession: state.packageSession == null
+        ? null
+        : freezePackageSession(state.packageSession),
     })
     this.onStateChange(this.state)
   }

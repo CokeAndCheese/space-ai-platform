@@ -2,9 +2,9 @@
 
 > 日期：2026-08-28
 >
-> 状态：用户已批准采用能力声明型 Standard Model Package v2 作为临时放行方向；本文仅固化过程设计与实施计划
+> 状态：用户已批准能力声明型 Standard Model Package v2 的 P0 精确机器值与补充决策；Platform 消费候选已在任务分支完成
 >
-> 当前门禁：机器 schema、字段拼写、manifest 发现规则、fixtures、diagnostics 和双端代码尚未联合冻结或实现，Platform 当前不得宣称已经接受 v2
+> 当前门禁：候选尚未合入 Platform local `main`、尚未发布，也未获得临时兼容里程碑批准；不得把任务分支候选表述为已交付能力
 >
 > 临时性：v2 只服务于“严格几何与 Metadata 已完成、Topology 明确缺席”的过渡交付，不替代完整 topology 的长期目标
 >
@@ -24,7 +24,7 @@
 - v2 只能通过新的显式版本身份与能力声明被选择，不能由 v1 缺字段、sidecar 失败、basename、目录扫描或内容形状猜测得到；
 - v2 的 topology 能力明确为 `ABSENT` 语义，不允许缺省、不允许空或伪 sidecar，也不读取 GLB embedded topology 作为 fallback。
 
-本文中的大写能力语义用于描述已批准行为方向。除 `TOPOLOGY_UNAVAILABLE` 的产品语义外，任何示例名称都不是已冻结的 JSON 字段、枚举值或 diagnostic code；精确机器表达必须由 Studio 与 Platform 后续联合冻结。
+P0 机器表达已经冻结：`schema = "space-model-package"`、`schemaVersion = 2`、manifest basename 为 `space-model-package.v2.json`、`profile = "TOPOLOGY_ABSENT_TRANSITION"`；封闭 `capabilities` 仅接受 `scene.status = AVAILABLE`、`metadata.status = AVAILABLE`、`space.status = AVAILABLE`、`space.completion = CONFIRMED`、`topology.status = ABSENT`。正常 topology 缺席结果固定为 `TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT`。这些值只属于临时 v2，不改变 v1。
 
 ## 2. 冻结边界与非目标
 
@@ -73,27 +73,27 @@ v2 仅免除 topology 数据本身，不免除标准模型质量或资源安全�
 
 ## 4. 接受与拒绝矩阵
 
-下表描述目标行为；在 v2 机器契约和代码完成前，当前 Platform 仍不接受任何 v2 包。
+下表描述已冻结的候选行为。当前实现只存在于 Platform 任务分支，未合入 local `main`、未发布；“候选接受”不等于已交付接受。
 
 | 输入/状态 | 目标 reader | 目标结果 | 当前状态 |
 |---|---|---|---|
 | 合法 v1 manifest + strict sidecar v1 | v1 | 按冻结 v1 完整校验、建图并 Graph ready | 已有候选实现，不变 |
-| 合法 v2 身份 + topology 明确 `ABSENT` + 全部几何/Metadata/资源门禁通过 | v2 | Scene/Metadata ready；Topology 结构化不可用 | 已批准方向；尚未实现，当前拒绝 |
-| v2 缺少 topology 能力声明或声明未知值 | v2 | fail closed，不加载或发布部分会话 | 待冻结 fixture/diagnostic |
-| v2 使用空、伪造或占位 sidecar 表示“无 topology” | v2 | 拒绝 | 待冻结 fixture/diagnostic |
-| v2 试图以 embedded topology 满足 Platform topology | v2 | 拒绝 fallback；不得产生 graph | 待联合确定 embedded 内容本身是禁止还是仅忽略 |
+| 合法 v2 身份 + topology 明确 `ABSENT` + 全部几何/Metadata/资源门禁通过 | v2 | Scene/Metadata ready；Topology 结构化不可用 | Platform 消费候选已实现并验收 |
+| v2 缺少 topology 能力声明或声明未知值 | v2 | fail closed，不加载或发布部分会话 | 已实现专项拒绝 |
+| v2 使用空、伪造或占位 sidecar 表示“无 topology” | v2 | 拒绝 | 已实现封闭 ZIP allowlist 拒绝 |
+| v2 GLB 携带 `scene.extras.sspTopology` | v2 | 拒绝整个包；不得忽略、fallback 或产生 graph | 已实现 `PACKAGE_EMBEDDED_TOPOLOGY_FORBIDDEN` |
 | v1 manifest 缺 topology，或 v1 sidecar 缺失/非法 | v1 | 保持 v1 fail closed；不得降级为 v2 | 现有行为不变 |
-| GLB 几何、Metadata 3.3、SPACE/语义或自包含门禁失败 | v2 | 拒绝整个包 | 待实现；不得视为 topology 缺席 |
-| URI、SHA-256、revision、identity、唯一性或资源预算失败 | v2 | 拒绝整个包 | 待实现；沿用严格原则 |
+| GLB 几何、Metadata 3.3、SPACE/语义或自包含门禁失败 | v2 | 拒绝整个包 | 已实现；不得视为 topology 缺席 |
+| URI、SHA-256、revision、identity、唯一性或资源预算失败 | v2 | 拒绝整个包 | 已实现 fail closed |
 | Studio `*-unvalidated` GLB/ZIP | producer/v2 | Producer 不得发布；Platform 不以文件名替代验证且不提供特殊放行 | 明确拒绝标准交付 |
 | 旧 building-release ZIP 或无显式 package identity 的 ZIP | v1/v2 | 拒绝，不猜版本 | 现有旧 ZIP 拒绝边界不变 |
-| 未知 package 版本、未知字段或同时携带冲突 manifest identity | discovery | fail closed | 待联合冻结 v2 发现与冲突规则 |
+| 未知 package 版本、未知字段或同时携带冲突 manifest identity | discovery | fail closed | 显式 v2 入口与封闭 schema/ZIP 已实现；v1 失败不降级 |
 
 ## 5. Producer 与 Consumer 影响
 
 ### 5.1 Space Model Studio producer
 
-Studio 后续实现至少需要：
+Studio producer 继续承担：
 
 1. 独立的 v2 显式导出入口，不能把 v1 导出失败自动改写为 v2。
 2. 在导出前完成几何、Metadata `3.3-semantic`、SPACE/语义、自包含资源和 identity 校验。
@@ -104,7 +104,7 @@ Studio 后续实现至少需要：
 
 ### 5.2 Space AI Platform consumer
 
-Platform 后续实现至少需要：
+Platform 消费候选已经完成以下边界，后续不得反向放宽：
 
 1. 新增只由显式 v2 identity 选择的独立 adapter/reader；不得修改或复用 v1 失败分支作为 v2 fallback。
 2. 尽量复用已经过验证的 ZIP、URI、SHA-256、Metadata 3.3 和资源预算基础能力，但保持 v1 接受/拒绝结果逐字节不变。
@@ -124,7 +124,7 @@ v1 的 `TopologyAssetProof` 证明 sidecar 声明的资产与实际已加载 GLB
 - 设计时优先抽象 SSP 外的通用 package resource proof，再由 v1 topology binding 适配使用；不得通过伪造 sidecar asset 来复用现有编译器；
 - loader 私有 transport URL 不得泄露成 package canonical identity，且临时缓存 lease 必须在加载完成后撤销。
 
-以上是类型与职责边界，不是已批准的 TypeScript 接口名称。
+当前 Platform 以 SSP 外的 `PackageAssetResourceProofV2` 实现该职责边界；接口名称是消费候选事实，不是要求 Studio 复用的跨项目源码契约。
 
 ### 6.2 生命周期与会话状态
 
@@ -138,7 +138,7 @@ v2 生命周期应保持以下不变量：
 - v2 会话必须携带明确能力投影，`graphId` 为空、topology nodes 为空，且不会调用 sidecar compiler 或 `createGraph`；
 - 从 v1 切换到 v2 时仍须清除旧 route/graph；从 v2 卸载或切换时仍须清理全部模型资源。
 
-具体 session 类型、状态枚举和 UI 文案尚未冻结。实现不得简单复用当前 Graph-ready 状态后再把 `graphId` 留空。
+Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discriminator；`graphId` 和 topology nodes 保持为空。该状态不与 Graph-ready `ready` 混用。
 
 ## 7. 功能能力矩阵
 
@@ -160,13 +160,13 @@ v2 生命周期应保持以下不变量：
 
 ### 8.1 正常能力不可用
 
-当且仅当 v2 manifest 以未来冻结的机器字段明确声明 topology `ABSENT`，且其他所有验证与加载成功时：
+当且仅当 v2 manifest 以已冻结机器字段明确声明 topology `ABSENT`，且其他所有验证与加载成功时：
 
 - package 导入成功并进入 Scene/Metadata ready；
 - topology 相关查询、模板和 UI 返回或显示结构化 `TOPOLOGY_UNAVAILABLE` 产品语义；
 - 该状态不是加载失败、sidecar 404、graph commit failure 或 `NO_PATH`；
 - `NO_PATH` 仍只表示一张合法 graph 中没有满足约束的路径，不能用于表达 topology 缺席；
-- exact diagnostic code、phase、path、result envelope 和 UI 文案须由双方后续冻结。
+- capability/result envelope 固定为 `TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT`；包校验失败继续使用结构化、去敏的 `PACKAGE_*` code/phase/path，不得混用正常能力缺席语义。
 
 ### 8.2 必须失败的情况
 
@@ -188,6 +188,7 @@ v2 生命周期应保持以下不变量：
 - v1 revision 继续绑定完整 GLB + sidecar；v2 revision 绑定完整 GLB + manifest 能力状态。两种 revision 都不可局部替换资源。
 - v2 不自动升级或降级 v1，也不把旧 building-release ZIP 包装为 v2。
 - 存量 v2 必须可追踪回 Studio authoring source，以便补 topology 后重新发布新的完整 v1 revision。
+- 不建立持久化 v2 revision registry。运行时回滚通过用户重新导入获准包完成；共同退出时的存量迁移证据由 Studio source、包字节/摘要和既定流程承担，不在 Platform 新增长期 registry。
 
 ### 9.2 共同回滚触发
 
@@ -204,7 +205,7 @@ v2 生命周期应保持以下不变量：
 触发后双方必须按同一已批准切点执行，不得单方回滚：
 
 1. Studio 停止生产新的 v2 package/revision；Platform 同步停止接受新的 v2 package/revision。
-2. 冻结并盘点存量 v2 revision、来源、使用方和迁移状态；不得继续修改原 revision。
+2. 以现有 Studio source、包字节/摘要和使用方证据盘点存量 v2 及迁移状态；不得继续修改原 revision，也不得为此新增 Platform 持久 revision registry。
 3. 存量 v2 进入只读迁移期，Platform 只为迁移保留读取能力，不再扩大功能或新建依赖。
 4. 每个存量包回到 Studio 补齐严格 topology，通过完整 producer 门禁后以新的 v1 revision 重发。
 5. Platform 用冻结 v1 reader 验证并接收新 v1，确认 Scene/Metadata 与 topology 功能及回滚证据。
@@ -212,7 +213,7 @@ v2 生命周期应保持以下不变量：
 
 任一触发条件或迁移证据不满足时，不得单方停止另一端仍依赖的能力，也不得用修改 v1、伪 sidecar或清理存量数据代替协调回滚。
 
-## 10. 共同 Fixtures 与 Diagnostics 计划
+## 10. 共同 Fixtures 与 Diagnostics 证据
 
 ### 10.1 必需成功 fixtures
 
@@ -232,16 +233,13 @@ v2 生命周期应保持以下不变量：
 - 多资产中途失败、A→B 迟到、清理失败和部分场景污染；
 - v2 会话错误发布 graphId、nodes、Graph ready 或启用 topology Quick Action/AI。
 
-### 10.3 Diagnostics 待冻结面
+### 10.3 已冻结 diagnostics 边界
 
-- v2 identity/schema/version 不支持；
-- topology capability 声明缺失、未知或冲突；
-- `TOPOLOGY_UNAVAILABLE` 的正常结果 envelope；
-- 资源、Metadata、加载、生命周期与 stale failure 的 code/phase/path；
-- UI 与 Template Runtime 对“能力不可用”“无路”“包加载失败”的稳定区分；
-- 去敏 envelope 与双方 fixture 中的精确预期。
-
-当前不得复用任意现有 code 并宣称已经冻结 v2 diagnostics。
+- v2 identity/schema/version、capability、资源、Metadata、加载、生命周期与 stale failure 使用结构化 `PACKAGE_*` code/phase/path 并去敏；
+- 正常 topology 缺席只使用 `TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT`；
+- UI 与 Template Runtime 稳定区分“能力不可用”“无路”“包加载失败”；
+- Platform fixture 的 ZIP SHA-256 为 `be0b7734ebbb3effb1f220f601d047d69dcf849c5d16bf7fdc1cd54f4f90e0c7`，SHA index 为 `c559d47222f6d7d61160d74676885e61ea0c0a462f0f67d6c7e5cdd2cc78a91c`，canonical revision 为 `96fee045700e5bbe18c4b196ae96821a84508860460c3cd2e59455594bc61b22`；Studio 与 Platform 已核对同字节 fixture。
+- 自动验收已通过 v2 parser 16、v2 lifecycle 5、home 13、capability 9、Quick Action 22、v1 parser 33、v1 lifecycle 10、legacy 27、sidecar 18、templates 18，以及 typecheck/build/`verify:r1`/审计。真实浏览器显式导入 v2 后为 2 floors、Scene/Metadata ready、无 graph、Topology 稳定 unavailable；权威最小 GLB 仅有两条 Three loader min/max warning，无 error。
 
 ## 11. 分阶段工作包
 
@@ -251,7 +249,7 @@ v2 生命周期应保持以下不变量：
 - 冻结 machine identity、manifest discovery、capability 表达、closed schema、diagnostics 和版本协商。
 - 先形成内容相同的 success/failure fixture 规范与 SHA index 规则。
 
-停止条件：所有待对齐机器字段关闭，且明确记录用户已批准范围内的最终联合设计。
+状态：已完成。P0 精确值与补充决策均已获用户批准。
 
 ### Phase 1 — Studio producer
 
@@ -267,7 +265,7 @@ v2 生命周期应保持以下不变量：
 - 保持 v1 fixtures、旧 v3.1 reader、`src/ssp/**` 和既有接受/拒绝结果不变。
 - 完成 package/Metadata/lifecycle/capability/非污染专项测试。
 
-停止条件：Platform consumer gates 与 v1/legacy 回归通过，尚不宣称双端交付完成。
+状态：任务分支候选已完成。检查点依次为 parser `e5b6462`、lifecycle `2033525`、capability gate `7733284`、UI `c498452`、fixture `f499da8`；consumer gates 与 v1/legacy 回归通过，但未合入 local `main`、未发布。
 
 ### Phase 3 — 双端联合验收
 
@@ -277,37 +275,33 @@ v2 生命周期应保持以下不变量：
 
 停止条件：P0/P1 清零、遗留风险明确，并提交用户临时兼容里程碑确认。
 
+当前技术证据：同字节 fixture、自动门禁与真实浏览器均已通过，本轮 Platform 架构终审 P0/P1 为 0；仍须用户临时兼容里程碑批准，不能据此发布或合入 local `main`。
+
 ### Phase 4 — 临时放行与退出准备
 
 - 只有用户确认里程碑后，才按获准范围启用 v2 生产与消费。
-- 建立 v2 revision 台账、使用方、迁移责任和共同退出监控。
+- 记录使用方、迁移责任和共同退出证据；不建立持久 revision registry，运行时回滚靠重新导入。
 - 持续推进完整 topology authoring/consumer/fixtures，不在 v2 上扩张 topology 替代能力。
 
 停止条件：满足第 9.2 节共同回滚触发，转入协同退出流程。
 
-## 12. 待 Studio 联合对齐的机器字段
+## 12. 已冻结 P0 机器值与补充决策
 
-以下均为必须关闭的问题，不是已冻结字段：
-
-1. v2 的精确 `schema` 字符串、整数版本、固定 manifest basename 与 ZIP 根发现规则。
-2. topology capability 所在对象、字段名、枚举精确拼写，以及是否只允许唯一 `ABSENT` 值。
-3. v2 是否完全禁止 topology entry；未知或冲突 entry 的 diagnostic 与 JSON Pointer。
-4. GLB 内存在 embedded topology 时，是 producer 禁止输出还是允许保留但 consumer 必须忽略；初始安全建议为禁止产生声明歧义。
-5. v1 的 assets、metadata、floor、URI、digest、revision 和资源预算字段哪些逐字复用，哪些必须在 v2 schema 中重新声明。
-6. 多楼层/整栋 package identity、revision 与 asset/floor identity 的稳定性和唯一性规则。
-7. producer 最终回读证据是仅由强制 producer gate 保证，还是还需要规范化的发布证明；任何审计附件是否继续保持非规范。
-8. v2 reader 的显式选择入口、v1/v2 同时存在时的冲突处理和未知版本 fail-closed 行为。
-9. Platform package asset session、capability projection、Scene/Metadata ready 与 graph-ready 的精确类型和状态机。
-10. `TOPOLOGY_UNAVAILABLE` 的 code/result envelope、phase/path、UI 文案、Template/AI 错误投影与去敏字段。
-11. 共同 fixture 文件名、golden ZIP、failure vectors、SHA index schema 和权威维护方。
-12. 新生产/新接收 v2 的共同停止切点、revision 判定方式、存量只读迁移标志和 reader 删除门禁。
-
-这些问题由双方联合设计关闭后，必须先更新共同契约和 fixtures，再进入机器实现；不得由任一仓库单方用代码事实反向定义共享契约。
+1. identity：`schema = "space-model-package"`、`schemaVersion = 2`、`profile = "TOPOLOGY_ABSENT_TRANSITION"`，固定根 manifest `space-model-package.v2.json`；仅显式 v2 入口选择，v1 失败绝不降级。
+2. capabilities：封闭对象只接受 `scene/metadata/space.status = AVAILABLE`、`space.completion = CONFIRMED`、`topology.status = ABSENT`；缺省、未知或冲突值失败。
+3. assets：manifest 加 1–128 个 floor GLB；每项显式 `assetId/uri/SHA-256/floor`，root-relative 或 relative URI 映射到 ZIP archive root，同源且安全 canonicalization，跨资产 SID/findId 唯一。
+4. topology：ZIP 禁止任意 sidecar/topology entry，GLB 禁止 `scene.extras.sspTopology`；不得使用空/伪 graph 或 embedded fallback。Studio authoring 中若存在 draft topology，可在导出 v2 时显式排除并留下审计，但禁止静默丢弃；排除后的标准包仍不得携带该内容。
+5. revision：移除 `revision` 后，对 canonical manifest facts（不含非规范 audit）执行 JCS/RFC 8785 兼容 UTF-8 canonicalization 与 SHA-256。`producer-validation.json` 可选、完全非规范且不参与接受或 revision。
+6. ZIP/limits：store-only、非 ZIP64、单盘、无加密、无 data descriptor、根目录 closed allowlist；manifest/audit 各 1 MiB、单 GLB 32 MiB、全部未压缩 entries 合计 64 MiB、archive 65 MiB、最多 130 entries、JSON depth 16、普通字符串 160、URI 4096。
+7. 消费顺序：ZIP/URI/revision/全部摘要/Metadata 3.3/identity 在任何 loader 调用前完成；全部资产成功才原子发布 `scene-ready`，资源证明为 `SAME_RESPONSE_BYTES`，不调用 sidecar compiler 或 `createGraph`。
+8. 正常能力缺席：`TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT`；routing/rendering/connector/blocker/topology AI/Quick Action 关闭，非 topology 能力继续经过 SSP–Template–AI 窄腰。
+9. 补充回滚：不做持久 revision registry，用户通过重新导入回滚运行时选择；临时 profile 的停发、停收、存量迁移与 reader 最终移除仍由第 9 节共同门禁和用户批准控制。
 
 ## 13. 当前结论
 
-- 用户已批准 v2 临时方向，允许进入联合设计和后续获准实施流程。
-- 本文只建立过程、边界、风险、验证和回滚计划，不是 machine-readable contract。
-- 当前 Platform 没有 v2 reader，不得接受或宣称兼容 v2。
+- 用户已批准 v2 P0 精确机器值及“不做持久 revision registry、回滚靠重新导入”和“Studio 可显式排除并审计 draft topology、不得静默丢弃”两项补充决策。
+- 本文是过程、边界、验证和回滚事实源，不替代 machine-readable schema 或 fixtures。
+- Platform 消费候选已在 `codex/r2-standard-model-package` 完成；尚未合入 local `main`、尚未发布，也未获得临时兼容里程碑批准，不得宣称 Platform 已交付 v2。
 - v1 strict topology 候选结论、v1 fixtures、旧 v3.1 reader 与旧 ZIP 拒绝边界均保持不变。
+- `src/ssp/**` 未修改；临时 profile 不得由任一方单方停发、停收、迁移或移除。
 - 本决策无新增、撤销或职责迁移，不改变组织架构。

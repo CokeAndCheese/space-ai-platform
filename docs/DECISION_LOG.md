@@ -156,14 +156,17 @@
 
 ## 2026-08-28 — 批准能力声明型 Standard Model Package v2 作为临时放行
 
-- **状态**：有效；方向已批准，机器契约和双端实现尚未完成。
+- **状态**：有效；P0 精确机器值已批准，Platform 任务分支消费候选完成，未发布、未合入 local `main`。
 - **背景**：完整 topology 的 Studio authoring 与 Platform consumer 尚未形成可用于真实整栋交付的共同闭环，但需要临时交付已经完成严格几何、Metadata `3.3-semantic` 与 SPACE/语义验证的整栋标准包。
 - **决策**：新增独立版本身份的能力声明型 Standard Model Package v2。v2 必须显式声明 topology `ABSENT` 语义，同时继续严格验证 GLB 几何与自包含资源、Metadata 3.3、SPACE/语义、最终发布物回读、URI、SHA-256、不可变 revision、package/asset/floor identity、唯一性和资源限制。
 - **拒绝边界**：v2 不是 `*-unvalidated` 包；不接受旧 building-release ZIP、无显式身份 ZIP、v1 topology 失败降级、缺省猜测、空/伪 sidecar或 embedded topology fallback。v1 继续强制 strict sidecar topology；v1 reader/fixtures 和旧 v3.1 reader 保持不变。
 - **能力边界**：Platform 对合法 v2 只开放 scene、Metadata 和其他不依赖 topology 的能力。routing、route rendering、connector、blocker、topology AI 与 Quick Action 必须投影为结构化 `TOPOLOGY_UNAVAILABLE` 产品语义，不得把正常能力缺席误报为加载失败、`NO_PATH` 或 Graph ready。
 - **回滚决策**：只有 Studio authoring 与 Platform consumer 的完整 topology、共同 fixtures、真实整栋联合验收和用户里程碑批准全部满足，双方才同步停止新生产/新接收 v2。存量 v2 只读迁移，回 Studio 补 topology 后重发新的 v1 revision；最终删除 v2 reader仍需用户明确批准，任何一方不得单方回滚。
-- **当前门禁**：本轮仅固化过程设计。v2 machine schema、精确字段、manifest discovery、fixtures、diagnostics 和 producer/consumer code 尚未联合冻结或实现；当前 Platform 不得宣称接受或兼容 v2。
-- **记录**：过程、影响矩阵、实施工作包和待对齐机器字段见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。
+- **P0 精确值**：`schema = space-model-package`、`schemaVersion = 2`、manifest `space-model-package.v2.json`、profile `TOPOLOGY_ABSENT_TRANSITION`；capabilities 封闭为 scene/metadata/space `AVAILABLE`、space completion `CONFIRMED`、topology `ABSENT`；正常缺席语义为 `TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT`。revision 是移除 `revision`、排除非规范 audit 后的 canonical manifest facts SHA-256；ZIP/URI/entry/digest/revision/Metadata/identity/资源限制继续 fail closed。
+- **补充决策**：Platform 不建立持久 v2 revision registry，运行时回滚由用户重新导入完成。Studio authoring 若存在 draft topology，可在 v2 导出时显式排除并留下审计，但禁止静默丢弃；输出包仍不得含 topology entry、空/伪 sidecar或 embedded `sspTopology`。
+- **Platform 候选**：parser `e5b6462`、lifecycle `2033525`、capability gate `7733284`、UI `c498452`、fixture `f499da8`。同字节 fixture ZIP SHA-256 `be0b7734ebbb3effb1f220f601d047d69dcf849c5d16bf7fdc1cd54f4f90e0c7`，SHA index `c559d47222f6d7d61160d74676885e61ea0c0a462f0f67d6c7e5cdd2cc78a91c`，canonical revision `96fee045700e5bbe18c4b196ae96821a84508860460c3cd2e59455594bc61b22`。候选未合入 local `main`、未发布；v1/legacy 与 `src/ssp/**` 不变。
+- **验收证据**：v2 parser 16、v2 lifecycle 5、home 13、capability 9、Quick Action 22、v1 parser 33、v1 lifecycle 10、legacy 27、sidecar 18、templates 18，以及 typecheck/build/`verify:r1`/审计均通过。真实浏览器显式导入 v2 后 2 floors、Scene/Metadata ready、无 graph、Topology 稳定 unavailable；权威最小 GLB 仅触发两条 Three loader min/max warning，无 error。
+- **记录**：过程、影响矩阵、冻结 P0 机器值、实施证据和共同退出门禁见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。
 - **人员影响**：不新增、撤销或迁移人员、职责和汇报关系，不触发组织架构变更。
 - **替换关系**：不替换 Standard Model Package v1、Metadata v3.1/`3.3-semantic`、Studio embedded topology v1 或 Platform sidecar v1；只新增临时、显式隔离的 v2 路径。
 

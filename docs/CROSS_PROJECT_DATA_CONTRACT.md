@@ -9,7 +9,7 @@
 - Studio 当前实现基线：Metadata `3.3-semantic`；GLB 内嵌 `scene.extras.sspTopology` schema v1
 - Platform 当前实现基线：GLB Metadata v3.1；外置 `space-ai-platform/topology-sidecar` schema v1
 - 当前兼容结论：**双端技术候选已通过共同验证，但尚未获得用户里程碑确认、尚未发布或合并，不得提前声明 `main` 已兼容**
-- v2 过渡状态：用户已批准能力声明型 Standard Model Package v2 的临时方向；当前仅有过程设计，机器 schema/code/fixtures/diagnostics 尚未联合冻结或实现
+- v2 过渡状态：用户已批准 P0 精确机器值与两项补充决策；Platform 消费候选已在任务分支完成，但尚未合入 local `main`、发布或获得临时兼容里程碑批准
 
 本记录只固化长期产品边界、当前事实和变更门禁，不修改任何现有字段、枚举、坐标、ID、发现或绑定语义。
 
@@ -30,7 +30,7 @@ Space AI Platform
 - Platform 的 SSP、Template、AI、数据库和 UI 状态不是 Studio 的生产依赖。
 - 双方应共享版本化机器契约、兼容承诺、golden fixture 和 validator 预期，而不是源代码。
 - Standard Model Package v1 已在双方任务分支完成机器实现和联合技术验收，满足提交用户里程碑确认的技术条件；在用户确认前，它仍是候选而不是已发布兼容承诺。
-- 用户已批准以独立 v2 身份临时承载“严格几何与 Metadata 已验证、topology 明确缺席”的标准包。该批准允许进入联合设计和后续获准实施，不表示当前 Platform 已能接受 v2；过程与回滚基线见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。
+- 用户已批准以独立 v2 身份临时承载“严格几何与 Metadata 已验证、topology 明确缺席”的标准包，并冻结 P0 精确值。Platform 任务分支已有消费候选，但这不表示 local `main`、发布版或用户里程碑已接受 v2；过程与回滚基线见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。
 - 任一方不得为快速对齐，在已发布版本名下静默改变字段、枚举、必填性、坐标、单位、ID、发现、资产绑定、connector、blocker 或摘要语义。
 
 ### Studio 内部 authoring 输入不进入共享契约
@@ -120,13 +120,16 @@ Standard Model Package v1 已完成双端技术验收，但在用户确认兼容
 
 ### 6.2 临时方案：能力声明型 Standard Model Package v2
 
-用户于 2026-08-28 批准 v2 临时方向，详细过程设计见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。长期边界为：
+用户于 2026-08-28 批准 v2 临时方向及 P0 精确机器值，详细过程与冻结值见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。长期边界为：
 
 - v1 继续强制 strict sidecar topology；v1 reader/fixtures 与旧 v3.1 reader 不变。
 - v2 以新版本身份显式声明 topology `ABSENT` 语义；不得缺省猜测、使用空/伪 sidecar或读取 embedded topology fallback。
 - v2 不是 unvalidated package。GLB 几何、Metadata `3.3-semantic`、SPACE/语义、最终发布物回读、URI、SHA-256、revision、identity 与资源限制仍须由 Studio 和 Platform 分别严格验证。
 - Platform 只开放 scene、Metadata 和其他不依赖 topology 的能力；routing/rendering/connector/blocker/topology AI/Quick Action 以结构化 `TOPOLOGY_UNAVAILABLE` 产品语义关闭，不得误报包加载失败或 Graph ready。
-- 当前只完成批准方向和过程计划；machine schema、字段拼写、manifest 发现、fixtures、diagnostics 与双端代码均未冻结或实现，因此不得宣布 v2 已可交付或 Platform 已兼容。
+- P0 identity 固定为 `space-model-package` / `schemaVersion: 2` / `space-model-package.v2.json` / `TOPOLOGY_ABSENT_TRANSITION`；capabilities 固定为 scene/metadata/space `AVAILABLE`、space `CONFIRMED`、topology `ABSENT`，正常缺席投影为 `TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT`。
+- Platform 消费候选已在 `codex/r2-standard-model-package` 完成：parser `e5b6462`、lifecycle `2033525`、capability gate `7733284`、UI `c498452`、fixture `f499da8`。它尚未合入 local `main`、发布或获得用户临时兼容里程碑批准；v1/legacy 与 `src/ssp/**` 不变。
+- Studio/Platform 同字节 v2 fixture 的 ZIP SHA-256 为 `be0b7734ebbb3effb1f220f601d047d69dcf849c5d16bf7fdc1cd54f4f90e0c7`，SHA index 为 `c559d47222f6d7d61160d74676885e61ea0c0a462f0f67d6c7e5cdd2cc78a91c`，canonical revision 为 `96fee045700e5bbe18c4b196ae96821a84508860460c3cd2e59455594bc61b22`。
+- 不建立持久 v2 revision registry，运行时回滚通过重新导入；Studio 可显式排除并审计 authoring 中的 draft topology，但不得静默丢弃，且标准包仍禁止 topology entry 与 embedded `sspTopology`。
 - v2 退出必须由完整 topology 的 Studio authoring、Platform consumer、共同 fixtures、真实整栋验收和用户里程碑批准共同触发。双方同步停止新生产/新接收，存量只读迁移回 Studio 补 topology 后重发 v1；最终删除 v2 reader 仍需用户批准，不得单方回滚。
 
 ### 未采用方案
@@ -151,4 +154,4 @@ Standard Model Package v1 已完成双端技术验收，但在用户确认兼容
 | 2026-08-22 | 采用方案 B，新增 Standard Model Package v1；Studio dual-write，Platform dual-read，保留四个既有契约 | 已批准 | 无新增编制；现有岗位承担联合实现 |
 | 2026-08-26 | Studio V1「整体建筑导入」属于 Studio 内部 authoring input profile；raw `Building.glb` 不进入 Platform 或共享发布契约 | 已批准 | Platform 无研发动作、无人员变动 |
 | 2026-08-28 | 双端任务分支机器实现和联合技术验收完成，形成待用户里程碑确认的 Standard Model Package v1 兼容候选 | 技术候选；未发布、未合并 | 无人员变动 |
-| 2026-08-28 | 新增能力声明型 Standard Model Package v2 作为 topology 明确缺席时的临时严格标准包；v1 与 legacy reader 不变 | 方向已批准；机器契约与实现待完成 | 无人员变动 |
+| 2026-08-28 | 冻结能力声明型 Standard Model Package v2 P0 精确值与补充决策；Platform 形成未合入、未发布的消费候选 | P0 已批准；Platform 任务分支候选完成，待里程碑批准 | 无人员变动 |

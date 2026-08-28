@@ -14,6 +14,10 @@ export type PackageDiagnosticCode =
   | 'PACKAGE_TOPOLOGY_PROJECTION_MISMATCH'
   | 'PACKAGE_LIMIT_EXCEEDED'
   | 'PACKAGE_REQUEST_STALE'
+  | 'PACKAGE_PROFILE_UNSUPPORTED'
+  | 'PACKAGE_CAPABILITY_DECLARATION_INVALID'
+  | 'PACKAGE_TOPOLOGY_RESOURCE_FORBIDDEN'
+  | 'PACKAGE_EMBEDDED_TOPOLOGY_FORBIDDEN'
 
 export interface PackageDiagnostic {
   readonly code: PackageDiagnosticCode
@@ -68,6 +72,32 @@ export interface PackageManifestDocument {
   readonly manifestUri: string
 }
 
+export interface PackageCapabilitiesV2 {
+  readonly scene: { readonly status: 'AVAILABLE' }
+  readonly metadata: { readonly status: 'AVAILABLE' }
+  readonly space: {
+    readonly status: 'AVAILABLE'
+    readonly completion: 'CONFIRMED'
+  }
+  readonly topology: { readonly status: 'ABSENT' }
+}
+
+export interface PackageManifestDocumentV2 {
+  readonly schema: 'space-model-package'
+  readonly schemaVersion: 2
+  readonly profile: 'TOPOLOGY_ABSENT_TRANSITION'
+  readonly packageId: string
+  readonly revision: string
+  readonly metadata: {
+    readonly schema: 'space-model-metadata'
+    readonly version: '3.3-semantic'
+    readonly carrier: 'GLB_SCENE_NODE_EXTRAS'
+  }
+  readonly capabilities: PackageCapabilitiesV2
+  readonly assets: readonly PackageAsset[]
+  readonly manifestUri: string
+}
+
 export interface PackageParseSuccess<T> { readonly ok: true; readonly value: T }
 export interface PackageParseFailure { readonly ok: false; readonly diagnostic: PackageDiagnostic }
 export type PackageParseResult<T> = PackageParseSuccess<T> | PackageParseFailure
@@ -85,6 +115,26 @@ export interface PackageArchive {
   readonly assets: readonly PackageArchiveEntry[]
   readonly topology: PackageArchiveEntry
   readonly manifestDocument: PackageManifestDocument
+}
+
+export interface PackageArchiveV2 {
+  readonly manifest: PackageArchiveEntry
+  readonly assets: readonly PackageArchiveEntry[]
+  readonly manifestDocument: PackageManifestDocumentV2
+}
+
+export interface PackageTopologyUnavailableV2 {
+  readonly capability: 'topology'
+  readonly status: 'UNAVAILABLE'
+  readonly code: 'TOPOLOGY_UNAVAILABLE'
+  readonly reasonCode: 'PACKAGE_DECLARED_ABSENT'
+  readonly packageSchemaVersion: 2
+}
+
+export interface ValidatedPackageArchiveV2 {
+  readonly archive: PackageArchiveV2
+  readonly metadata: readonly Metadata33Projection[]
+  readonly topologyCapability: PackageTopologyUnavailableV2
 }
 
 export interface Metadata33Projection {

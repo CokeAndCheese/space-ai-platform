@@ -4,26 +4,16 @@ export * from './manifestV1'
 export * from './zipV1'
 export * from './metadata33'
 export * from './topologyBinding'
+export * from './manifestV2'
+export * from './zipV2'
+export * from './validateV2'
+export * from './validationShared'
 
 import { failure } from './diagnostics'
 import { parseMetadata33Glb } from './metadata33'
 import type { PackageArchive, PackageParseResult, Metadata33Projection } from './types'
+import { assertPackageIdentityUniqueness, sha256Hex } from './validationShared'
 import { crc32 } from './zipV1'
-
-export function assertPackageIdentityUniqueness(projections: readonly Metadata33Projection[]): PackageParseResult<true> {
-  const sids = new Set<string>(); const findIds = new Set<string>()
-  for (const projection of projections) for (const node of projection.nodes) {
-    if (sids.has(node.sid)) return failure('PACKAGE_DUPLICATE_ID', 'BIND', '/assets/nodes', { reason: 'duplicate-sid' })
-    if (findIds.has(node.findId)) return failure('PACKAGE_DUPLICATE_ID', 'BIND', '/assets/nodes', { reason: 'duplicate-findId' })
-    sids.add(node.sid); findIds.add(node.findId)
-  }
-  return { ok: true, value: true }
-}
-
-export async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes as unknown as BufferSource)
-  return Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, '0')).join('')
-}
 
 export async function verifyPackageResourceDigests(archive: PackageArchive): Promise<PackageParseResult<PackageArchive>> {
   for (let index = 0; index < archive.assets.length; index += 1) {

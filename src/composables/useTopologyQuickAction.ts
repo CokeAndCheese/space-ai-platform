@@ -16,6 +16,7 @@ import {
   type TopologyQuickActionErrorCode,
   type TopologyQuickActionFacade,
   type TopologyRenderFailureCode,
+  type TopologyCapabilityUnavailable,
 } from '@/templates/topologyQuickAction'
 import type {
   TopologySceneSessionNode,
@@ -56,6 +57,7 @@ export type TopologyQuickActionResult =
       code: TopologyRenderFailureCode
       message: string
     }>
+  | TopologyCapabilityUnavailable
   | Readonly<{
       kind: 'error'
       code: TopologyQuickActionErrorCode
@@ -146,6 +148,7 @@ export function createTopologyQuickAction(
     }
     if (
       activeResult.value?.kind === 'render-failure' ||
+      activeResult.value?.kind === 'capability-unavailable' ||
       activeResult.value?.kind === 'error'
     ) {
       return 'error'
@@ -227,7 +230,7 @@ export function createTopologyQuickAction(
       const previousRouteId = ownedRouteId.value
       if (previousRouteId !== null) {
         activePhase.value = 'clearing'
-        await facade.removeRoute(previousRouteId)
+        const removed = await facade.removeRoute(previousRouteId)
         if (!isOperationCurrent(
           token,
           epoch,
@@ -235,6 +238,11 @@ export function createTopologyQuickAction(
           expectedStartNodeId,
           expectedGoalNodeId,
         )) return
+        if ('kind' in removed && removed.kind === 'capability-unavailable') {
+          activePhase.value = 'idle'
+          activeResult.value = removed
+          return
+        }
         ownedRouteId.value = null
       }
 
@@ -261,6 +269,11 @@ export function createTopologyQuickAction(
         })
         return
       }
+      if (path.kind === 'capability-unavailable') {
+        activePhase.value = 'idle'
+        activeResult.value = path
+        return
+      }
 
       activePhase.value = 'rendering'
       const rendered = await facade.renderRoute(path)
@@ -282,6 +295,10 @@ export function createTopologyQuickAction(
           code: rendered.code,
           message: rendered.message,
         })
+        return
+      }
+      if (rendered.kind === 'capability-unavailable') {
+        activeResult.value = rendered
         return
       }
 
@@ -327,12 +344,17 @@ export function createTopologyQuickAction(
 
     activePhase.value = 'clearing'
     try {
-      await facade.removeRoute(routeId)
+      const removed = await facade.removeRoute(routeId)
       if (
         operationToken !== token ||
         !isSceneCurrent(epoch, expectedGraphId) ||
         ownedRouteId.value !== routeId
       ) return
+      if ('kind' in removed && removed.kind === 'capability-unavailable') {
+        activePhase.value = 'idle'
+        activeResult.value = removed
+        return
+      }
       ownedRouteId.value = null
       activePhase.value = 'idle'
       activeResult.value = Object.freeze({

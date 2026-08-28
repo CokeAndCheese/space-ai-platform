@@ -17,6 +17,7 @@ import {
   type TopologySceneSessionSnapshot,
   type TopologySceneSessionStatus,
 } from '@/topology'
+import { installTopologyCapabilitySessionSource } from '@/templates/topologyCapabilityGate'
 
 export interface TopologySceneSession {
   status: ComputedRef<TopologySceneSessionStatus>
@@ -54,6 +55,7 @@ const initialSnapshot: TopologySceneSessionSnapshot = {
 }
 
 const snapshot = shallowRef<TopologySceneSessionSnapshot>(initialSnapshot)
+installTopologyCapabilitySessionSource(() => snapshot.value)
 const session: TopologySceneSession = Object.freeze({
   status: computed(() => snapshot.value.status),
   graphId: computed(() => snapshot.value.graphId),

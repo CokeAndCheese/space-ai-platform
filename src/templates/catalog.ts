@@ -3,6 +3,10 @@ import {
   templateRegistry,
 } from './registry'
 import { v3TemplateRegistry } from './v3/appRegistry'
+import {
+  isTemplateCapabilityAvailable,
+  type TopologyCapabilitySessionSnapshot,
+} from './topologyCapabilityGate'
 
 function asParams(value: unknown, templateId: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -26,7 +30,11 @@ export class TemplateCatalog {
     return v3TemplateRegistry.has(id)
   }
 
-  isAiEnabled(id: string): boolean {
+  isAiEnabled(
+    id: string,
+    session?: TopologyCapabilitySessionSnapshot,
+  ): boolean {
+    if (!isTemplateCapabilityAvailable(id, session)) return false
     if (v3TemplateRegistry.has(id)) {
       return v3TemplateRegistry.require(id).ai.exposed
     }
@@ -45,11 +53,15 @@ export class TemplateCatalog {
     return templateRegistry.prepareParams(templateRegistry.require(id), input, strict)
   }
 
-  toAiPromptSection(): string {
+  toAiPromptSection(session?: TopologyCapabilitySessionSnapshot): string {
     const shadowed = new Set(v3TemplateRegistry.all().map((definition) => definition.id))
+    const unavailable = new Set([
+      ...v3TemplateRegistry.all().map((definition) => definition.id),
+      ...templateRegistry.all().map((definition) => definition.id),
+    ].filter((id) => !isTemplateCapabilityAvailable(id, session)))
     const sections = [
-      v3TemplateRegistry.toAiPromptSection(),
-      templateRegistry.toAiPromptSection(shadowed),
+      v3TemplateRegistry.toAiPromptSection(unavailable),
+      templateRegistry.toAiPromptSection(new Set([...shadowed, ...unavailable])),
     ].filter((section) => section.trim().length > 0)
     return sections.join('\n\n')
   }
@@ -57,8 +69,11 @@ export class TemplateCatalog {
 
 export const templateCatalog = new TemplateCatalog()
 
-export function resolveAiTemplateId(id: string): string | null {
+export function resolveAiTemplateId(
+  id: string,
+  session?: TopologyCapabilitySessionSnapshot,
+): string | null {
   const canonicalId = templateCatalog.canonicalId(id)
-  if (!canonicalId || !templateCatalog.isAiEnabled(canonicalId)) return null
+  if (!canonicalId || !templateCatalog.isAiEnabled(canonicalId, session)) return null
   return canonicalId
 }

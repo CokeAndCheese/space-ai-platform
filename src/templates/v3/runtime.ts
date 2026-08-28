@@ -10,10 +10,15 @@ export interface ExecuteAtomicTemplateOptions {
   aiOnly?: boolean
 }
 
+export type AtomicTemplateCapabilityGuard = (
+  templateId: string,
+) => JsonValue | null
+
 export class AtomicTemplateRuntime {
   constructor(
     private readonly registry: V3TemplateRegistry,
     private readonly ssp: SspLikeNamespace,
+    private readonly capabilityGuard: AtomicTemplateCapabilityGuard = () => null,
   ) {}
 
   async execute(
@@ -36,6 +41,8 @@ export class AtomicTemplateRuntime {
     scope: ExecutionScope,
     options: ExecuteAtomicTemplateOptions = {},
   ): Promise<ExecutionResult> {
+    const unavailable = this.capabilityGuard(templateId)
+    if (unavailable !== null) return { public: unavailable }
     const definition = this.registry.require(templateId)
     try {
       if ((options.aiOnly ?? true) && !definition.ai.exposed) {

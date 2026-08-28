@@ -1,4 +1,8 @@
 import { templateRuntime } from './runtime'
+import {
+  parseTopologyUnavailableResult,
+  type TopologyUnavailableResult,
+} from './topologyCapabilityGate'
 
 const FIND_PATH_TEMPLATE_ID = 'findPath'
 const RENDER_ROUTE_TEMPLATE_ID = 'renderRoute'
@@ -141,7 +145,15 @@ export interface TopologyPathFailure {
   readonly message: string
 }
 
-export type TopologyFindPathResult = TopologyPathReceipt | TopologyPathFailure
+export interface TopologyCapabilityUnavailable extends TopologyUnavailableResult {
+  readonly kind: 'capability-unavailable'
+  readonly message: string
+}
+
+export type TopologyFindPathResult =
+  | TopologyPathReceipt
+  | TopologyPathFailure
+  | TopologyCapabilityUnavailable
 
 export interface TopologyRenderedRoute {
   readonly kind: 'rendered'
@@ -162,17 +174,24 @@ export interface TopologyRenderFailure {
   readonly currentRevision?: number
 }
 
-export type TopologyRenderRouteResult = TopologyRenderedRoute | TopologyRenderFailure
+export type TopologyRenderRouteResult =
+  | TopologyRenderedRoute
+  | TopologyRenderFailure
+  | TopologyCapabilityUnavailable
 
 export interface TopologyRemoveRouteResult {
   readonly routeId: string
   readonly removed: boolean
 }
 
+export type TopologyRemoveRouteOutcome =
+  | TopologyRemoveRouteResult
+  | TopologyCapabilityUnavailable
+
 export interface TopologyQuickActionFacade {
   findPath(request: TopologyPathRequest): Promise<TopologyFindPathResult>
   renderRoute(path: TopologyPathReceipt): Promise<TopologyRenderRouteResult>
-  removeRoute(routeId: string): Promise<TopologyRemoveRouteResult>
+  removeRoute(routeId: string): Promise<TopologyRemoveRouteOutcome>
 }
 
 export interface TopologyQuickActionTemplateRuntime {
@@ -317,10 +336,22 @@ function pathFailureCode(value: unknown): TopologyPathFailureCode {
   return value as TopologyPathFailureCode
 }
 
+function capabilityUnavailable(value: unknown): TopologyCapabilityUnavailable | null {
+  const parsed = parseTopologyUnavailableResult(value)
+  if (parsed === null) return null
+  return Object.freeze({
+    kind: 'capability-unavailable',
+    ...parsed,
+    message: '当前模型包未提供拓扑能力。',
+  })
+}
+
 function parseFindPathResult(
   value: unknown,
   request: Readonly<TopologyPathRequest>,
 ): TopologyFindPathResult {
+  const unavailable = capabilityUnavailable(value)
+  if (unavailable !== null) return unavailable
   if (!isRecord(value)) malformedOutput()
   if (value.ok === false) {
     const code = pathFailureCode(value.code)
@@ -358,6 +389,8 @@ function parseRenderRouteResult(
   value: unknown,
   path: TopologyPathReceipt,
 ): TopologyRenderRouteResult {
+  const unavailable = capabilityUnavailable(value)
+  if (unavailable !== null) return unavailable
   if (!isRecord(value)) malformedOutput()
   if (value.rendered === false) {
     if (value.code !== 'GRAPH_NOT_FOUND' && value.code !== 'STALE_ROUTE') malformedOutput()
@@ -405,7 +438,9 @@ function parseRenderRouteResult(
   })
 }
 
-function parseRemoveRouteResult(value: unknown, routeId: string): TopologyRemoveRouteResult {
+function parseRemoveRouteResult(value: unknown, routeId: string): TopologyRemoveRouteOutcome {
+  const unavailable = capabilityUnavailable(value)
+  if (unavailable !== null) return unavailable
   if (!isRecord(value) || value.id !== routeId || typeof value.removed !== 'boolean') malformedOutput()
   return Object.freeze({ routeId, removed: value.removed })
 }
@@ -458,14 +493,14 @@ export function createTopologyQuickActionFacade(
       return result
     },
 
-    async removeRoute(routeIdValue: string): Promise<TopologyRemoveRouteResult> {
+    async removeRoute(routeIdValue: string): Promise<TopologyRemoveRouteOutcome> {
       const routeId = inputId(routeIdValue)
       if (!issuedRouteIds.has(routeId) || pendingRouteRemovals.has(routeId)) invalidInput()
       pendingRouteRemovals.add(routeId)
       try {
         const value = await executeTrusted(runtime, REMOVE_ROUTE_TEMPLATE_ID, { routeId })
         const result = parseRemoveRouteResult(value, routeId)
-        issuedRouteIds.delete(routeId)
+        if (!('kind' in result)) issuedRouteIds.delete(routeId)
         return result
       } finally {
         pendingRouteRemovals.delete(routeId)

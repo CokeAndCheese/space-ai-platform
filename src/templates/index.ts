@@ -1,6 +1,25 @@
 export { templateRegistry } from './registry'
 export { templateCatalog, resolveAiTemplateId } from './catalog'
-export { executeTemplate, templateRuntime, type ExecuteTemplateOptions } from './runtime'
+export {
+  createTemplateRuntime,
+  executeTemplate,
+  templateRuntime,
+  type ExecuteTemplateOptions,
+  type TemplateRuntime,
+  type TemplateRuntimeDependencies,
+} from './runtime'
+export {
+  currentTopologyUnavailableResult,
+  isTemplateCapabilityAvailable,
+  isTopologyDeclaredAbsentSession,
+  parseTopologyUnavailableResult,
+  readTopologyCapabilitySession,
+  templateRequiresTopology,
+  topologyTemplateUnavailableResult,
+  TOPOLOGY_UNAVAILABLE_RESULT,
+  type TopologyCapabilitySessionSnapshot,
+  type TopologyUnavailableResult,
+} from './topologyCapabilityGate'
 export {
   executeHostTemplateAction,
   getVisibilityUndoState,

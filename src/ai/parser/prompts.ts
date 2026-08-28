@@ -3,7 +3,7 @@
 import type { Intent } from '../types/Intent'
 import { templateCatalog } from '@/templates/catalog'
 
-const TEMPLATE_CATALOG = templateCatalog.toAiPromptSection()
+const TEMPLATE_CATALOG_MARKER = '__CURRENT_TEMPLATE_CATALOG__'
 
 export const STABLE_PROMPT = `你是 3D 建筑场景助手。你的唯一能力边界是“可用模板”。
 你不能直接调用或编写 SSP API，不能输出 skill，也不能创造模板名。
@@ -38,7 +38,7 @@ scope 可用字段:
 
 # 可用模板目录
 
-${TEMPLATE_CATALOG}
+${TEMPLATE_CATALOG_MARKER}
 
 # 规则
 
@@ -139,5 +139,9 @@ export function buildVolatilePrompt(ctx: VolatileContext): string {
 }
 
 export function buildSystemPrompt(activeFloors: string[]): string {
-  return [STABLE_PROMPT, buildContextPrompt(activeFloors)].join('\n\n---\n\n')
+  const prompt = STABLE_PROMPT.replace(
+    TEMPLATE_CATALOG_MARKER,
+    templateCatalog.toAiPromptSection(),
+  )
+  return [prompt, buildContextPrompt(activeFloors)].join('\n\n---\n\n')
 }

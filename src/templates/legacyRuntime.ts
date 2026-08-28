@@ -10,6 +10,7 @@ import {
   runVisibilityUndoableAction,
   type VisibilityUndoReceipt,
 } from '../adapters/visibilityUndoRuntime'
+import { topologyTemplateUnavailableResult } from './topologyCapabilityGate'
 
 type CompiledLegacyTemplate = (
   sspNamespace: typeof ssp,
@@ -58,6 +59,8 @@ async function executeLegacyTemplateInternal(
 ): Promise<unknown> {
   const aiOnly = options.aiOnly ?? true
   const definition = templateRegistry.require(templateId)
+  const unavailable = topologyTemplateUnavailableResult(definition.id)
+  if (unavailable !== null) return unavailable
   if (hostOnlyTemplateIds.has(definition.id) && !allowHostOnly) {
     throw new Error(`[templates] host-only template requires the explicit host action adapter: ${definition.id}`)
   }

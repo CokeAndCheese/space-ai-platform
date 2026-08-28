@@ -77,9 +77,15 @@ for (const f of await walk(TEMPLATES_DIR)) {
   const isPlaceholder = status === 'placeholder'
   const isCombo = Array.isArray(json.steps)
   const isAiEnabled = json.aiEnabled === true
+  const declaresTopology = typeof json.method === 'string' &&
+    json.method.startsWith('ssp.topologyTool.')
+  const callsTopology = typeof json.code === 'string' && /\bssp\.topologyTool\./.test(json.code)
   if (isPlaceholder) stats.placeholder++
   if (isCombo) stats.combo++
   if (isAiEnabled) stats.aiEnabled++
+  if (declaresTopology !== callsTopology) {
+    issues.push({ file: f, id, kind: 'topology_binding_mismatch' })
+  }
 
   // === 必填字段 ===
   for (const req of ['id', 'category', 'subcategory', 'code']) {
@@ -128,6 +134,9 @@ for (const f of await walk(TEMPLATES_DIR)) {
   }
 
   if (isAiEnabled) {
+    if (declaresTopology) {
+      issues.push({ file: f, id, kind: 'topology_ai_exposure' })
+    }
     if (AI_DENYLIST.has(id)) {
       issues.push({ file: f, id, kind: 'dangerous_ai_template' })
     }

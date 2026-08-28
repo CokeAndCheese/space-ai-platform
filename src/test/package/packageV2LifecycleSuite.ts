@@ -24,6 +24,7 @@ import {
   createStoredPackageZipV2Fixture,
   type PackageV2FixtureFloor,
 } from './packageV2Suite'
+import { currentTopologyUnavailableResult } from '@/templates/topologyCapabilityGate'
 
 type Test = { readonly name: string; readonly run: () => void | Promise<void> }
 
@@ -408,6 +409,15 @@ const tests: Test[] = [
       equal(packageSession.assets.length, 2, 'v2 asset mapping')
       equal(packageSession.topologyCapability.code, 'TOPOLOGY_UNAVAILABLE', 'topology code')
       equal(packageSession.topologyCapability.reasonCode, 'PACKAGE_DECLARED_ABSENT', 'topology reason')
+      deepEqual(
+        currentTopologyUnavailableResult(harness.lifecycle.snapshot),
+        {
+          ok: false,
+          code: 'TOPOLOGY_UNAVAILABLE',
+          reasonCode: 'PACKAGE_DECLARED_ABSENT',
+        },
+        'runtime capability projection comes from the published lifecycle session',
+      )
       for (const [index, asset] of packageSession.assets.entries()) {
         const manifestAsset = fixture.manifest.assets[index]!
         const canonicalUri = new URL(manifestAsset.uri, packageSession.manifestUri).href
@@ -450,6 +460,11 @@ const tests: Test[] = [
       equal(digestResult.kind, 'model-error', 'digest mismatch result')
       equal(digestHarness.lifecycle.snapshot.packageDiagnostic?.code, 'PACKAGE_DIGEST_MISMATCH', 'digest code')
       equal(digestHarness.lifecycle.snapshot.packageDiagnostic?.phase, 'HASH', 'digest phase')
+      equal(
+        currentTopologyUnavailableResult(digestHarness.lifecycle.snapshot),
+        null,
+        'digest failure is not declared absence',
+      )
       equal(digestHarness.loadCalls.length, 0, 'digest mismatch zero load')
       assertStrictCleanup(digestHarness, 'digest mismatch')
 
@@ -490,6 +505,11 @@ const tests: Test[] = [
       const result = await harness.lifecycle.selectPackageV2(fixture.zip)
       equal(result.kind, 'model-error', 'partial failure result')
       equal(harness.lifecycle.snapshot.status, 'error', 'partial failure state')
+      equal(
+        currentTopologyUnavailableResult(harness.lifecycle.snapshot),
+        null,
+        'partial load failure is not declared absence',
+      )
       equal(harness.states.some((state) => state.status === 'scene-ready'), false, 'no partial readiness')
       equal(harness.compileCallCount, 0, 'partial failure compile calls')
       equal(harness.createGraphCallCount, 0, 'partial failure graph calls')

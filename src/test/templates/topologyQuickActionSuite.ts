@@ -861,6 +861,7 @@ const tests: TestCase[] = [
         assert(scene.children.length > 0, 'real runtime route should attach to the scene')
 
         const removed = await topologyQuickActionFacade.removeRoute(rendered.routeId)
+        assert(!('kind' in removed), 'real runtime route removal receipt expected')
         equal(removed.removed, true, 'real runtime route removal')
         equal(ssp.topologyTool.getRouteById(rendered.routeId), null, 'real runtime route disposal')
       } finally {

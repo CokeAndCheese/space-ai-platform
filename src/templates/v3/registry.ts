@@ -231,8 +231,8 @@ export class V3TemplateRegistry {
     return validateAndApplyDefaults(definition.input, params)
   }
 
-  toAiPromptSection(): string {
-    return this.aiExposed().map((definition) => [
+  toAiPromptSection(excludedIds: ReadonlySet<string> = new Set()): string {
+    return this.aiExposed().filter((definition) => !excludedIds.has(definition.id)).map((definition) => [
       `- ${definition.id}: ${definition.title}`,
       `  ${definition.description}`,
       `  intents: ${definition.intents.join(', ')}`,

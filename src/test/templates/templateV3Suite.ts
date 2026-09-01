@@ -870,6 +870,118 @@ const tests: TestCase[] = [
     },
   },
   {
+    name: 'query-scene matches null-level special floors only by explicit floor identity',
+    run: async () => {
+      const scene = new THREE.Scene()
+      const floorA1 = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      const floorB1 = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      const tower = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+      Object.assign(floorA1.userData, {
+        sid: 'SPACE_A_1F_TEST',
+        renderType: 'SPACE',
+        building: 'A',
+        floorName: 'A_1F',
+        floorType: 'FLOOR',
+        level: 1,
+      })
+      Object.assign(floorB1.userData, {
+        sid: 'SPACE_B_1F_TEST',
+        renderType: 'SPACE',
+        building: 'B',
+        floorName: 'B_1F',
+        floorType: 'FLOOR',
+        level: 1,
+      })
+      Object.assign(tower.userData, {
+        sid: 'SPACE_A_T_TEST',
+        renderType: 'SPACE',
+        building: 'A',
+        floorName: 'A_T',
+        floorType: 'TOWER',
+        level: null,
+      })
+      scene.add(floorA1, floorB1, tower)
+      setSspContext({
+        scene,
+        camera: new THREE.PerspectiveCamera(),
+        renderer: {} as THREE.WebGLRenderer,
+        domElement: {} as HTMLElement,
+      })
+      invalidateVisibilityUndo()
+
+      type QueryResult = {
+        sids: string[]
+        count: number
+        data: {
+          matchedFloorNames: string[]
+          needsClarification?: boolean
+          candidates?: string[]
+        }
+      }
+
+      try {
+        const byFloorName = await executeTemplate('query-scene', {
+          operation: 'list',
+          scope: { floorNames: ['A_T'] },
+        }) as QueryResult
+        deepEqual(byFloorName.sids, ['SPACE_A_T_TEST'], 'special floorName match')
+        deepEqual(byFloorName.data.matchedFloorNames, ['A_T'], 'special floorName projection')
+
+        const byFloorType = await executeTemplate('query-scene', {
+          operation: 'list',
+          scope: { floorTypes: ['TOWER'] },
+        }) as QueryResult
+        deepEqual(byFloorType.sids, ['SPACE_A_T_TEST'], 'special floorType match')
+        deepEqual(byFloorType.data.matchedFloorNames, ['A_T'], 'special floorType projection')
+
+        for (const level of [-10, 0, 1, 50]) {
+          const byNumericLevel = await executeTemplate('query-scene', {
+            operation: 'list',
+            scope: { levels: [level] },
+          }) as QueryResult
+          assert(
+            !byNumericLevel.sids.includes('SPACE_A_T_TEST'),
+            `numeric level ${level} must not match null-level tower`,
+          )
+          assert(
+            !byNumericLevel.data.matchedFloorNames.includes('A_T'),
+            `numeric level ${level} must not project null-level tower`,
+          )
+          if (level === 1) {
+            deepEqual(
+              byNumericLevel.sids,
+              ['SPACE_A_1F_TEST', 'SPACE_B_1F_TEST'],
+              'integer level behavior remains unchanged',
+            )
+          } else {
+            equal(byNumericLevel.count, 0, `unmatched numeric level ${level}`)
+          }
+        }
+
+        const ambiguity = await executeTemplate('query-scene', {
+          operation: 'hide',
+          scope: { levels: [1] },
+        }) as QueryResult
+        equal(ambiguity.data.needsClarification, true, 'bare numeric level remains ambiguous')
+        deepEqual(
+          ambiguity.data.candidates,
+          ['A_1F', 'B_1F'],
+          'null-level tower is excluded from numeric ambiguity candidates',
+        )
+        equal(tower.visible, true, 'ambiguous numeric operation leaves tower unchanged')
+        equal(floorA1.visible, true, 'ambiguous numeric operation leaves A_1F unchanged')
+        equal(floorB1.visible, true, 'ambiguous numeric operation leaves B_1F unchanged')
+      } finally {
+        invalidateVisibilityUndo()
+        clearSspContext()
+        for (const mesh of [floorA1, floorB1, tower]) {
+          mesh.geometry.dispose()
+          ;(mesh.material as THREE.Material).dispose()
+        }
+      }
+    },
+  },
+  {
     name: 'query-scene hide and show keep one precise latest visibility undo',
     run: async () => {
       const scene = new THREE.Scene()

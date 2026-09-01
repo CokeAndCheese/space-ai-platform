@@ -91,6 +91,11 @@ interface LoadCall {
   readonly callNumber: number
 }
 
+type FloorInfoIdentityOverride = Partial<Pick<
+  TopologyFloorInfo,
+  'floorName' | 'building' | 'level' | 'floorType'
+>>
+
 const fixtureUrl = new URL('./fixtures/standard-model-package-v1-success.zip', import.meta.url)
 const indexUrl = new URL('./fixtures/standard-model-package-v1.sha256.json', import.meta.url)
 const GOLDEN = new Uint8Array(readFileSync(fileURLToPath(fixtureUrl))).slice()
@@ -279,6 +284,7 @@ function createHarness(options: {
   ignoreUnloadGenerationForSessions?: ReadonlySet<string>
   loadFailureCall?: number
   floorNameMismatchCall?: number
+  floorInfoOverridesByCall?: ReadonlyMap<number, FloorInfoIdentityOverride>
   preciseUnloadFailure?: boolean
   compileFailure?: boolean
   createGraphFailure?: boolean
@@ -355,14 +361,17 @@ function createHarness(options: {
         const floorName = options.floorNameMismatchCall === callNumber
           ? `${expectedFloorName}-mismatch`
           : expectedFloorName
+        const identityOverride = options.floorInfoOverridesByCall?.get(callNumber)
+        const hasIdentityOverride = (key: keyof FloorInfoIdentityOverride): boolean =>
+          identityOverride !== undefined && Object.prototype.hasOwnProperty.call(identityOverride, key)
         const root = new THREE.Group()
         root.name = floorName
         scene.add(root)
         const info: TopologyFloorInfo = {
-          floorName,
-          building: floor?.building,
-          level: floor?.level,
-          floorType: floor?.floorType,
+          floorName: hasIdentityOverride('floorName') ? identityOverride!.floorName! : floorName,
+          building: hasIdentityOverride('building') ? identityOverride!.building : floor?.building,
+          level: hasIdentityOverride('level') ? identityOverride!.level : floor?.level,
+          floorType: hasIdentityOverride('floorType') ? identityOverride!.floorType : floor?.floorType,
           url,
           root,
         }
@@ -577,6 +586,8 @@ const tests: Test[] = [
 
       const packageSession = harness.lifecycle.snapshot.packageSession
       assert(packageSession !== null && !('schemaVersion' in packageSession), 'authority v1 package session')
+      equal(BUILDING_SOURCE_V1_MANIFEST.revision, '482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb', 'authority v1 fixture revision')
+      equal(packageSession.revision, '482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb', 'authority v1 session revision')
       equal(packageSession.assets.length, 4, 'authority v1 session asset count')
       deepEqual(packageSession.assets.map((asset) => ({
         floorName: asset.floorName,
@@ -849,6 +860,36 @@ const tests: Test[] = [
       equal(mismatchResult.kind, 'model-error', 'post-load identity failure result')
       equal(mismatchHarness.preciseUnloadCalls.length, 1, 'failed loaded asset precisely retired')
       assertStrictCleanup(mismatchHarness, 'post-load identity failure')
+    },
+  },
+  {
+    name: 'v1 loader floor identity drift fails binding before proof session or graph publication',
+    run: async () => {
+      const fixture = await createNullSpecialV1Package()
+      const variants = [
+        { field: 'level', override: { level: 0 } },
+        { field: 'building', override: { building: 'B' } },
+        { field: 'floorType', override: { floorType: 'FLOOR' } },
+      ] as const
+      for (const variant of variants) {
+        const sessionId = `v1_identity_mismatch_${variant.field}`
+        const harness = createHarness({
+          sessionIds: [sessionId],
+          floorIdentitiesBySession: new Map([[sessionId, fixture.floors]]),
+          floorInfoOverridesByCall: new Map([[1, variant.override]]),
+        })
+        const result = await harness.lifecycle.selectPackage(fixture.zip.slice())
+        equal(result.kind, 'model-error', `${variant.field} mismatch result`)
+        equal(harness.lifecycle.snapshot.diagnostic?.code, 'SIDECAR_ASSET_BINDING_MISMATCH', `${variant.field} mismatch code`)
+        equal(harness.lifecycle.snapshot.diagnostic?.phase, 'BIND', `${variant.field} mismatch phase`)
+        equal(harness.lifecycle.snapshot.diagnostic?.details?.field, variant.field, `${variant.field} mismatch detail`)
+        equal(harness.lifecycle.snapshot.packageSession, null, `${variant.field} session not published`)
+        equal(harness.compileContexts.length, 0, `${variant.field} proof not compiled`)
+        equal(harness.topology.listGraphs().length, 0, `${variant.field} graph not published`)
+        equal(harness.lifecycle.getPackageAssetById(fixture.manifest.assets[0]!.assetId), null, `${variant.field} asset lookup empty`)
+        assert(harness.preciseUnloadCalls.length >= 1, `${variant.field} mismatched transport retired`)
+        assertStrictCleanup(harness, `${variant.field} identity mismatch`)
+      }
     },
   },
   {

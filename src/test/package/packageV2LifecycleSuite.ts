@@ -41,6 +41,11 @@ interface LoadCall {
   readonly assetIndex: number | null
 }
 
+type FloorInfoIdentityOverride = Partial<Pick<
+  TopologyFloorInfo,
+  'floorName' | 'building' | 'level' | 'floorType'
+>>
+
 const APP_ORIGIN = 'https://space.test'
 const CLEANUP_ORDER = ['routes', 'graphs', 'legacy', 'models'] as const
 const GOLDEN_V1 = new Uint8Array(readFileSync(fileURLToPath(new URL(
@@ -52,7 +57,7 @@ const GOLDEN_V1_MANIFEST = JSON.parse(new TextDecoder().decode(
   GOLDEN_V1_FILES['space-model-package.v1.json']!,
 )) as {
   readonly assets: readonly {
-    readonly floor: { readonly floorName: string }
+    readonly floor: PackageV2FixtureFloor
   }[]
 }
 const GOLDEN_V2 = new Uint8Array(readFileSync(fileURLToPath(new URL(
@@ -68,7 +73,7 @@ const GOLDEN_V2_MANIFEST = JSON.parse(new TextDecoder().decode(
     readonly assetId: string
     readonly uri: string
     readonly digest: { readonly value: string }
-    readonly floor: { readonly floorName: string }
+    readonly floor: PackageV2FixtureFloor
   }[]
 }
 const BUILDING_SOURCE_V2 = new Uint8Array(readFileSync(fileURLToPath(new URL(
@@ -168,7 +173,8 @@ function transportUrl(sessionId: string, index: number, digest: string, schemaVe
 
 function createHarness(options: {
   readonly sessionIds: readonly string[]
-  readonly floorNamesBySession: ReadonlyMap<string, readonly string[]>
+  readonly floorIdentitiesBySession: ReadonlyMap<string, readonly PackageV2FixtureFloor[]>
+  readonly floorInfoOverridesByCall?: ReadonlyMap<number, FloorInfoIdentityOverride>
   readonly loadGates?: ReadonlyMap<string, Deferred<void>>
   readonly ignoreUnloadGenerationForSessions?: ReadonlySet<string>
   readonly loadFailureCall?: number
@@ -238,14 +244,25 @@ function createHarness(options: {
           throw new Error('load invalidated by modelTool generation')
         }
         if (options.loadFailureCall === callNumber) throw new Error('injected load failure')
-        const floorName = sessionId === null || assetIndex === null
-          ? key.replace(/\.glb$/iu, '')
-          : options.floorNamesBySession.get(sessionId)?.[assetIndex] ?? ''
+        const floor = sessionId === null || assetIndex === null
+          ? undefined
+          : options.floorIdentitiesBySession.get(sessionId)?.[assetIndex]
+        const floorName = floor?.floorName ?? key.replace(/\.glb$/iu, '')
         if (!floorName) throw new Error('missing harness floor identity')
+        const identityOverride = options.floorInfoOverridesByCall?.get(callNumber)
+        const hasIdentityOverride = (key: keyof FloorInfoIdentityOverride): boolean =>
+          identityOverride !== undefined && Object.prototype.hasOwnProperty.call(identityOverride, key)
         const root = new THREE.Group()
         root.name = floorName
         scene.add(root)
-        const info: TopologyFloorInfo = { floorName, url, root }
+        const info: TopologyFloorInfo = {
+          floorName: hasIdentityOverride('floorName') ? identityOverride!.floorName! : floorName,
+          building: hasIdentityOverride('building') ? identityOverride!.building : floor?.building,
+          level: hasIdentityOverride('level') ? identityOverride!.level : floor?.level,
+          floorType: hasIdentityOverride('floorType') ? identityOverride!.floorType : floor?.floorType,
+          url,
+          root,
+        }
         modelRecords.set(key, info)
         return info
       } finally {
@@ -432,9 +449,9 @@ const tests: Test[] = [
       const sessionId = 'building_source_v2_session'
       const harness = createHarness({
         sessionIds: [sessionId],
-        floorNamesBySession: new Map([[
+        floorIdentitiesBySession: new Map([[
           sessionId,
-          BUILDING_SOURCE_V2_MANIFEST.assets.map((asset) => asset.floor.floorName),
+          BUILDING_SOURCE_V2_MANIFEST.assets.map((asset) => asset.floor),
         ]]),
       })
       const result = await harness.lifecycle.selectPackageV2(BUILDING_SOURCE_V2.slice())
@@ -449,6 +466,8 @@ const tests: Test[] = [
       const packageSession = harness.lifecycle.snapshot.packageSession
       assert(packageSession !== null && 'schemaVersion' in packageSession, 'authority v2 package session')
       equal(packageSession.schemaVersion, 2, 'authority v2 schema version')
+      equal(BUILDING_SOURCE_V2_MANIFEST.revision, 'b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4', 'authority v2 fixture revision')
+      equal(packageSession.revision, 'b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4', 'authority v2 session revision')
       equal(packageSession.assets.length, 4, 'authority v2 session asset count')
       deepEqual(packageSession.assets.map((asset) => ({
         floorName: asset.floorName,
@@ -484,7 +503,7 @@ const tests: Test[] = [
       const sessionId = 'special_null_v2_session'
       const harness = createHarness({
         sessionIds: [sessionId],
-        floorNamesBySession: new Map([[sessionId, fixture.assets.map((asset) => asset.floor.floorName)]]),
+        floorIdentitiesBySession: new Map([[sessionId, fixture.assets.map((asset) => asset.floor)]]),
       })
       const result = await harness.lifecycle.selectPackageV2(fixture.zip)
       equal(result.kind, 'loaded', 'special null v2 result')
@@ -529,10 +548,10 @@ const tests: Test[] = [
         assets: GOLDEN_V2_MANIFEST.assets,
       }
       const sessionId = 'v2_success_session'
-      const floorNames = fixture.assets.map((asset) => asset.floor.floorName)
+      const floorIdentities = fixture.assets.map((asset) => asset.floor)
       const harness = createHarness({
         sessionIds: [sessionId],
-        floorNamesBySession: new Map([[sessionId, floorNames]]),
+        floorIdentitiesBySession: new Map([[sessionId, floorIdentities]]),
       })
       const firstTransport = transportUrl(
         sessionId,
@@ -620,7 +639,7 @@ const tests: Test[] = [
       const digestMismatch = createStoredPackageZipV2Fixture(files)
       const digestHarness = createHarness({
         sessionIds: ['v2_digest_failure'],
-        floorNamesBySession: new Map(),
+        floorIdentitiesBySession: new Map(),
       })
       const digestResult = await digestHarness.lifecycle.selectPackageV2(digestMismatch)
       equal(digestResult.kind, 'model-error', 'digest mismatch result')
@@ -645,7 +664,7 @@ const tests: Test[] = [
       })
       const metadataHarness = createHarness({
         sessionIds: ['v2_metadata_failure'],
-        floorNamesBySession: new Map(),
+        floorIdentitiesBySession: new Map(),
       })
       const metadataResult = await metadataHarness.lifecycle.selectPackageV2(metadataFixture.zip)
       equal(metadataResult.kind, 'model-error', 'Metadata failure result')
@@ -665,7 +684,7 @@ const tests: Test[] = [
       const sessionId = 'v2_partial_failure'
       const harness = createHarness({
         sessionIds: [sessionId],
-        floorNamesBySession: new Map([[sessionId, fixture.assets.map((asset) => asset.floor.floorName)]]),
+        floorIdentitiesBySession: new Map([[sessionId, fixture.assets.map((asset) => asset.floor)]]),
         loadFailureCall: 2,
       })
       const result = await harness.lifecycle.selectPackageV2(fixture.zip)
@@ -683,6 +702,38 @@ const tests: Test[] = [
     },
   },
   {
+    name: 'v2 loader floor identity drift fails lifecycle before resource proof or scene publication',
+    run: async () => {
+      const fixture = await createNullSpecialV2Fixture()
+      const variants = [
+        { field: 'level', override: { level: 0 } },
+        { field: 'building', override: { building: 'B' } },
+        { field: 'floorType', override: { floorType: 'FLOOR' } },
+      ] as const
+      for (const variant of variants) {
+        const sessionId = `v2_identity_mismatch_${variant.field}`
+        const harness = createHarness({
+          sessionIds: [sessionId],
+          floorIdentitiesBySession: new Map([[sessionId, fixture.assets.map((asset) => asset.floor)]]),
+          floorInfoOverridesByCall: new Map([[1, variant.override]]),
+        })
+        const result = await harness.lifecycle.selectPackageV2(fixture.zip.slice())
+        equal(result.kind, 'model-error', `${variant.field} mismatch result`)
+        equal(harness.lifecycle.snapshot.packageDiagnostic?.code, 'PACKAGE_FIELD_INVALID', `${variant.field} mismatch code`)
+        equal(harness.lifecycle.snapshot.packageDiagnostic?.phase, 'LIFECYCLE', `${variant.field} mismatch phase`)
+        equal(harness.lifecycle.snapshot.packageDiagnostic?.details.field, variant.field, `${variant.field} mismatch detail`)
+        equal(harness.lifecycle.snapshot.packageSession, null, `${variant.field} session not published`)
+        equal(harness.lifecycle.getPackageV2ResourceProof(fixture.assets[0]!.assetId), null, `${variant.field} proof lookup empty`)
+        equal(harness.topology.listGraphs().length, 0, `${variant.field} graph not published`)
+        equal(harness.compileCallCount, 0, `${variant.field} compile calls`)
+        equal(harness.createGraphCallCount, 0, `${variant.field} createGraph calls`)
+        equal(currentTopologyUnavailableResult(harness.lifecycle.snapshot), null, `${variant.field} capability not published`)
+        assert(harness.preciseUnloadCalls.length >= 1, `${variant.field} mismatched transport retired`)
+        assertStrictCleanup(harness, `${variant.field} identity mismatch`)
+      }
+    },
+  },
+  {
     name: 'late v2 A roots retire only after pending B loads and B remains ready',
     run: async () => {
       const fixture = await createTwoAssetV2Fixture()
@@ -690,12 +741,12 @@ const tests: Test[] = [
       const freshGate = deferred<void>()
       const staleSession = 'v2_stale_session_a'
       const freshSession = 'v2_fresh_session_b'
-      const floorNames = fixture.assets.map((asset) => asset.floor.floorName)
+      const floorIdentities = fixture.assets.map((asset) => asset.floor)
       const harness = createHarness({
         sessionIds: [staleSession, freshSession],
-        floorNamesBySession: new Map([
-          [staleSession, floorNames],
-          [freshSession, floorNames],
+        floorIdentitiesBySession: new Map([
+          [staleSession, floorIdentities],
+          [freshSession, floorIdentities],
         ]),
         loadGates: new Map([
           [staleSession, staleGate],
@@ -737,13 +788,13 @@ const tests: Test[] = [
       const v2A = 'switch_v2_session_a'
       const v1 = 'switch_v1_session_b'
       const v2B = 'switch_v2_session_c'
-      const floorNames = fixture.assets.map((asset) => asset.floor.floorName)
+      const floorIdentities = fixture.assets.map((asset) => asset.floor)
       const harness = createHarness({
         sessionIds: [v2A, v1, v2B],
-        floorNamesBySession: new Map([
-          [v2A, floorNames],
-          [v1, GOLDEN_V1_MANIFEST.assets.map((asset) => asset.floor.floorName)],
-          [v2B, floorNames],
+        floorIdentitiesBySession: new Map([
+          [v2A, floorIdentities],
+          [v1, GOLDEN_V1_MANIFEST.assets.map((asset) => asset.floor)],
+          [v2B, floorIdentities],
         ]),
       })
       const legacy = await installLegacyFixture(harness)

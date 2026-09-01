@@ -41,6 +41,7 @@ interface BuildingSourceFixtureIndex {
     readonly derivationVersion: number
   }
   readonly source: {
+    readonly sha256: string
     readonly floors: readonly {
       readonly floorName: string
       readonly floorType: string
@@ -62,6 +63,19 @@ const BUILDING_SOURCE_INDEX = JSON.parse(new TextDecoder('utf-8', { fatal: true 
 )) as BuildingSourceFixtureIndex
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message) }
 function equal(actual: unknown, expected: unknown, message: string): void { if (!Object.is(actual, expected)) throw new Error(`${message}: expected ${String(expected)}, got ${String(actual)}`) }
+function parseGlbJsonDocument(bytes: Uint8Array): {
+  readonly scenes?: readonly { readonly extras?: Record<string, unknown> }[]
+} {
+  assert(bytes.byteLength >= 20, 'authority GLB header')
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  equal(view.getUint32(0, true), 0x46546c67, 'authority GLB magic')
+  equal(view.getUint32(16, true), 0x4e4f534a, 'authority GLB first chunk type')
+  const jsonLength = view.getUint32(12, true)
+  assert(20 + jsonLength <= bytes.byteLength, 'authority GLB JSON bounds')
+  return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(
+    bytes.subarray(20, 20 + jsonLength),
+  ).trimEnd()) as { readonly scenes?: readonly { readonly extras?: Record<string, unknown> }[] }
+}
 function jsonChunk(document: unknown): Uint8Array {
   const bytes = new TextEncoder().encode(JSON.stringify(document)); const padded = new Uint8Array((bytes.byteLength + 3) & ~3); padded.fill(0x20); padded.set(bytes); return padded
 }
@@ -100,13 +114,14 @@ function fail(result: { ok: boolean; diagnostic?: { code: string; phase?: string
 export async function runPackageSuite(): Promise<{ passed: number; names: readonly string[]; durationMs: number }> {
   const tests: Test[] = [
     { name: 'authority building-source v1 mirror authenticates every entry and strict sidecar binding', run: async () => {
-      equal(await sha256Hex(BUILDING_SOURCE_INDEX_BYTES), 'f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1', 'authority index SHA-256')
+      equal(await sha256Hex(BUILDING_SOURCE_INDEX_BYTES), '085a3a08f54fb7f02ee9ef6e16242e47d7741bb5821fdc95869df10ef6cc4485', 'authority index SHA-256')
       equal(BUILDING_SOURCE_INDEX.schema, 'space-model-studio/ai-building-source-profile-v1.1-fixture-sha256-index', 'authority index schema')
       equal(BUILDING_SOURCE_INDEX.schemaVersion, 1, 'authority index schema version')
-      equal(BUILDING_SOURCE_INDEX.authority.sha256, '7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f', 'authority document SHA-256')
+      equal(BUILDING_SOURCE_INDEX.authority.sha256, 'c41dedc540037cfadbae828e82da4f170a97732e7a96d2ff14744ef75e4446ae', 'authority document SHA-256')
       equal(BUILDING_SOURCE_INDEX.authority.profile, 'space-model-studio/ai-building-source-glb', 'authority profile')
       equal(BUILDING_SOURCE_INDEX.authority.profileVersion, '1.1', 'authority profile version')
       equal(BUILDING_SOURCE_INDEX.authority.derivationVersion, 2, 'authority derivation version')
+      equal(BUILDING_SOURCE_INDEX.source.sha256, '86244b9a40f75e11397cf8ebc65dc0509ffb0337eece3c2a8ba2e1d32a04b864', 'authority Building.glb SHA-256')
       equal(JSON.stringify(BUILDING_SOURCE_INDEX.source.floors), JSON.stringify([
         { floorName: 'A_5F', floorType: 'FLOOR', level: 5, elevation: 14.45 },
         { floorName: 'A_T', floorType: 'TOWER', level: null, elevation: 18.05 },
@@ -136,6 +151,8 @@ export async function runPackageSuite(): Promise<{ passed: number; names: readon
 
       const archive = parsePackageZipV1(BUILDING_SOURCE_V1.slice(), BUILDING_SOURCE_FIXTURE_URI)
       assert(archive.ok, `authority v1 parses ${JSON.stringify(archive)}`)
+      equal(archive.value.manifestDocument.revision, '482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb', 'authority v1 manifest revision')
+      equal(archive.value.manifestDocument.topology.revision, '482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb', 'authority v1 topology declaration revision')
       equal(JSON.stringify(archive.value.manifestDocument.assets.map((asset) => asset.floor)), JSON.stringify(BUILDING_SOURCE_FLOORS), 'authority v1 manifest floor order')
       const validated = await validatePackageArchive(archive.value)
       assert(validated.ok, `authority v1 validates ${JSON.stringify(validated)}`)
@@ -148,11 +165,47 @@ export async function runPackageSuite(): Promise<{ passed: number; names: readon
       const binding = prebindPackageTopologyV1(archive.value, validated.value)
       assert(binding.ok, `authority v1 sidecar binds ${JSON.stringify(binding)}`)
       equal(binding.value.assets.length, BUILDING_SOURCE_FLOORS.length, 'authority v1 bound asset count')
-      equal(binding.value.topologyDocument.revision, archive.value.manifestDocument.revision, 'authority v1 sidecar revision')
+      equal(binding.value.topologyDocument.revision, '482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb', 'authority v1 sidecar revision')
       for (const [index, prepared] of binding.value.assets.entries()) {
         equal(prepared.sidecarAsset.assetId, prepared.manifestAsset.assetId, `authority v1 asset ${index} id`)
         equal(prepared.sidecarAsset.digest?.value, prepared.manifestAsset.digest.value, `authority v1 asset ${index} digest`)
         equal(prepared.metadata.scene.floorName, BUILDING_SOURCE_FLOORS[index]!.floorName, `authority v1 asset ${index} Metadata`)
+      }
+
+      const expectedOrders = new Map<string, number | null>([
+        ['A_5F', 5],
+        ['A_T', null],
+        ['A_6F', 6],
+        ['A_RF', null],
+      ])
+      for (const asset of archive.value.manifestDocument.assets) {
+        const document = parseGlbJsonDocument(files[`${asset.floor.floorName}.glb`]!)
+        const scenes = document.scenes ?? []
+        assert(scenes.length > 0, `${asset.floor.floorName} embedded scenes`)
+        let layerCount = 0
+        for (const scene of scenes) {
+          const extras = scene.extras ?? {}
+          assert(Object.prototype.hasOwnProperty.call(extras, 'sspTopology'), `${asset.floor.floorName} embedded topology key`)
+          const topology = extras.sspTopology as { readonly graphs?: readonly { readonly layers?: readonly Record<string, unknown>[] }[] }
+          for (const graph of topology.graphs ?? []) {
+            for (const layer of graph.layers ?? []) {
+              layerCount += 1
+              equal(layer.id, asset.floor.floorName, `${asset.floor.floorName} embedded layer id`)
+              const expectedOrder = expectedOrders.get(asset.floor.floorName)
+              assert(expectedOrder !== undefined || expectedOrders.has(asset.floor.floorName), `${asset.floor.floorName} order expectation`)
+              equal(Object.prototype.hasOwnProperty.call(layer, 'order'), expectedOrder !== null, `${asset.floor.floorName} embedded order key presence`)
+              if (expectedOrder !== null) equal(layer.order, expectedOrder, `${asset.floor.floorName} embedded integer order`)
+            }
+          }
+        }
+        assert(layerCount > 0, `${asset.floor.floorName} embedded topology layers`)
+      }
+      equal(binding.value.topologyDocument.layers.length, 4, 'authority v1 sidecar layer count')
+      for (const layer of binding.value.topologyDocument.layers) {
+        const expectedOrder = expectedOrders.get(layer.id)
+        assert(expectedOrder !== undefined || expectedOrders.has(layer.id), `${layer.id} sidecar order expectation`)
+        equal(Object.prototype.hasOwnProperty.call(layer, 'order'), expectedOrder !== null, `${layer.id} sidecar order key presence`)
+        if (expectedOrder !== null) equal(layer.order, expectedOrder, `${layer.id} sidecar integer order`)
       }
     } },
     { name: 'manifest accepts canonical minimum', run: async () => { const p = await validPackage(); const m = parsePackageManifestV1(new TextEncoder().encode(JSON.stringify({ schema: 'space-model-package', schemaVersion: 1, packageId: 'p', revision: 'r', metadata: { schema: 'space-model-metadata', version: '3.3-semantic', carrier: 'GLB_SCENE_NODE_EXTRAS' }, assets: [{ assetId: 'a', uri: './a.glb', digest: { algorithm: 'SHA-256', value: 'a'.repeat(64) }, floor: FLOOR }], topology: { uri: './t.json', digest: { algorithm: 'SHA-256', value: 'b'.repeat(64) }, schema: 'space-ai-platform/topology-sidecar', schemaVersion: 1, revision: 'r' } })), URI); assert(m.ok, `manifest should parse ${JSON.stringify(m)}`); equal(m.value.assets[0]!.canonicalUri, 'https://space-model-package.invalid/demo/a.glb', 'canonical uri'); void p } },

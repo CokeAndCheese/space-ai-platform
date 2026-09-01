@@ -21,6 +21,7 @@ import {
   type Digest,
   type Metadata33Projection,
   type PackageDiagnostic,
+  type PackageFloor,
   type PackageTopologyUnavailableV2,
   type PreparedPackageTopologyV1,
   type ValidatedPackageArchiveV2,
@@ -727,6 +728,19 @@ function owningScene(root: THREE.Object3D): THREE.Scene | null {
 
 function isVisibleInScene(root: THREE.Object3D, scene: THREE.Scene): boolean {
   return (root as { isObject3D?: boolean }).isObject3D === true && owningScene(root) === scene
+}
+
+type LoadedFloorIdentityField = 'floorName' | 'building' | 'level' | 'floorType'
+
+function loadedFloorIdentityMismatchField(
+  info: TopologyFloorInfo,
+  expected: PackageFloor,
+): LoadedFloorIdentityField | null {
+  if (info.floorName !== expected.floorName) return 'floorName'
+  if (!Object.is(info.building, expected.building)) return 'building'
+  if (!Object.is(info.level, expected.level)) return 'level'
+  if (info.floorType !== expected.floorType) return 'floorType'
+  return null
 }
 
 function safeErrorName(error: unknown): string {
@@ -1783,7 +1797,9 @@ export class TopologySceneLifecycle {
           { assetId: manifestAsset.assetId, details: { requirement: 'SAME_THREE_SCENE' } },
         ))
       }
-      if (info.url !== transport.url || info.floorName !== manifestAsset.floor.floorName) {
+      const identityMismatch = loadedFloorIdentityMismatchField(info, manifestAsset.floor)
+      const mismatchField = info.url !== transport.url ? 'url' : identityMismatch
+      if (mismatchField !== null) {
         throw new PackageAssetLoadFailure(diagnostic(
           prepared.manifest.topology.canonicalUri,
           'SIDECAR_ASSET_BINDING_MISMATCH',
@@ -1792,7 +1808,7 @@ export class TopologySceneLifecycle {
           {
             assetId: manifestAsset.assetId,
             details: {
-              field: info.url !== transport.url ? 'url' : 'floorName',
+              field: mismatchField,
             },
           },
         ))
@@ -1998,14 +2014,16 @@ export class TopologySceneLifecycle {
           { manifestUri: manifest.manifestUri, assetId: manifestAsset.assetId },
         ))
       }
-      if (info.url !== transport.url || info.floorName !== manifestAsset.floor.floorName) {
+      const identityMismatch = loadedFloorIdentityMismatchField(info, manifestAsset.floor)
+      const mismatchField = info.url !== transport.url ? 'url' : identityMismatch
+      if (mismatchField !== null) {
         throw new PackageAssetLoadFailureV2(packageDiagnostic(
           'PACKAGE_FIELD_INVALID',
           'LIFECYCLE',
           `/assets/${index}`,
           {
             reason: 'loader-identity-mismatch',
-            field: info.url !== transport.url ? 'url' : 'floorName',
+            field: mismatchField,
           },
           { manifestUri: manifest.manifestUri, assetId: manifestAsset.assetId },
         ))

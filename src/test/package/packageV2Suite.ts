@@ -57,6 +57,7 @@ interface BuildingSourceFixtureIndex {
     readonly derivationVersion: number
   }
   readonly source: {
+    readonly sha256: string
     readonly floors: readonly {
       readonly floorName: string
       readonly floorType: string
@@ -125,6 +126,20 @@ function equal(actual: unknown, expected: unknown, message: string): void {
   if (!Object.is(actual, expected)) {
     throw new Error(`${message}: expected ${String(expected)}, got ${String(actual)}`)
   }
+}
+
+function parseGlbJsonDocument(bytes: Uint8Array): {
+  readonly scenes?: readonly { readonly extras?: Record<string, unknown> }[]
+} {
+  assert(bytes.byteLength >= 20, 'authority GLB header')
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  equal(view.getUint32(0, true), 0x46546c67, 'authority GLB magic')
+  equal(view.getUint32(16, true), 0x4e4f534a, 'authority GLB first chunk type')
+  const jsonLength = view.getUint32(12, true)
+  assert(20 + jsonLength <= bytes.byteLength, 'authority GLB JSON bounds')
+  return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(
+    bytes.subarray(20, 20 + jsonLength),
+  ).trimEnd()) as { readonly scenes?: readonly { readonly extras?: Record<string, unknown> }[] }
 }
 
 function mutateAuthoritativeFixture(mutation: FixtureMutation): Uint8Array {
@@ -383,13 +398,14 @@ export async function runPackageV2Suite(): Promise<{
     {
       name: 'authority building-source v2 mirror authenticates every entry and exact topology-absent Metadata',
       run: async () => {
-        equal(await sha256Hex(BUILDING_SOURCE_INDEX_BYTES), 'f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1', 'authority index SHA-256')
+        equal(await sha256Hex(BUILDING_SOURCE_INDEX_BYTES), '085a3a08f54fb7f02ee9ef6e16242e47d7741bb5821fdc95869df10ef6cc4485', 'authority index SHA-256')
         equal(BUILDING_SOURCE_INDEX.schema, 'space-model-studio/ai-building-source-profile-v1.1-fixture-sha256-index', 'authority index schema')
         equal(BUILDING_SOURCE_INDEX.schemaVersion, 1, 'authority index schema version')
-        equal(BUILDING_SOURCE_INDEX.authority.sha256, '7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f', 'authority document SHA-256')
+        equal(BUILDING_SOURCE_INDEX.authority.sha256, 'c41dedc540037cfadbae828e82da4f170a97732e7a96d2ff14744ef75e4446ae', 'authority document SHA-256')
         equal(BUILDING_SOURCE_INDEX.authority.profile, 'space-model-studio/ai-building-source-glb', 'authority profile')
         equal(BUILDING_SOURCE_INDEX.authority.profileVersion, '1.1', 'authority profile version')
         equal(BUILDING_SOURCE_INDEX.authority.derivationVersion, 2, 'authority derivation version')
+        equal(BUILDING_SOURCE_INDEX.source.sha256, '86244b9a40f75e11397cf8ebc65dc0509ffb0337eece3c2a8ba2e1d32a04b864', 'authority Building.glb SHA-256')
         equal(JSON.stringify(BUILDING_SOURCE_INDEX.source.floors), JSON.stringify([
           { floorName: 'A_5F', floorType: 'FLOOR', level: 5, elevation: 14.45 },
           { floorName: 'A_T', floorType: 'TOWER', level: null, elevation: 18.05 },
@@ -410,17 +426,25 @@ export async function runPackageV2Suite(): Promise<{
           equal(bytes.byteLength, entry.byteLength, `${entry.name} length`)
           equal(await sha256Hex(bytes), entry.sha256, `${entry.name} SHA-256`)
         }
-        equal(files['topology.v1.json'], undefined, 'authority v2 has no sidecar entry')
+        equal(Object.keys(files).some((path) => path.toLowerCase().includes('topology')), false, 'authority v2 has no topology entry')
+        for (const floor of BUILDING_SOURCE_FLOORS) {
+          const document = parseGlbJsonDocument(files[`${floor.floorName}.glb`]!)
+          const scenes = document.scenes ?? []
+          assert(scenes.length > 0, `${floor.floorName} v2 scenes`)
+          for (const scene of scenes) {
+            equal(Object.prototype.hasOwnProperty.call(scene.extras ?? {}, 'sspTopology'), false, `${floor.floorName} v2 embedded topology key`)
+          }
+        }
 
         const archive = parsePackageZipV2(BUILDING_SOURCE_V2.slice(), URI)
         assert(archive.ok, `authority v2 parses ${JSON.stringify(archive)}`)
+        const expectedRevision = 'b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4'
+        equal(archive.value.manifestDocument.revision, expectedRevision, 'authority v2 manifest revision')
         equal(JSON.stringify(archive.value.manifestDocument.assets.map((asset) => asset.floor)), JSON.stringify(BUILDING_SOURCE_FLOORS), 'authority v2 manifest floor order')
         equal('topology' in archive.value.manifestDocument, false, 'authority v2 manifest has no topology declaration')
-        equal(
-          await computePackageManifestV2Revision(archive.value.manifestDocument),
-          archive.value.manifestDocument.revision,
-          'authority v2 canonical revision',
-        )
+        const computedRevision = await computePackageManifestV2Revision(archive.value.manifestDocument)
+        equal(computedRevision, expectedRevision, 'authority v2 canonical revision')
+        equal(computedRevision, archive.value.manifestDocument.revision, 'authority v2 computed and manifest revisions agree')
         const validated = await validatePackageArchiveV2(archive.value)
         assert(validated.ok, `authority v2 validates ${JSON.stringify(validated)}`)
         equal(JSON.stringify(validated.value.metadata.map((projection) => ({

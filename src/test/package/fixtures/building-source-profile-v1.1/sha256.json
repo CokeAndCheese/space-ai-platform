@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "authority": {
     "file": "docs/AI_BUILDING_SOURCE_GLB_SPEC_V1.md",
-    "sha256": "7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f",
+    "sha256": "c41dedc540037cfadbae828e82da4f170a97732e7a96d2ff14744ef75e4446ae",
     "profile": "space-model-studio/ai-building-source-glb",
     "profileVersion": "1.1",
     "derivationVersion": 2
@@ -43,12 +43,12 @@
     {
       "schemaVersion": 1,
       "file": "A-standard-model-package-v1.zip",
-      "sha256": "b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4",
-      "byteLength": 38118,
+      "sha256": "1080cc8717eed98d18eb7a1c8708596ac43c90a7181c28fb55ac5a69df3b3e76",
+      "byteLength": 38058,
       "entries": [
         {
           "name": "space-model-package.v1.json",
-          "sha256": "41ba1767a6e4edd10142f370e4fbfa76d8307f6ba4ce89cf3d09dd5c203f545d",
+          "sha256": "dc4b0e65a572b1a3870e1cea363143f4d7f7458bc8be4ecb884567a39cd2971b",
           "byteLength": 2500
         },
         {
@@ -58,8 +58,8 @@
         },
         {
           "name": "A_T.glb",
-          "sha256": "813b3c9ef7619e8af30fd03424ffd2f89e9ffb02aab86408de5ccefb8cf50a63",
-          "byteLength": 3700
+          "sha256": "c0eae3e3dda8dd341537cf26e2c2a19644e426a589d7612091017ac74f7e5bb2",
+          "byteLength": 3688
         },
         {
           "name": "A_6F.glb",
@@ -68,17 +68,17 @@
         },
         {
           "name": "A_RF.glb",
-          "sha256": "edfecbcf88f6b8a07239ad0d5e4f68aad98a49a86ceadb3ba73cad2b3b30a2b7",
-          "byteLength": 3712
+          "sha256": "b7ea4f222b28096e7d7928a2983e556eb45e04bf1085ba0aa614896f36c60acc",
+          "byteLength": 3700
         },
         {
           "name": "topology.v1.json",
-          "sha256": "6727ec7a473ebdb9d7157137c745e0c741666592be44a1fbff05945f2e61195e",
-          "byteLength": 10354
+          "sha256": "619d6594530daee0816e7f79a61bf193371ab6d90a66ce82d87f8b2b7a0e9d2b",
+          "byteLength": 10318
         },
         {
           "name": "producer-validation.json",
-          "sha256": "19ce0b9ac33daf8f4257f0e5c41b16db69cb150c81c4c346e068d6aeb2104766",
+          "sha256": "8016eaa609513a768a15f376ad46c6ee6ce8344e594fdea0f11544a09e98b45f",
           "byteLength": 9702
         }
       ]

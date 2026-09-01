@@ -1,8 +1,15 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import * as THREE from 'three'
 import { ssp } from '../../ssp'
 import { fallbackParse, isVisibilityUndoQuery } from '../../ai/rules/fallbackRules'
 import { ChatContext, type ChatTurn } from '../../ai/context/chatContext'
 import { createTemplateIntent } from '../../ai/types/Intent'
+import {
+  parsePackageZipV2,
+  sha256Hex,
+  validatePackageArchiveV2,
+} from '../../adapters/package'
 import { clearSspContext, setSspContext } from '../../ssp/core/context'
 import { templateCatalog, resolveAiTemplateId } from '../../templates/catalog'
 import { executeTemplate } from '../../templates/runtime'
@@ -40,6 +47,28 @@ export interface TemplateV3SuiteResult {
   names: readonly string[]
   durationMs: number
 }
+
+interface RevisedBuildingSourceFixtureIndex {
+  readonly packageVectors: readonly {
+    readonly schemaVersion: number
+    readonly file: string
+    readonly sha256: string
+    readonly byteLength: number
+  }[]
+}
+
+const REVISED_BUILDING_FIXTURE_DIR = new URL(
+  '../package/fixtures/building-source-profile-v1.1/',
+  import.meta.url,
+)
+const REVISED_BUILDING_INDEX = JSON.parse(readFileSync(fileURLToPath(
+  new URL('sha256.json', REVISED_BUILDING_FIXTURE_DIR),
+), 'utf8')) as RevisedBuildingSourceFixtureIndex
+const REVISED_BUILDING_V2 = new Uint8Array(readFileSync(fileURLToPath(
+  new URL('A-standard-model-package-v2.zip', REVISED_BUILDING_FIXTURE_DIR),
+))).slice()
+const REVISED_BUILDING_URI =
+  'https://space-model-package.invalid/template-regression/space-model-package.v2.json'
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message)
@@ -975,6 +1004,161 @@ const tests: TestCase[] = [
         invalidateVisibilityUndo()
         clearSspContext()
         for (const mesh of [floorA1, floorB1, tower]) {
+          mesh.geometry.dispose()
+          ;(mesh.material as THREE.Material).dispose()
+        }
+      }
+    },
+  },
+  {
+    name: 'query-scene uses validated revised v2 Metadata for special and numeric floor boundaries',
+    run: async () => {
+      const vector = REVISED_BUILDING_INDEX.packageVectors.find(
+        (candidate) => candidate.schemaVersion === 2,
+      )
+      assert(vector !== undefined, 'revised fixture v2 package vector')
+      equal(vector.file, 'A-standard-model-package-v2.zip', 'revised fixture v2 filename')
+      equal(await sha256Hex(REVISED_BUILDING_V2), vector.sha256, 'revised fixture v2 ZIP SHA-256')
+      equal(REVISED_BUILDING_V2.byteLength, vector.byteLength, 'revised fixture v2 ZIP length')
+
+      const archive = parsePackageZipV2(REVISED_BUILDING_V2.slice(), REVISED_BUILDING_URI)
+      assert(archive.ok, `revised fixture v2 parses ${JSON.stringify(archive)}`)
+      const validated = await validatePackageArchiveV2(archive.value)
+      assert(validated.ok, `revised fixture v2 validates ${JSON.stringify(validated)}`)
+      deepEqual(
+        validated.value.metadata.map((projection) => ({
+          floorName: projection.scene.floorName,
+          building: projection.scene.building,
+          level: projection.scene.level,
+          floorType: projection.scene.floorType,
+        })),
+        [
+          { floorName: 'A_5F', building: 'A', level: 5, floorType: 'FLOOR' },
+          { floorName: 'A_T', building: 'A', level: null, floorType: 'TOWER' },
+          { floorName: 'A_6F', building: 'A', level: 6, floorType: 'FLOOR' },
+          { floorName: 'A_RF', building: 'A', level: null, floorType: 'ROOF' },
+        ],
+        'validated revised fixture Metadata floor projection',
+      )
+
+      const scene = new THREE.Scene()
+      const meshes: THREE.Mesh[] = []
+      const expectedSidsByFloor = new Map<string, string[]>()
+      for (const projection of validated.value.metadata) {
+        const floorSids: string[] = []
+        for (const node of projection.nodes) {
+          const mesh = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial())
+          mesh.name = node.name
+          Object.assign(mesh.userData, {
+            sid: node.sid,
+            renderType: node.renderType,
+            building: node.building,
+            floorName: node.floorName,
+            floorType: node.floorType,
+            level: node.level,
+            ...(node.spaceType === undefined ? {} : { spaceType: node.spaceType }),
+            ...(node.fireType === undefined ? {} : { fireType: node.fireType }),
+          })
+          scene.add(mesh)
+          meshes.push(mesh)
+          floorSids.push(node.sid)
+        }
+        assert(floorSids.length > 0, `validated ${projection.scene.floorName} Metadata nodes`)
+        expectedSidsByFloor.set(projection.scene.floorName, floorSids)
+      }
+
+      const floorSids = (floorName: string): string[] => {
+        const sids = expectedSidsByFloor.get(floorName)
+        assert(sids !== undefined, `validated ${floorName} Metadata projection`)
+        return sids
+      }
+      type QueryResult = {
+        sids: string[]
+        count: number
+        data: {
+          matchedFloorNames: string[]
+          needsClarification?: boolean
+          candidates?: string[]
+        }
+      }
+      const query = async (operation: 'list' | 'hide', scope: Record<string, unknown>) => (
+        await executeTemplate('query-scene', { operation, scope }) as QueryResult
+      )
+
+      setSspContext({
+        scene,
+        camera: new THREE.PerspectiveCamera(),
+        renderer: {} as THREE.WebGLRenderer,
+        domElement: {} as HTMLElement,
+      })
+      invalidateVisibilityUndo()
+      try {
+        const towerByName = await query('list', { floorNames: ['A_T'] })
+        deepEqual(towerByName.sids, floorSids('A_T'), 'validated A_T floorName match')
+        deepEqual(towerByName.data.matchedFloorNames, ['A_T'], 'validated A_T projection')
+
+        const roofByName = await query('list', { floorNames: ['A_RF'] })
+        deepEqual(roofByName.sids, floorSids('A_RF'), 'validated A_RF floorName match')
+        deepEqual(roofByName.data.matchedFloorNames, ['A_RF'], 'validated A_RF projection')
+
+        const towerByType = await query('list', { floorTypes: ['TOWER'] })
+        deepEqual(towerByType.sids, floorSids('A_T'), 'validated TOWER floorType match')
+        deepEqual(towerByType.data.matchedFloorNames, ['A_T'], 'validated TOWER projection')
+
+        const roofByType = await query('list', { floorTypes: ['ROOF'] })
+        deepEqual(roofByType.sids, floorSids('A_RF'), 'validated ROOF floorType match')
+        deepEqual(roofByType.data.matchedFloorNames, ['A_RF'], 'validated ROOF projection')
+
+        const specialSids = new Set([...floorSids('A_T'), ...floorSids('A_RF')])
+        const numericExpected = new Map<number, string[]>([
+          [5, floorSids('A_5F')],
+          [6, floorSids('A_6F')],
+        ])
+        const levels = Array.from({ length: 61 }, (_, index) => index - 10)
+        for (const level of levels) {
+          const result = await query('list', { levels: [level] })
+          assert(
+            result.sids.every((sid) => !specialSids.has(sid)),
+            `numeric level ${level} must not match validated null-level special floors`,
+          )
+          assert(
+            !result.data.matchedFloorNames.includes('A_T')
+              && !result.data.matchedFloorNames.includes('A_RF'),
+            `numeric level ${level} must not project validated special floors`,
+          )
+          const expected = numericExpected.get(level)
+          if (expected === undefined) {
+            equal(result.count, 0, `unmatched validated numeric level ${level}`)
+          } else {
+            deepEqual(result.sids, expected, `validated numeric level ${level} match`)
+            deepEqual(
+              result.data.matchedFloorNames,
+              [`A_${level}F`],
+              `validated numeric level ${level} projection`,
+            )
+          }
+        }
+
+        for (const level of [5, 6]) {
+          const result = await query('hide', { levels: [level] })
+          equal(result.data.needsClarification, undefined, `numeric level ${level} ambiguity flag`)
+          equal(result.data.candidates, undefined, `numeric level ${level} ambiguity candidates`)
+          deepEqual(result.sids, floorSids(`A_${level}F`), `numeric level ${level} host action match`)
+          deepEqual(
+            result.data.matchedFloorNames,
+            [`A_${level}F`],
+            `numeric level ${level} host action projection`,
+          )
+          for (const mesh of meshes) {
+            if (specialSids.has(String(mesh.userData.sid))) {
+              equal(mesh.visible, true, `numeric level ${level} leaves ${mesh.userData.floorName} visible`)
+            }
+          }
+        }
+      } finally {
+        invalidateVisibilityUndo()
+        clearSspContext()
+        for (const mesh of meshes) {
           mesh.geometry.dispose()
           ;(mesh.material as THREE.Material).dispose()
         }

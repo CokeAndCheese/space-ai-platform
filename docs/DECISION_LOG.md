@@ -172,12 +172,14 @@
 
 ## 2026-09-01 — 批准 Standard Model Package v1/v2 nullable 特殊层兼容修正
 
-- **状态**：有效；当前候选兼容修正，Platform 本地实现完成，权威联合 fixture/index 待同步验签。
+- **状态**：有效；当前候选兼容修正，Platform 实现与权威 fixture 同字节镜像验签完成，新的联合真实浏览器验收和用户兼容里程碑待完成。
 - **背景**：Studio 的 TOWER/ROOF 特殊层需要在没有可信数字楼层时显式表达 `level: null`，而原 Platform v1/v2 manifest 与 Metadata 3.3 validator 对所有非景观类型要求整数 level，造成已批准候选的局部生产/消费冲突。
 - **精确规则**：v1/v2 manifest、默认 scene 与所有 mesh node 的 `building`、`level` 键继续必填。TOWER/ROOF 的 `building` 必须为非空字符串，`level` 允许 `null` 或既有有限整数；FLOOR/BASEMENT/FACILITY 继续要求非空 building + 有限整数 level；LANDSCAPE_TERRAIN/LANDSCAPE_FACADE 继续要求 building/level 均为 `null`。各载体的 `floorName/building/level/floorType` 必须逐字段完全一致。
 - **当前候选**：`A_T`/TOWER/`null` 与 `A_RF`/ROOF/`null` 是当前特殊层候选；既有 integer TOWER/ROOF 继续兼容。任何一端不得从 elevation、文件名、楼层顺序或 floorType 猜测、补算、归一化 level，也不得新增 elevation/order、schema/version 或 topology 字段。
 - **能力边界**：精确 `floorName`/`floorType` 查询继续可用；数字 level 查询、`getFloorNameByLevel` 与 explode 等依赖数字 level 的能力对 `null` 明确不适用。v1 继续依赖显式 sidecar graph；v2 继续只发布 Scene/Metadata ready，并保持 `TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT`。
-- **Platform 证据**：本地 checkpoints 为 `30e1b4e`（validator/Metadata/lifecycle）与 `d4475ba`（Template 查询专项）。Studio 权威 v1/v2 同字节 fixture/index 已提供，尚待 Platform 镜像验签；联合通过前不得宣称 Studio/Forge/Platform 三端兼容，原 golden SHA 不作为本修正证据。
+- **Platform 证据**：实现 checkpoints 为 `30e1b4e`（validator/Metadata/lifecycle）与 `d4475ba`（Template 查询专项）；`35161cc` 已将 `src/test/package/fixtures/building-source-profile-v1.1/{sha256.json,A-standard-model-package-v1.zip,A-standard-model-package-v2.zip}` 与 Studio 原件同字节镜像（`cmp=0`）并独立验签。authority document/index/v1 ZIP/v2 ZIP SHA-256 依次为 `7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f`、`f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1`、`b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4`、`a07fe215f0c878d407378d033328f8ad7d3602b94c89701c2266896ac41ef77c`；index、两个 ZIP、全部 entry SHA/length 均通过自动独立校验。
+- **Revision 与门禁证据**：v1 revision `dddc3c9f5c3ee48d3e8123d8ae1d9b5ea591d1eced7ebf3bfcda8ce6e4b4c147` 与 strict sidecar revision 一致；v2 canonical revision `b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4` 重新计算一致。v1/v2 parser 35/18、lifecycle 12/7、Template 19、`verify:r1` 10/10 均 PASS；独立 Reviewer P0/P1=0。
+- **剩余门禁**：尚未执行 nullable 特殊层新的联合真实浏览器验收，也未获得用户兼容里程碑批准。完成前不得宣称 Studio/Forge/Platform 三端兼容、发布、合并或 `main` 已兼容；原 golden SHA 也不替代本修正证据。
 - **保留边界**：除上述显式接受值域外，v1/v2 identity、URI、digest、revision、资源限制、lifecycle、sidecar、embedded fallback、v2 topology unavailable、legacy v3.1 reader及发布/合并/里程碑状态全部不变。
 - **人员影响**：不新增、撤销或迁移人员、职责、权限和汇报关系，不触发 `ORG_CHART.md` 或 `PRODUCT_MANAGER_CHARTER.md` 变更。
 - **替换关系**：细化 2026-08-22 Package v1 与 2026-08-28 Package v2 决策中的 Package Metadata 3.3 floor identity 条件；不替换其余冻结语义。

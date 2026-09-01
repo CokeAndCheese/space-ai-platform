@@ -3,12 +3,12 @@
 ## 决策记录
 
 - 生效日期：`2026-08-22`
-- 状态：产品分离、契约治理和方案 B 已批准；原候选已完成双端机器实现与联合技术验收；2026-09-01 获批的 TOWER/ROOF nullable-level 修正已完成 Platform 本地实现，修正后的权威联合 fixture/index 仍待同步验签
+- 状态：产品分离、契约治理和方案 B 已批准；原候选已完成双端机器实现与联合技术验收；2026-09-01 获批的 TOWER/ROOF nullable-level 修正已完成 Platform 实现、权威 fixture 同字节镜像与独立验签，仍待新的联合真实浏览器验收和用户兼容里程碑批准
 - 生产方：Space Model Studio
 - 消费方：Space AI Platform
 - Studio 当前实现基线：Metadata `3.3-semantic`；GLB 内嵌 `scene.extras.sspTopology` schema v1
 - Platform 当前实现基线：GLB Metadata v3.1；外置 `space-ai-platform/topology-sidecar` schema v1
-- 当前兼容结论：**原候选已通过共同验证；Studio 已提供 nullable 特殊层权威 v1/v2 同字节 fixture/index，但尚待 Platform 镜像验签，联合完成前不得宣称 Studio/Forge/Platform 三端兼容、发布、合并或 `main` 已兼容**
+- 当前兼容结论：**nullable 特殊层权威 v1/v2 fixture/index 已在 Platform 同字节镜像并独立验签；但尚未完成本修正的联合真实浏览器验收，也未获用户兼容里程碑批准，因此不得宣称 Studio/Forge/Platform 三端兼容、发布、合并或 `main` 已兼容**
 - v2 过渡状态：用户已批准 P0 精确机器值、两项补充决策及 nullable 特殊层修正；Platform 本地消费候选已在任务分支完成，但尚未合入 local `main`、发布或获得临时兼容里程碑批准
 
 本记录只固化长期产品边界、当前事实、变更门禁和用户明确批准的 nullable 特殊层候选修正；除该修正外，不修改任何既有字段、枚举、坐标、ID、发现或绑定语义。
@@ -74,7 +74,7 @@ Space AI Platform
 
 ## 4. 兼容候选确认前的发布冻结
 
-Standard Model Package v1 原候选已完成双端技术验收；nullable 特殊层修正仍待权威联合 fixture/index 闭环。在用户确认兼容里程碑前：
+Standard Model Package v1 原候选已完成双端技术验收；nullable 特殊层修正的权威 fixture/index 已完成同字节镜像与独立验签，仍待新的联合真实浏览器验收。在用户确认兼容里程碑前：
 
 1. Studio legacy 路径继续按 `3.3-semantic + embedded sspTopology v1` 工作；Package v1 只由显式 package identity 选择。
 2. Platform 旧入口继续按 `v3.1 + topology sidecar v1` fail closed，旧 reader 的接受/拒绝结果不变。
@@ -107,9 +107,9 @@ Standard Model Package v1 原候选已完成双端技术验收；nullable 特殊
 - Studio 保留 embedded topology 供本端回开，并从同一 Domain topology 额外编译严格符合 Platform sidecar v1 的正式 sidecar。
 - Platform 保留旧 v3.1 reader，并新增 package v1 + 3.3 的显式 reader/validator；Platform 仍只消费 sidecar，不读取 embedded topology 作为 fallback。
 - 已冻结的四个既有契约均不就地修改；若 sidecar v1 无法承载未来语义，则另发 v2。
-- 原候选的两端共同 fixture/validator、exporter/reader、交叉验证与浏览器验收均已完成；nullable 特殊层修正仍待权威共同 fixture/index 联合通过，用户里程碑确认前不宣布兼容发布。
+- 原候选的两端共同 fixture/validator、exporter/reader、交叉验证与浏览器验收均已完成；nullable 特殊层修正的权威共同 fixture/index 已完成 Platform 同字节镜像与独立验签，但新的联合真实浏览器验收尚未执行，用户里程碑确认前不宣布兼容发布。
 
-2026-08-22，两个项目总控已逐项确认 package identity、manifest 字段、URI/摘要、版本与资源限制、Metadata dual-read、embedded→sidecar 映射、diagnostics、fixture 权威索引和非规范审计附件，当时没有遗留设计分歧。2026-08-28，原候选完成机器实现、共同 fixture/validator、交叉验证、真实浏览器联合验收与独立复核。2026-09-01 用户批准 nullable 特殊层兼容修正；Platform checkpoints 为 `30e1b4e`（validator/Metadata/lifecycle）与 `d4475ba`（Template 查询专项），Studio 权威 v1/v2 同字节 fixture/index 已提供，下一门禁是 Platform 镜像验签与联合通过。
+2026-08-22，两个项目总控已逐项确认 package identity、manifest 字段、URI/摘要、版本与资源限制、Metadata dual-read、embedded→sidecar 映射、diagnostics、fixture 权威索引和非规范审计附件，当时没有遗留设计分歧。2026-08-28，原候选完成机器实现、共同 fixture/validator、交叉验证、真实浏览器联合验收与独立复核。2026-09-01 用户批准 nullable 特殊层兼容修正；Platform checkpoints 为 `30e1b4e`（validator/Metadata/lifecycle）、`d4475ba`（Template 查询专项）与 `35161cc`（权威 fixture 镜像验签）。下一门禁是 nullable 特殊层新的联合真实浏览器验收和用户兼容里程碑批准。
 
 ### 6.1 当前候选证据
 
@@ -118,12 +118,15 @@ Standard Model Package v1 原候选已完成双端技术验收；nullable 特殊
 - 双仓同字节 golden ZIP SHA-256：`d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`；SHA index 已由两端分别验签。
 - 两端全门禁与真实浏览器联合验收通过；最终独立 Reviewer 结论为 P0/P1/P2 均为 0。
 - 候选保持 Platform 旧 v3.1 reader 不变，不读取 embedded topology fallback，拒绝旧 Studio building-release ZIP；Standard Model Package v1 不提供跨层 routing。
+- nullable 特殊层镜像 checkpoint `35161cc` 保存 `src/test/package/fixtures/building-source-profile-v1.1/{sha256.json,A-standard-model-package-v1.zip,A-standard-model-package-v2.zip}`，与 Studio 原件 `cmp=0`。authority document SHA 为 `7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f`，index SHA 为 `f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1`，v1 ZIP SHA 为 `b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4`，v2 ZIP SHA 为 `a07fe215f0c878d407378d033328f8ad7d3602b94c89701c2266896ac41ef77c`；index、两个 ZIP、全部 entry SHA/length 已自动独立校验。
+- v1 revision `dddc3c9f5c3ee48d3e8123d8ae1d9b5ea591d1eced7ebf3bfcda8ce6e4b4c147` 与 strict sidecar revision 一致；v2 canonical revision `b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4` 重新计算一致。v1/v2 parser 35/18、lifecycle 12/7、Template 19、`verify:r1` 10/10 均 PASS；独立 Reviewer P0/P1=0。
+- 以上只关闭 nullable 特殊层 fixture 镜像和自动验签，不替代新的联合真实浏览器验收或用户兼容里程碑批准。
 
 ### 6.2 临时方案：能力声明型 Standard Model Package v2
 
 用户于 2026-08-28 批准 v2 临时方向及 P0 精确机器值，详细过程与冻结值见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。长期边界为：
 
-- v1 继续强制 strict sidecar topology；除用户批准并由 v1/v2 同步采用的 TOWER/ROOF nullable-level 显式接受值域外，v1 identity/topology、既有 fixture 结果与旧 v3.1 reader 不变；修正后的共同 fixture 另行补齐。
+- v1 继续强制 strict sidecar topology；除用户批准并由 v1/v2 同步采用的 TOWER/ROOF nullable-level 显式接受值域外，v1 identity/topology、既有 fixture 结果与旧 v3.1 reader 不变；修正后的共同 fixture 已由 Studio 提供，并在 Platform `35161cc` 完成同字节镜像与独立验签。
 - v2 以新版本身份显式声明 topology `ABSENT` 语义；不得缺省猜测、使用空/伪 sidecar或读取 embedded topology fallback。
 - v2 不是 unvalidated package。GLB 几何、Metadata `3.3-semantic`、SPACE/语义、最终发布物回读、URI、SHA-256、revision、identity 与资源限制仍须由 Studio 和 Platform 分别严格验证。
 - Platform 只开放 scene、Metadata 和其他不依赖 topology 的能力；routing/rendering/connector/blocker/topology AI/Quick Action 以结构化 `TOPOLOGY_UNAVAILABLE` 产品语义关闭，不得误报包加载失败或 Graph ready。
@@ -133,7 +136,7 @@ Standard Model Package v1 原候选已完成双端技术验收；nullable 特殊
 - 不建立持久 v2 revision registry，运行时回滚通过重新导入；Studio 可显式排除并审计 authoring 中的 draft topology，但不得静默丢弃，且标准包仍禁止 topology entry 与 embedded `sspTopology`。
 - v2 退出必须由完整 topology 的 Studio authoring、Platform consumer、共同 fixtures、真实整栋验收和用户里程碑批准共同触发。双方同步停止新生产/新接收，存量只读迁移回 Studio 补 topology 后重发 v1；最终删除 v2 reader 仍需用户批准，不得单方回滚。
 - nullable 特殊层只扩展 v1/v2 Package 3.3 floor identity 的显式接受值域：TOWER/ROOF 为非空 building，level 键必填且允许 `null` 或有限整数；其他 floorType 规则不变。精确 floorName/floorType 查询可用，数字 level 查询与 level 派生动作对 `null` 不适用；v1 仍依赖显式 sidecar graph，v2 仍为 Scene/Metadata ready + `TOPOLOGY_UNAVAILABLE`。
-- 原 v1/v2 golden SHA 只证明修正前候选。Studio 权威 nullable 特殊层 v1/v2 同字节 fixture/index 已提供，尚待 Platform 镜像验签；联合完成前不得宣称 Studio/Forge/Platform 三端兼容。
+- 原 v1/v2 golden SHA 只证明修正前候选；nullable 特殊层的新权威 fixture/index 已在 `35161cc` 完成 Platform 同字节镜像与独立验签。新的联合真实浏览器验收和用户兼容里程碑仍未完成，因此不得宣称 Studio/Forge/Platform 三端兼容。
 
 ### 未采用方案
 
@@ -158,4 +161,4 @@ Standard Model Package v1 原候选已完成双端技术验收；nullable 特殊
 | 2026-08-26 | Studio V1「整体建筑导入」属于 Studio 内部 authoring input profile；raw `Building.glb` 不进入 Platform 或共享发布契约 | 已批准 | Platform 无研发动作、无人员变动 |
 | 2026-08-28 | 双端任务分支机器实现和联合技术验收完成，形成待用户里程碑确认的 Standard Model Package v1 兼容候选 | 技术候选；未发布、未合并 | 无人员变动 |
 | 2026-08-28 | 冻结能力声明型 Standard Model Package v2 P0 精确值与补充决策；Platform 形成未合入、未发布的消费候选 | P0 已批准；Platform 任务分支候选完成，待里程碑批准 | 无人员变动 |
-| 2026-09-01 | 批准 v1/v2 Package 3.3 TOWER/ROOF nullable-level 兼容修正；不新增 schema/version/elevation/order/topology，不推导 level | Platform 本地 checkpoints 完成；权威联合 fixture/index 待同步验签 | 无人员变动 |
+| 2026-09-01 | 批准 v1/v2 Package 3.3 TOWER/ROOF nullable-level 兼容修正；不新增 schema/version/elevation/order/topology，不推导 level | Platform 实现与权威 fixture 同字节镜像验签完成；新联合浏览器/用户里程碑待完成 | 无人员变动 |

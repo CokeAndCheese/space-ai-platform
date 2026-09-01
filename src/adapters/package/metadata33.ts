@@ -68,7 +68,9 @@ export function parseMetadata33Glb(bytes: Uint8Array, expected: PackageFloor, ma
   if (['sid', 'findId', 'renderType', 'spaceType', 'fireType', 'node', 'nodes'].some((k) => k in sx)) return bad('/scenes/0/extras', 'scene-node-fields', manifestUri, assetId)
   const floor: PackageFloor & { name: string } = { floorName: sx.floorName as string, building: sx.building as string | null, level: sx.level as number | null, floorType: sx.floorType as string, name: sx.name as string }
   if (!text(floor.floorName) || !text(floor.name) || !FT.has(floor.floorType) || !(floor.building === null || text(floor.building)) || !(floor.level === null || Number.isInteger(floor.level))) return bad('/scenes/0/extras', 'scene-floor-fields', manifestUri, assetId)
-  if (floor.floorType.startsWith('LANDSCAPE_') ? floor.building !== null || floor.level !== null : floor.building === null || floor.level === null) return bad('/scenes/0/extras', 'floor-identity', manifestUri, assetId)
+  if (floor.floorType.startsWith('LANDSCAPE_')
+    ? floor.building !== null || floor.level !== null
+    : floor.building === null || (floor.level === null && floor.floorType !== 'TOWER' && floor.floorType !== 'ROOF')) return bad('/scenes/0/extras', 'floor-identity', manifestUri, assetId)
   for (const key of ['floorName', 'building', 'level', 'floorType'] as const) if (!Object.is(floor[key], expected[key])) return failure('PACKAGE_METADATA_INVALID', 'METADATA', `/scenes/0/extras/${key}`, { reason: 'manifest-floor-mismatch' }, { manifestUri, assetId })
   const roots = scene.nodes; if (!Array.isArray(roots) || roots.some((n) => !Number.isInteger(n) || n < 0 || n >= nodes.length)) return bad('/scenes/0/nodes', 'invalid-root-node', manifestUri, assetId)
   const referencedMeshes = new Set<number>()

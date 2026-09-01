@@ -6,6 +6,7 @@ import { parsePackageZipV1, crc32 } from '../../adapters/package/zipV1'
 import { assertPackageIdentityUniqueness, sha256Hex, validatePackageArchive } from '../../adapters/package'
 
 type Test = { name: string; run: () => void | Promise<void> }
+type FloorFixture = { floorName: string; building: string | null; level: number | null; floorType: string }
 const URI = 'https://space-model-package.invalid/demo/space-model-package.v1.json'
 const FLOOR = { floorName: 'A_1F', building: 'A', level: 1, floorType: 'FLOOR' } as const
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message) }
@@ -23,8 +24,8 @@ function normalizeZip(source: Uint8Array): Uint8Array {
 }
 function centralOffsets(zip: Uint8Array): number[] { const out: number[] = []; for (let i = 0; i + 4 < zip.length; i += 1) if ((zip[i]! | zip[i + 1]! << 8 | zip[i + 2]! << 16 | zip[i + 3]! << 24) >>> 0 === 0x02014b50) out.push(i); return out }
 function localOffsetAt(zip: Uint8Array, central: number): number { return (zip[central + 42]! | zip[central + 43]! << 8 | zip[central + 44]! << 16 | zip[central + 45]! << 24) >>> 0 }
-function validGlb(floor: { floorName: string; building: string; level: number; floorType: string } = FLOOR, options: { offset?: number; editor?: boolean; unusedMesh?: boolean; nonMeshSemantic?: boolean } = {}): Uint8Array {
-  const nodeExtras = { name: 'hydrant', sid: `FACILITY_${floor.floorName}_HYDRANT_01`, findId: `${floor.floorName}_mesh_0`, renderType: 'FACILITY', renderTypeConfidence: 'high', ...floor, fireType: 'HYDRANT', ...(options.editor ? { _editorEntityId: 'internal' } : {}) }
+function validGlb(floor: FloorFixture = FLOOR, options: { offset?: number; editor?: boolean; unusedMesh?: boolean; nonMeshSemantic?: boolean; nodeFloor?: FloorFixture } = {}): Uint8Array {
+  const nodeExtras = { name: 'hydrant', sid: `FACILITY_${floor.floorName}_HYDRANT_01`, findId: `${floor.floorName}_mesh_0`, renderType: 'FACILITY', renderTypeConfidence: 'high', ...(options.nodeFloor ?? floor), fireType: 'HYDRANT', ...(options.editor ? { _editorEntityId: 'internal' } : {}) }
   const nodes: Record<string, unknown>[] = [{ name: 'hydrant', mesh: 0, extras: nodeExtras }]
   if (options.nonMeshSemantic) nodes.push({ name: 'orphan', extras: { sid: 'WALL_A_1F_01', renderType: 'WALL' } })
   const meshes = [{ primitives: [{ attributes: { POSITION: 0 } }] }]; if (options.unusedMesh) meshes.push({ primitives: [{ attributes: { POSITION: 0 } }] })
@@ -40,11 +41,80 @@ async function validPackage(topologyPath = 'topology.v1.json', topologyInput?: U
 async function duplicateIdentityPackage(): Promise<Uint8Array> {
   const floorB = { ...FLOOR, building: 'B' }; const first = validGlb(); const second = validGlb(floorB); const topology = strToU8('{}'); const manifest = { schema: 'space-model-package', schemaVersion: 1, packageId: 'demo', revision: 'r1', metadata: { schema: 'space-model-metadata', version: '3.3-semantic', carrier: 'GLB_SCENE_NODE_EXTRAS' }, assets: [{ assetId: 'a1', uri: './A.glb', digest: { algorithm: 'SHA-256', value: await sha256Hex(first) }, floor: FLOOR }, { assetId: 'a2', uri: './B.glb', digest: { algorithm: 'SHA-256', value: await sha256Hex(second) }, floor: floorB }], topology: { uri: './topology.v1.json', digest: { algorithm: 'SHA-256', value: await sha256Hex(topology) }, schema: 'space-ai-platform/topology-sidecar', schemaVersion: 1, revision: 'r1' } }; return normalizeZip(zipSync({ 'space-model-package.v1.json': strToU8(JSON.stringify(manifest)), 'A.glb': first, 'B.glb': second, 'topology.v1.json': topology }))
 }
-function fail(result: { ok: boolean; diagnostic?: { code: string; details?: Record<string, unknown> } }, code: string, message: string): asserts result is { ok: false; diagnostic: { code: string; details?: Record<string, unknown> } } { equal(result.ok, false, message); equal(result.diagnostic?.code, code, message) }
+function manifestVectorV1(floor: unknown): Record<string, unknown> {
+  return { schema: 'space-model-package', schemaVersion: 1, packageId: 'p', revision: 'r', metadata: { schema: 'space-model-metadata', version: '3.3-semantic', carrier: 'GLB_SCENE_NODE_EXTRAS' }, assets: [{ assetId: 'a', uri: './asset.glb', digest: { algorithm: 'SHA-256', value: 'a'.repeat(64) }, floor }], topology: { uri: './topology.v1.json', digest: { algorithm: 'SHA-256', value: 'b'.repeat(64) }, schema: 'space-ai-platform/topology-sidecar', schemaVersion: 1, revision: 'r' } }
+}
+function fail(result: { ok: boolean; diagnostic?: { code: string; phase?: string; path?: string; details?: Record<string, unknown> } }, code: string, message: string): asserts result is { ok: false; diagnostic: { code: string; phase?: string; path?: string; details?: Record<string, unknown> } } { equal(result.ok, false, message); equal(result.diagnostic?.code, code, message) }
 
 export async function runPackageSuite(): Promise<{ passed: number; names: readonly string[]; durationMs: number }> {
   const tests: Test[] = [
     { name: 'manifest accepts canonical minimum', run: async () => { const p = await validPackage(); const m = parsePackageManifestV1(new TextEncoder().encode(JSON.stringify({ schema: 'space-model-package', schemaVersion: 1, packageId: 'p', revision: 'r', metadata: { schema: 'space-model-metadata', version: '3.3-semantic', carrier: 'GLB_SCENE_NODE_EXTRAS' }, assets: [{ assetId: 'a', uri: './a.glb', digest: { algorithm: 'SHA-256', value: 'a'.repeat(64) }, floor: FLOOR }], topology: { uri: './t.json', digest: { algorithm: 'SHA-256', value: 'b'.repeat(64) }, schema: 'space-ai-platform/topology-sidecar', schemaVersion: 1, revision: 'r' } })), URI); assert(m.ok, `manifest should parse ${JSON.stringify(m)}`); equal(m.value.assets[0]!.canonicalUri, 'https://space-model-package.invalid/demo/a.glb', 'canonical uri'); void p } },
+    { name: 'v1 special floor identity accepts null for TOWER and ROOF while existing integer values remain valid', run: () => {
+      const tower: FloorFixture = { floorName: 'A_T', building: 'A', level: null, floorType: 'TOWER' }
+      const roof: FloorFixture = { floorName: 'A_RF', building: 'A', level: null, floorType: 'ROOF' }
+      for (const floor of [tower, roof, { ...tower, level: 25 }, { ...roof, level: 26 }]) {
+        const manifest = parsePackageManifestV1(strToU8(JSON.stringify(manifestVectorV1(floor))), URI)
+        assert(manifest.ok, `${floor.floorName}/${String(floor.level)} manifest`)
+        equal(manifest.value.assets[0]!.floor.floorName, floor.floorName, 'manifest exact floorName')
+        equal(manifest.value.assets[0]!.floor.floorType, floor.floorType, 'manifest exact floorType')
+        equal(manifest.value.assets[0]!.floor.level, floor.level, 'manifest exact level')
+        const metadata = parseMetadata33Glb(validGlb(floor), floor, URI, 'a')
+        assert(metadata.ok, `${floor.floorName}/${String(floor.level)} Metadata`)
+        equal(metadata.value.scene.level, floor.level, 'Metadata exact level')
+        equal(metadata.value.nodes[0]!.level, floor.level, 'node exact level')
+      }
+
+      for (const floorType of ['FLOOR', 'BASEMENT', 'FACILITY']) {
+        const invalid = { floorName: `A_${floorType}`, building: 'A', level: null, floorType }
+        const result = parsePackageManifestV1(strToU8(JSON.stringify(manifestVectorV1(invalid))), URI)
+        fail(result, 'PACKAGE_FIELD_INVALID', `${floorType} null level`)
+        equal(result.diagnostic.phase, 'VALIDATE', `${floorType} phase`)
+        equal(result.diagnostic.path, '/assets/0', `${floorType} path`)
+        const metadata = parseMetadata33Glb(validGlb(invalid), invalid, URI, 'a')
+        fail(metadata, 'PACKAGE_METADATA_INVALID', `${floorType} Metadata null level`)
+        equal(metadata.diagnostic.details?.reason, 'floor-identity', `${floorType} Metadata reason`)
+      }
+      for (const special of [tower, roof]) {
+        const invalid = { ...special, building: null }
+        fail(parsePackageManifestV1(strToU8(JSON.stringify(manifestVectorV1(invalid))), URI), 'PACKAGE_FIELD_INVALID', `${special.floorType} null building`)
+        const metadata = parseMetadata33Glb(validGlb(invalid), invalid, URI, 'a')
+        fail(metadata, 'PACKAGE_METADATA_INVALID', `${special.floorType} Metadata null building`)
+        equal(metadata.diagnostic.details?.reason, 'floor-identity', `${special.floorType} building reason`)
+      }
+      const missingLevel = { floorName: 'A_T', building: 'A', floorType: 'TOWER' }
+      fail(parsePackageManifestV1(strToU8(JSON.stringify(manifestVectorV1(missingLevel))), URI), 'PACKAGE_FIELD_INVALID', 'missing level field')
+      const missingSceneLevel = parseMetadata33Glb(validGlb(missingLevel as FloorFixture), tower, URI, 'a')
+      fail(missingSceneLevel, 'PACKAGE_METADATA_INVALID', 'missing scene level')
+      equal(missingSceneLevel.diagnostic.path, '/scenes/0/extras', 'missing scene level path')
+      equal(missingSceneLevel.diagnostic.details?.reason, 'scene-floor-fields', 'missing scene level reason')
+      const missingNodeLevel = parseMetadata33Glb(validGlb(tower, { nodeFloor: missingLevel as FloorFixture }), tower, URI, 'a')
+      fail(missingNodeLevel, 'PACKAGE_METADATA_INVALID', 'missing node level')
+      equal(missingNodeLevel.diagnostic.path, '/nodes/0/extras', 'missing node level path')
+      equal(missingNodeLevel.diagnostic.details?.reason, 'mesh-extras-missing', 'missing node level reason')
+
+      for (const floorType of ['LANDSCAPE_TERRAIN', 'LANDSCAPE_FACADE']) {
+        const landscape: FloorFixture = { floorName: `SITE_${floorType}`, building: null, level: null, floorType }
+        assert(parsePackageManifestV1(strToU8(JSON.stringify(manifestVectorV1(landscape))), URI).ok, `${floorType} manifest`)
+        assert(parseMetadata33Glb(validGlb(landscape), landscape, URI, 'a').ok, `${floorType} Metadata`)
+        for (const invalid of [{ ...landscape, building: 'A' }, { ...landscape, level: 1 }]) {
+          fail(parsePackageManifestV1(strToU8(JSON.stringify(manifestVectorV1(invalid))), URI), 'PACKAGE_FIELD_INVALID', `${floorType} invariant`)
+          fail(parseMetadata33Glb(validGlb(invalid), invalid, URI, 'a'), 'PACKAGE_METADATA_INVALID', `${floorType} Metadata invariant`)
+        }
+      }
+
+      for (const [key, changed] of [['floorName', { ...tower, floorName: 'A_RF' }], ['floorType', { ...tower, floorType: 'ROOF' }], ['level', { ...tower, level: 25 }]] as const) {
+        const result = parseMetadata33Glb(validGlb(changed), tower, URI, 'a')
+        fail(result, 'PACKAGE_METADATA_INVALID', `scene ${key} drift`)
+        equal(result.diagnostic.path, `/scenes/0/extras/${key}`, `scene ${key} path`)
+        equal(result.diagnostic.details?.reason, 'manifest-floor-mismatch', `scene ${key} reason`)
+      }
+      for (const changed of [{ ...tower, floorName: 'A_RF' }, { ...tower, floorType: 'ROOF' }, { ...tower, level: 25 }]) {
+        const result = parseMetadata33Glb(validGlb(tower, { nodeFloor: changed }), tower, URI, 'a')
+        fail(result, 'PACKAGE_METADATA_INVALID', 'node floor drift')
+        equal(result.diagnostic.path, '/nodes/0/extras', 'node drift path')
+        equal(result.diagnostic.details?.reason, 'mesh-extras-invalid', 'node drift reason')
+      }
+    } },
     { name: 'manifest rejects closed fields and duplicate identity', run: () => { const base = { schema: 'space-model-package', schemaVersion: 1, packageId: 'p', revision: 'r', metadata: { schema: 'space-model-metadata', version: '3.3-semantic', carrier: 'GLB_SCENE_NODE_EXTRAS' }, assets: [{ assetId: 'a', uri: './a.glb', digest: { algorithm: 'SHA-256', value: 'a'.repeat(64) }, floor: FLOOR }, { assetId: 'a', uri: './b.glb', digest: { algorithm: 'SHA-256', value: 'b'.repeat(64) }, floor: { ...FLOOR, floorName: 'B_1F', building: 'B' } }], topology: { uri: './t.json', digest: { algorithm: 'SHA-256', value: 'b'.repeat(64) }, schema: 'space-ai-platform/topology-sidecar', schemaVersion: 1, revision: 'r' } }; const x = parsePackageManifestV1(new TextEncoder().encode(JSON.stringify({ ...base, extra: 1 })), URI); fail(x, 'PACKAGE_FIELD_INVALID', 'unknown root field'); const y = parsePackageManifestV1(new TextEncoder().encode(JSON.stringify(base)), URI); fail(y, 'PACKAGE_DUPLICATE_ID', 'duplicate asset id') } },
     { name: 'manifest rejects URI escape and topology collision', run: () => { const make = (assetUri: string, topologyUri = './t.json') => ({ schema: 'space-model-package', schemaVersion: 1, packageId: 'p', revision: 'r', metadata: { schema: 'space-model-metadata', version: '3.3-semantic', carrier: 'GLB_SCENE_NODE_EXTRAS' }, assets: [{ assetId: 'a', uri: assetUri, digest: { algorithm: 'SHA-256', value: 'a'.repeat(64) }, floor: FLOOR }], topology: { uri: topologyUri, digest: { algorithm: 'SHA-256', value: 'b'.repeat(64) }, schema: 'space-ai-platform/topology-sidecar', schemaVersion: 1, revision: 'r' } }); fail(parsePackageManifestV1(new TextEncoder().encode(JSON.stringify(make('../a.glb'))), URI), 'PACKAGE_URI_INVALID', 'dot escape'); fail(parsePackageManifestV1(new TextEncoder().encode(JSON.stringify(make('./a.glb', './a.glb'))), URI), 'PACKAGE_DUPLICATE_ID', 'resource collision') } },
     { name: 'zip accepts valid package and validates metadata', run: async () => { const p = await validPackage(); const archive = parsePackageZipV1(p.zip, URI); assert(archive.ok, 'zip should parse'); const validated = await validatePackageArchive(archive.value); assert(validated.ok, `package should validate ${JSON.stringify(validated)}`); equal(validated.value[0]!.nodes[0]!.fireType, 'HYDRANT', 'projection') } },

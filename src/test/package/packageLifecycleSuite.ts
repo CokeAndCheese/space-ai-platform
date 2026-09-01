@@ -19,6 +19,10 @@ import {
   type TopologyFloorInfo,
   type TopologySceneSessionSnapshot,
 } from '@/topology/sceneLifecycle'
+import {
+  createPackageV2GlbFixture,
+  type PackageV2FixtureFloor,
+} from './packageV2Suite'
 
 type Test = { name: string; run: () => void | Promise<void> }
 
@@ -46,7 +50,13 @@ interface MutableManifest {
   packageId: string
   revision: string
   assets: MutableManifestAsset[]
-  topology: { uri: string; digest: { algorithm: 'SHA-256'; value: string }; revision: string }
+  topology: {
+    uri: string
+    digest: { algorithm: 'SHA-256'; value: string }
+    revision: string
+    schema?: string
+    schemaVersion?: number
+  }
 }
 
 interface MutableSidecarAsset {
@@ -256,6 +266,7 @@ function transportUrl(sessionId: string, index: number): string {
 
 function createHarness(options: {
   sessionIds?: readonly string[]
+  floorIdentitiesBySession?: ReadonlyMap<string, readonly MutableManifestAsset['floor'][]>
   loadGates?: ReadonlyMap<string, Deferred<void>>
   ignoreUnloadGenerationForSessions?: ReadonlySet<string>
   loadFailureCall?: number
@@ -328,16 +339,17 @@ function createHarness(options: {
           throw new Error('load invalidated by modelTool generation')
         }
         if (options.loadFailureCall === callNumber) throw new Error('injected load failure')
-        const expectedFloorName = assetIndex === null
-          ? key.replace(/\.glb$/iu, '')
-          : GOLDEN_MANIFEST.assets[assetIndex]!.floor.floorName
+        const floor = packageSession === undefined || assetIndex === null
+          ? undefined
+          : options.floorIdentitiesBySession?.get(packageSession)?.[assetIndex] ??
+            GOLDEN_MANIFEST.assets[assetIndex]!.floor
+        const expectedFloorName = floor?.floorName ?? key.replace(/\.glb$/iu, '')
         const floorName = options.floorNameMismatchCall === callNumber
           ? `${expectedFloorName}-mismatch`
           : expectedFloorName
         const root = new THREE.Group()
         root.name = floorName
         scene.add(root)
-        const floor = assetIndex === null ? undefined : GOLDEN_MANIFEST.assets[assetIndex]!.floor
         const info: TopologyFloorInfo = {
           floorName,
           building: floor?.building,
@@ -417,6 +429,68 @@ function createHarness(options: {
   }
 }
 
+async function createNullSpecialV1Package(): Promise<{
+  readonly zip: Uint8Array
+  readonly manifest: MutableManifest
+  readonly floors: readonly PackageV2FixtureFloor[]
+}> {
+  const floors = Object.freeze([
+    Object.freeze({ floorName: 'A_T', building: 'A', level: null, floorType: 'TOWER' }),
+    Object.freeze({ floorName: 'A_RF', building: 'A', level: null, floorType: 'ROOF' }),
+  ] satisfies PackageV2FixtureFloor[])
+  const models = floors.map((floor) => createPackageV2GlbFixture(floor))
+  const assetFacts = await Promise.all(models.map(async (bytes, index) => ({
+    assetId: index === 0 ? 'scene/a/tower' : 'scene/a/roof',
+    uri: index === 0 ? './A_T.glb' : './A_RF.glb',
+    digest: { algorithm: 'SHA-256' as const, value: await sha256Hex(bytes) },
+    floor: floors[index]!,
+  })))
+  const sidecar = strToU8(JSON.stringify({
+    schema: 'space-ai-platform/topology-sidecar',
+    schemaVersion: 1,
+    revision: 'special-null-r1',
+    graphId: 'scene/a/special-null-levels',
+    coordinateSpace: 'ASSET_LOCAL',
+    unit: 'meter',
+    upAxis: 'Y',
+    assets: assetFacts.map(({ assetId, uri, digest }) => ({ assetId, uri, digest })),
+    layers: [{ id: 'layer/tower' }, { id: 'layer/roof' }],
+    nodes: [
+      { id: 'tower-start', layerId: 'layer/tower', assetId: 'scene/a/tower', position: { x: 0, y: 0, z: 0 } },
+      { id: 'tower-goal', layerId: 'layer/tower', assetId: 'scene/a/tower', position: { x: 1, y: 0, z: 0 } },
+      { id: 'roof-marker', layerId: 'layer/roof', assetId: 'scene/a/roof', position: { x: 0, y: 0, z: 0 } },
+    ],
+    edges: [{ id: 'tower-edge', source: 'tower-start', target: 'tower-goal', relation: 'LINK', direction: 'BIDIRECTIONAL' }],
+    connectors: [],
+    blockers: [],
+  }))
+  const manifest: MutableManifest & Record<string, unknown> = {
+    schema: 'space-model-package',
+    schemaVersion: 1,
+    packageId: 'scene/a/special-null-levels',
+    revision: 'special-null-r1',
+    metadata: { schema: 'space-model-metadata', version: '3.3-semantic', carrier: 'GLB_SCENE_NODE_EXTRAS' },
+    assets: assetFacts,
+    topology: {
+      uri: './topology.v1.json',
+      digest: { algorithm: 'SHA-256', value: await sha256Hex(sidecar) },
+      revision: 'special-null-r1',
+      schema: 'space-ai-platform/topology-sidecar',
+      schemaVersion: 1,
+    },
+  }
+  return {
+    zip: normalizeZip(zipSync({
+      'space-model-package.v1.json': strToU8(JSON.stringify(manifest)),
+      'A_T.glb': models[0]!,
+      'A_RF.glb': models[1]!,
+      'topology.v1.json': sidecar,
+    })),
+    manifest,
+    floors,
+  }
+}
+
 async function installLegacyFixture(harness: ReturnType<typeof createHarness>): Promise<ModelRecord> {
   const record: ModelRecord = {
     kind: 'file',
@@ -472,6 +546,52 @@ function assertStrictCleanup(harness: ReturnType<typeof createHarness>, message:
 }
 
 const tests: Test[] = [
+  {
+    name: 'null TOWER and ROOF identities publish exact v1 session proofs and a ready graph',
+    run: async () => {
+      const fixture = await createNullSpecialV1Package()
+      const sessionId = 'special_null_v1_session'
+      const harness = createHarness({
+        sessionIds: [sessionId],
+        floorIdentitiesBySession: new Map([[sessionId, fixture.floors]]),
+      })
+      const result = await harness.lifecycle.selectPackage(fixture.zip)
+      equal(result.kind, 'loaded', 'special null v1 result')
+      equal(harness.lifecycle.snapshot.status, 'ready', 'special null v1 graph state')
+      equal(harness.lifecycle.snapshot.graphId, 'scene/a/special-null-levels', 'special null graph identity')
+
+      const packageSession = harness.lifecycle.snapshot.packageSession
+      assert(packageSession !== null && !('schemaVersion' in packageSession), 'v1 package session')
+      equal(packageSession.assets.length, 2, 'special null asset count')
+      for (const [index, asset] of packageSession.assets.entries()) {
+        const expected = fixture.manifest.assets[index]!
+        equal(asset.floorName, expected.floor.floorName, `asset ${index} floorName`)
+        equal(asset.floorType, expected.floor.floorType, `asset ${index} floorType`)
+        equal(asset.level, null, `asset ${index} null level`)
+        equal(asset.building, 'A', `asset ${index} building`)
+        equal(harness.lifecycle.getPackageAssetById(asset.assetId), asset, `asset ${index} identity lookup`)
+        equal(harness.lifecycle.getPackageAssetsByFloorName(asset.floorName)[0], asset, `asset ${index} floor lookup`)
+      }
+
+      const context = harness.compileContexts[0]!
+      equal(context.assetProofs.length, 2, 'special null proof count')
+      for (const [index, proof] of context.assetProofs.entries()) {
+        equal(proof.provenance, 'SAME_RESPONSE_BYTES', `proof ${index} provenance`)
+        equal(proof.digest?.value, fixture.manifest.assets[index]!.digest.value, `proof ${index} digest`)
+        equal(proof.canonicalUri, packageSession.assets[index]!.canonicalUri, `proof ${index} canonical URI`)
+        equal(proof.selectionGeneration, result.generation, `proof ${index} generation`)
+      }
+      const route = harness.topology.findPath({
+        graphId: harness.lifecycle.snapshot.graphId!,
+        startNodeId: 'tower-start',
+        goalNodeId: 'tower-goal',
+      })
+      assert(route.ok, 'special null v1 graph remains routable')
+      deepEqual(route.route.steps.map((step) => step.edgeId), ['tower-edge'], 'special null route edge')
+      harness.lifecycle.invalidateAndCleanup()
+      assertStrictCleanup(harness, 'special null v1 cleanup')
+    },
+  },
   {
     name: 'Studio golden ZIP loads two exact assets, commits atomically, and routes the golden edge',
     run: async () => {

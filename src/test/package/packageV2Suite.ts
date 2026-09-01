@@ -16,7 +16,7 @@ import {
 } from '../../adapters/package'
 
 type Test = { readonly name: string; readonly run: () => void | Promise<void> }
-type Floor = { readonly floorName: string; readonly building: string; readonly level: number; readonly floorType: 'FLOOR' }
+type Floor = { readonly floorName: string; readonly building: string | null; readonly level: number | null; readonly floorType: string }
 type FixtureMutation =
   | { readonly kind: 'xor-byte'; readonly offset: number; readonly value: number }
   | { readonly kind: 'append-hex'; readonly value: string }
@@ -149,7 +149,7 @@ function glb(document: unknown, binLength = 12): Uint8Array {
 
 function validGlb(
   floor: Floor = FLOOR,
-  options: { readonly embedded?: boolean; readonly sid?: string; readonly findId?: string } = {},
+  options: { readonly embedded?: boolean; readonly sid?: string; readonly findId?: string; readonly nodeFloor?: Floor } = {},
 ): Uint8Array {
   return glb({
     asset: { version: '2.0' },
@@ -170,7 +170,7 @@ function validGlb(
         findId: options.findId ?? `${floor.floorName}_mesh_0`,
         renderType: 'FACILITY',
         renderTypeConfidence: 'high',
-        ...floor,
+        ...(options.nodeFloor ?? floor),
         fireType: 'HYDRANT',
       },
     }],
@@ -434,6 +434,90 @@ export async function runPackageV2Suite(): Promise<{
         fail(parsePackageManifestV2(strToU8(JSON.stringify(missingTopology)), URI), 'PACKAGE_CAPABILITY_DECLARATION_INVALID', 'missing topology')
         const unknownCapability = manifestVector('0'.repeat(64), { capabilities: { ...CAPABILITIES, routing: { status: 'AVAILABLE' } } })
         fail(parsePackageManifestV2(strToU8(JSON.stringify(unknownCapability)), URI), 'PACKAGE_CAPABILITY_DECLARATION_INVALID', 'unknown capability')
+      },
+    },
+    {
+      name: 'v2 special floor identity accepts null for TOWER and ROOF while existing integer values remain valid',
+      run: async () => {
+        const tower: Floor = { floorName: 'A_T', building: 'A', level: null, floorType: 'TOWER' }
+        const roof: Floor = { floorName: 'A_RF', building: 'A', level: null, floorType: 'ROOF' }
+        for (const floor of [tower, roof, { ...tower, level: 25 }, { ...roof, level: 26 }]) {
+          const source = manifestVector('0'.repeat(64), {
+            assets: [{ ...manifestVector('0'.repeat(64)).assets[0], floor }],
+          })
+          const manifest = parsePackageManifestV2(strToU8(JSON.stringify(source)), URI)
+          assert(manifest.ok, `${floor.floorName}/${String(floor.level)} manifest`)
+          equal(manifest.value.assets[0]!.floor.floorName, floor.floorName, 'manifest exact floorName')
+          equal(manifest.value.assets[0]!.floor.floorType, floor.floorType, 'manifest exact floorType')
+          equal(manifest.value.assets[0]!.floor.level, floor.level, 'manifest exact level')
+          const metadata = parseMetadata33Glb(validGlb(floor), floor, URI, 'a')
+          assert(metadata.ok, `${floor.floorName}/${String(floor.level)} Metadata`)
+          equal(metadata.value.scene.level, floor.level, 'Metadata exact level')
+          equal(metadata.value.nodes[0]!.level, floor.level, 'node exact level')
+        }
+
+        const fixture = await validPackage({
+          assets: [
+            { assetId: 'project-a/building-a/tower', uri: './A_T.glb', floor: tower, bytes: validGlb(tower) },
+            { assetId: 'project-a/building-a/roof', uri: './A_RF.glb', floor: roof, bytes: validGlb(roof) },
+          ],
+        })
+        const archive = parsePackageZipV2(fixture.zip, URI)
+        assert(archive.ok, 'null special floor package parses')
+        equal(
+          await computePackageManifestV2Revision(archive.value.manifestDocument),
+          fixture.manifest.revision,
+          'null special floor revision recomputes exactly',
+        )
+        const validated = await validatePackageArchiveV2(archive.value)
+        assert(validated.ok, `null special floor package validates ${JSON.stringify(validated)}`)
+        equal(validated.value.metadata[0]!.scene.level, null, 'tower validated level')
+        equal(validated.value.metadata[1]!.scene.level, null, 'roof validated level')
+
+        for (const floorType of ['FLOOR', 'BASEMENT', 'FACILITY']) {
+          const invalid = { floorName: `A_${floorType}`, building: 'A', level: null, floorType }
+          const source = manifestVector('0'.repeat(64), {
+            assets: [{ ...manifestVector('0'.repeat(64)).assets[0], floor: invalid }],
+          })
+          fail(parsePackageManifestV2(strToU8(JSON.stringify(source)), URI), 'PACKAGE_FIELD_INVALID', `${floorType} null level`)
+          fail(parseMetadata33Glb(validGlb(invalid), invalid, URI, 'a'), 'PACKAGE_METADATA_INVALID', `${floorType} Metadata null level`)
+        }
+        for (const special of [tower, roof]) {
+          const invalid = { ...special, building: null }
+          const source = manifestVector('0'.repeat(64), {
+            assets: [{ ...manifestVector('0'.repeat(64)).assets[0], floor: invalid }],
+          })
+          fail(parsePackageManifestV2(strToU8(JSON.stringify(source)), URI), 'PACKAGE_FIELD_INVALID', `${special.floorType} null building`)
+          fail(parseMetadata33Glb(validGlb(invalid), invalid, URI, 'a'), 'PACKAGE_METADATA_INVALID', `${special.floorType} Metadata null building`)
+        }
+        const missingLevel = { floorName: 'A_T', building: 'A', floorType: 'TOWER' }
+        const missingSource = manifestVector('0'.repeat(64), {
+          assets: [{ ...manifestVector('0'.repeat(64)).assets[0], floor: missingLevel }],
+        })
+        fail(parsePackageManifestV2(strToU8(JSON.stringify(missingSource)), URI), 'PACKAGE_FIELD_INVALID', 'missing level field')
+        fail(parseMetadata33Glb(validGlb(missingLevel as Floor), tower, URI, 'a'), 'PACKAGE_METADATA_INVALID', 'missing scene level')
+        fail(parseMetadata33Glb(validGlb(tower, { nodeFloor: missingLevel as Floor }), tower, URI, 'a'), 'PACKAGE_METADATA_INVALID', 'missing node level')
+
+        for (const floorType of ['LANDSCAPE_TERRAIN', 'LANDSCAPE_FACADE']) {
+          const landscape: Floor = { floorName: `SITE_${floorType}`, building: null, level: null, floorType }
+          const source = manifestVector('0'.repeat(64), {
+            assets: [{ ...manifestVector('0'.repeat(64)).assets[0], floor: landscape }],
+          })
+          assert(parsePackageManifestV2(strToU8(JSON.stringify(source)), URI).ok, `${floorType} manifest`)
+          assert(parseMetadata33Glb(validGlb(landscape), landscape, URI, 'a').ok, `${floorType} Metadata`)
+          for (const invalid of [{ ...landscape, building: 'A' }, { ...landscape, level: 1 }]) {
+            const invalidSource = manifestVector('0'.repeat(64), {
+              assets: [{ ...manifestVector('0'.repeat(64)).assets[0], floor: invalid }],
+            })
+            fail(parsePackageManifestV2(strToU8(JSON.stringify(invalidSource)), URI), 'PACKAGE_FIELD_INVALID', `${floorType} invariant`)
+            fail(parseMetadata33Glb(validGlb(invalid), invalid, URI, 'a'), 'PACKAGE_METADATA_INVALID', `${floorType} Metadata invariant`)
+          }
+        }
+
+        for (const changed of [{ ...tower, floorName: 'A_RF' }, { ...tower, floorType: 'ROOF' }, { ...tower, level: 25 }]) {
+          fail(parseMetadata33Glb(validGlb(changed), tower, URI, 'a'), 'PACKAGE_METADATA_INVALID', 'scene floor drift')
+          fail(parseMetadata33Glb(validGlb(tower, { nodeFloor: changed }), tower, URI, 'a'), 'PACKAGE_METADATA_INVALID', 'node floor drift')
+        }
       },
     },
     {

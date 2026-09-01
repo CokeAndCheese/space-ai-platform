@@ -317,6 +317,37 @@ async function createTwoAssetV2Fixture() {
   })
 }
 
+async function createNullSpecialV2Fixture() {
+  const tower: PackageV2FixtureFloor = {
+    floorName: 'A_T',
+    building: 'A',
+    level: null,
+    floorType: 'TOWER',
+  }
+  const roof: PackageV2FixtureFloor = {
+    floorName: 'A_RF',
+    building: 'A',
+    level: null,
+    floorType: 'ROOF',
+  }
+  return createPackageV2Fixture({
+    assets: [
+      {
+        assetId: 'project-a/building-a/tower',
+        uri: './models/A_T.glb',
+        floor: tower,
+        bytes: createPackageV2GlbFixture(tower),
+      },
+      {
+        assetId: 'project-a/building-a/roof',
+        uri: './models/A_RF.glb',
+        floor: roof,
+        bytes: createPackageV2GlbFixture(roof),
+      },
+    ],
+  })
+}
+
 async function installLegacyFixture(harness: ReturnType<typeof createHarness>): Promise<ModelRecord> {
   const record: ModelRecord = {
     kind: 'file',
@@ -374,6 +405,49 @@ function assertStrictCleanup(harness: ReturnType<typeof createHarness>, message:
 }
 
 const tests: Test[] = [
+  {
+    name: 'null TOWER and ROOF identities publish exact v2 session proofs with topology unavailable',
+    run: async () => {
+      const fixture = await createNullSpecialV2Fixture()
+      const sessionId = 'special_null_v2_session'
+      const harness = createHarness({
+        sessionIds: [sessionId],
+        floorNamesBySession: new Map([[sessionId, fixture.assets.map((asset) => asset.floor.floorName)]]),
+      })
+      const result = await harness.lifecycle.selectPackageV2(fixture.zip)
+      equal(result.kind, 'loaded', 'special null v2 result')
+      equal(harness.lifecycle.snapshot.status, 'scene-ready', 'special null v2 state')
+      equal(harness.lifecycle.snapshot.graphId, null, 'special null v2 graph identity')
+      equal(harness.lifecycle.snapshot.nodes.length, 0, 'special null v2 graph nodes')
+      equal(harness.compileCallCount, 0, 'special null v2 compile calls')
+      equal(harness.createGraphCallCount, 0, 'special null v2 createGraph calls')
+
+      const packageSession = harness.lifecycle.snapshot.packageSession
+      assert(packageSession !== null && 'schemaVersion' in packageSession, 'v2 package session')
+      equal(packageSession.schemaVersion, 2, 'v2 schema version')
+      equal(packageSession.assets.length, 2, 'special null v2 asset count')
+      for (const [index, asset] of packageSession.assets.entries()) {
+        const expected = fixture.manifest.assets[index]!
+        equal(asset.floorName, expected.floor.floorName, `asset ${index} floorName`)
+        equal(asset.floorType, expected.floor.floorType, `asset ${index} floorType`)
+        equal(asset.level, null, `asset ${index} null level`)
+        equal(asset.building, 'A', `asset ${index} building`)
+        equal(asset.resourceProof.canonicalUri, asset.canonicalUri, `proof ${index} canonical URI`)
+        equal(asset.resourceProof.digest.value, expected.digest.value, `proof ${index} digest`)
+        equal(asset.resourceProof.packageRevision, fixture.manifest.revision, `proof ${index} revision`)
+        equal(asset.resourceProof.provenance, 'SAME_RESPONSE_BYTES', `proof ${index} provenance`)
+        equal(asset.resourceProof.selectionGeneration, result.generation, `proof ${index} generation`)
+        equal(harness.lifecycle.getPackageV2ResourceProof(asset.assetId), asset.resourceProof, `proof ${index} lookup`)
+      }
+      deepEqual(
+        currentTopologyUnavailableResult(harness.lifecycle.snapshot),
+        { ok: false, code: 'TOPOLOGY_UNAVAILABLE', reasonCode: 'PACKAGE_DECLARED_ABSENT' },
+        'special null v2 capability projection',
+      )
+      harness.lifecycle.invalidateAndCleanup()
+      assertStrictCleanup(harness, 'special null v2 cleanup')
+    },
+  },
   {
     name: 'mirrored Studio v2 loads exact bytes and atomically publishes Scene Metadata and immutable resource proofs',
     run: async () => {

@@ -75,7 +75,7 @@ function floor(value: unknown, path: string): PackageFloor | null {
   if (level !== null && (typeof level !== 'number' || !Number.isFinite(level) || !Number.isInteger(level))) return null
   if (floorType === 'LANDSCAPE_TERRAIN' || floorType === 'LANDSCAPE_FACADE') {
     if (building !== null || level !== null) return null
-  } else if (!building || level === null) return null
+  } else if (!building || (level === null && floorType !== 'TOWER' && floorType !== 'ROOF')) return null
   return Object.freeze({ floorName, building, level, floorType })
 }
 

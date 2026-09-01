@@ -47,6 +47,32 @@ interface FixtureIndex {
   }[]
 }
 
+interface BuildingSourceFixtureIndex {
+  readonly schema: string
+  readonly schemaVersion: number
+  readonly authority: {
+    readonly sha256: string
+    readonly profile: string
+    readonly profileVersion: string
+    readonly derivationVersion: number
+  }
+  readonly source: {
+    readonly floors: readonly {
+      readonly floorName: string
+      readonly floorType: string
+      readonly level: number | null
+      readonly elevation: number
+    }[]
+  }
+  readonly packageVectors: readonly {
+    readonly schemaVersion: number
+    readonly file: string
+    readonly sha256: string
+    readonly byteLength: number
+    readonly entries: readonly { readonly name: string; readonly sha256: string; readonly byteLength: number }[]
+  }[]
+}
+
 const URI = 'https://space-model-package.invalid/demo/space-model-package.v2.json'
 const FLOOR: Floor = { floorName: 'A_1F', building: 'A', level: 1, floorType: 'FLOOR' }
 const CAPABILITIES = {
@@ -74,6 +100,22 @@ const PLATFORM_FAILURE_CODES = Object.freeze({
   'zip-append-zero': 'PACKAGE_LIMIT_EXCEEDED',
   'zip-truncate-tail': 'PACKAGE_JSON_INVALID',
 } as const)
+const BUILDING_SOURCE_FIXTURE_DIR = new URL('./fixtures/building-source-profile-v1.1/', import.meta.url)
+const BUILDING_SOURCE_INDEX_BYTES = new Uint8Array(readFileSync(fileURLToPath(
+  new URL('sha256.json', BUILDING_SOURCE_FIXTURE_DIR),
+))).slice()
+const BUILDING_SOURCE_INDEX = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(
+  BUILDING_SOURCE_INDEX_BYTES,
+)) as BuildingSourceFixtureIndex
+const BUILDING_SOURCE_V2 = new Uint8Array(readFileSync(fileURLToPath(
+  new URL('A-standard-model-package-v2.zip', BUILDING_SOURCE_FIXTURE_DIR),
+))).slice()
+const BUILDING_SOURCE_FLOORS = Object.freeze([
+  { floorName: 'A_5F', building: 'A', level: 5, floorType: 'FLOOR' },
+  { floorName: 'A_T', building: 'A', level: null, floorType: 'TOWER' },
+  { floorName: 'A_6F', building: 'A', level: 6, floorType: 'FLOOR' },
+  { floorName: 'A_RF', building: 'A', level: null, floorType: 'ROOF' },
+] as const)
 
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message)
@@ -338,6 +380,59 @@ export async function runPackageV2Suite(): Promise<{
   readonly durationMs: number
 }> {
   const tests: Test[] = [
+    {
+      name: 'authority building-source v2 mirror authenticates every entry and exact topology-absent Metadata',
+      run: async () => {
+        equal(await sha256Hex(BUILDING_SOURCE_INDEX_BYTES), 'f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1', 'authority index SHA-256')
+        equal(BUILDING_SOURCE_INDEX.schema, 'space-model-studio/ai-building-source-profile-v1.1-fixture-sha256-index', 'authority index schema')
+        equal(BUILDING_SOURCE_INDEX.schemaVersion, 1, 'authority index schema version')
+        equal(BUILDING_SOURCE_INDEX.authority.sha256, '7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f', 'authority document SHA-256')
+        equal(BUILDING_SOURCE_INDEX.authority.profile, 'space-model-studio/ai-building-source-glb', 'authority profile')
+        equal(BUILDING_SOURCE_INDEX.authority.profileVersion, '1.1', 'authority profile version')
+        equal(BUILDING_SOURCE_INDEX.authority.derivationVersion, 2, 'authority derivation version')
+        equal(JSON.stringify(BUILDING_SOURCE_INDEX.source.floors), JSON.stringify([
+          { floorName: 'A_5F', floorType: 'FLOOR', level: 5, elevation: 14.45 },
+          { floorName: 'A_T', floorType: 'TOWER', level: null, elevation: 18.05 },
+          { floorName: 'A_6F', floorType: 'FLOOR', level: 6, elevation: 20.25 },
+          { floorName: 'A_RF', floorType: 'ROOF', level: null, elevation: 55.1 },
+        ]), 'authority source floor vector')
+
+        const vector = BUILDING_SOURCE_INDEX.packageVectors.find((candidate) => candidate.schemaVersion === 2)
+        assert(vector !== undefined, 'authority v2 package vector')
+        equal(vector.file, 'A-standard-model-package-v2.zip', 'authority v2 filename')
+        equal(await sha256Hex(BUILDING_SOURCE_V2), vector.sha256, 'authority v2 ZIP SHA-256')
+        equal(BUILDING_SOURCE_V2.byteLength, vector.byteLength, 'authority v2 ZIP length')
+        const files = unzipSync(BUILDING_SOURCE_V2)
+        equal(JSON.stringify(Object.keys(files).sort()), JSON.stringify(vector.entries.map((entry) => entry.name).sort()), 'authority v2 entry set')
+        for (const entry of vector.entries) {
+          const bytes = files[entry.name]
+          assert(bytes !== undefined, `authority v2 entry ${entry.name}`)
+          equal(bytes.byteLength, entry.byteLength, `${entry.name} length`)
+          equal(await sha256Hex(bytes), entry.sha256, `${entry.name} SHA-256`)
+        }
+        equal(files['topology.v1.json'], undefined, 'authority v2 has no sidecar entry')
+
+        const archive = parsePackageZipV2(BUILDING_SOURCE_V2.slice(), URI)
+        assert(archive.ok, `authority v2 parses ${JSON.stringify(archive)}`)
+        equal(JSON.stringify(archive.value.manifestDocument.assets.map((asset) => asset.floor)), JSON.stringify(BUILDING_SOURCE_FLOORS), 'authority v2 manifest floor order')
+        equal('topology' in archive.value.manifestDocument, false, 'authority v2 manifest has no topology declaration')
+        equal(
+          await computePackageManifestV2Revision(archive.value.manifestDocument),
+          archive.value.manifestDocument.revision,
+          'authority v2 canonical revision',
+        )
+        const validated = await validatePackageArchiveV2(archive.value)
+        assert(validated.ok, `authority v2 validates ${JSON.stringify(validated)}`)
+        equal(JSON.stringify(validated.value.metadata.map((projection) => ({
+          floorName: projection.scene.floorName,
+          building: projection.scene.building,
+          level: projection.scene.level,
+          floorType: projection.scene.floorType,
+        }))), JSON.stringify(BUILDING_SOURCE_FLOORS), 'authority v2 Metadata floor order')
+        equal(validated.value.topologyCapability.code, 'TOPOLOGY_UNAVAILABLE', 'authority v2 topology code')
+        equal(validated.value.topologyCapability.reasonCode, 'PACKAGE_DECLARED_ABSENT', 'authority v2 topology reason')
+      },
+    },
     {
       name: 'mirrored Studio v2 fixture authenticates the full index entries and canonical revision',
       run: async () => {

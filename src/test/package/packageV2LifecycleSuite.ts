@@ -71,6 +71,27 @@ const GOLDEN_V2_MANIFEST = JSON.parse(new TextDecoder().decode(
     readonly floor: { readonly floorName: string }
   }[]
 }
+const BUILDING_SOURCE_V2 = new Uint8Array(readFileSync(fileURLToPath(new URL(
+  './fixtures/building-source-profile-v1.1/A-standard-model-package-v2.zip',
+  import.meta.url,
+)))).slice()
+const BUILDING_SOURCE_V2_FILES = unzipSync(BUILDING_SOURCE_V2)
+const BUILDING_SOURCE_V2_MANIFEST = JSON.parse(new TextDecoder().decode(
+  BUILDING_SOURCE_V2_FILES['space-model-package.v2.json']!,
+)) as {
+  readonly revision: string
+  readonly assets: readonly {
+    readonly assetId: string
+    readonly uri: string
+    readonly digest: { readonly value: string }
+    readonly floor: {
+      readonly floorName: string
+      readonly building: string | null
+      readonly level: number | null
+      readonly floorType: string
+    }
+  }[]
+}
 
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message)
@@ -405,6 +426,57 @@ function assertStrictCleanup(harness: ReturnType<typeof createHarness>, message:
 }
 
 const tests: Test[] = [
+  {
+    name: 'authority four-floor v2 ZIP publishes exact nullable resource proofs without topology then cleans up',
+    run: async () => {
+      const sessionId = 'building_source_v2_session'
+      const harness = createHarness({
+        sessionIds: [sessionId],
+        floorNamesBySession: new Map([[
+          sessionId,
+          BUILDING_SOURCE_V2_MANIFEST.assets.map((asset) => asset.floor.floorName),
+        ]]),
+      })
+      const result = await harness.lifecycle.selectPackageV2(BUILDING_SOURCE_V2.slice())
+      equal(result.kind, 'loaded', 'authority v2 selection')
+      equal(harness.lifecycle.snapshot.status, 'scene-ready', 'authority v2 scene state')
+      equal(harness.lifecycle.snapshot.graphId, null, 'authority v2 graph identity')
+      equal(harness.lifecycle.snapshot.nodes.length, 0, 'authority v2 graph nodes')
+      equal(harness.topology.listGraphs().length, 0, 'authority v2 graph count')
+      equal(harness.compileCallCount, 0, 'authority v2 compile calls')
+      equal(harness.createGraphCallCount, 0, 'authority v2 createGraph calls')
+
+      const packageSession = harness.lifecycle.snapshot.packageSession
+      assert(packageSession !== null && 'schemaVersion' in packageSession, 'authority v2 package session')
+      equal(packageSession.schemaVersion, 2, 'authority v2 schema version')
+      equal(packageSession.assets.length, 4, 'authority v2 session asset count')
+      deepEqual(packageSession.assets.map((asset) => ({
+        floorName: asset.floorName,
+        building: asset.building,
+        level: asset.level,
+        floorType: asset.floorType,
+      })), BUILDING_SOURCE_V2_MANIFEST.assets.map((asset) => asset.floor), 'authority v2 floor identity order')
+      for (const [index, asset] of packageSession.assets.entries()) {
+        const manifestAsset = BUILDING_SOURCE_V2_MANIFEST.assets[index]!
+        equal(asset.resourceProof.canonicalUri, asset.canonicalUri, `authority v2 proof ${index} canonical URI`)
+        equal(asset.resourceProof.digest.value, manifestAsset.digest.value, `authority v2 proof ${index} digest`)
+        equal(asset.resourceProof.packageRevision, BUILDING_SOURCE_V2_MANIFEST.revision, `authority v2 proof ${index} revision`)
+        equal(asset.resourceProof.provenance, 'SAME_RESPONSE_BYTES', `authority v2 proof ${index} provenance`)
+        equal(asset.resourceProof.root, asset.root, `authority v2 proof ${index} root`)
+        equal(asset.resourceProof.selectionGeneration, result.generation, `authority v2 proof ${index} generation`)
+        equal(harness.lifecycle.getPackageV2ResourceProof(asset.assetId), asset.resourceProof, `authority v2 proof ${index} lookup`)
+      }
+      deepEqual(
+        currentTopologyUnavailableResult(harness.lifecycle.snapshot),
+        { ok: false, code: 'TOPOLOGY_UNAVAILABLE', reasonCode: 'PACKAGE_DECLARED_ABSENT' },
+        'authority v2 capability projection',
+      )
+
+      harness.lifecycle.invalidateAndCleanup()
+      equal(harness.lifecycle.getPackageV2ResourceProof(BUILDING_SOURCE_V2_MANIFEST.assets[0]!.assetId), null, 'authority v2 proof cleared')
+      assertStrictCleanup(harness, 'authority v2 cleanup')
+    },
+  },
   {
     name: 'null TOWER and ROOF identities publish exact v2 session proofs with topology unavailable',
     run: async () => {

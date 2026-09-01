@@ -1,0 +1,143 @@
+{
+  "schema": "space-model-studio/ai-building-source-profile-v1.1-fixture-sha256-index",
+  "schemaVersion": 1,
+  "authority": {
+    "file": "docs/AI_BUILDING_SOURCE_GLB_SPEC_V1.md",
+    "sha256": "7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f",
+    "profile": "space-model-studio/ai-building-source-glb",
+    "profileVersion": "1.1",
+    "derivationVersion": 2
+  },
+  "source": {
+    "file": "Building.glb",
+    "sha256": "86244b9a40f75e11397cf8ebc65dc0509ffb0337eece3c2a8ba2e1d32a04b864",
+    "byteLength": 1024,
+    "floors": [
+      {
+        "floorName": "A_5F",
+        "floorType": "FLOOR",
+        "level": 5,
+        "elevation": 14.45
+      },
+      {
+        "floorName": "A_T",
+        "floorType": "TOWER",
+        "level": null,
+        "elevation": 18.05
+      },
+      {
+        "floorName": "A_6F",
+        "floorType": "FLOOR",
+        "level": 6,
+        "elevation": 20.25
+      },
+      {
+        "floorName": "A_RF",
+        "floorType": "ROOF",
+        "level": null,
+        "elevation": 55.1
+      }
+    ]
+  },
+  "packageVectors": [
+    {
+      "schemaVersion": 1,
+      "file": "A-standard-model-package-v1.zip",
+      "sha256": "b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4",
+      "byteLength": 38118,
+      "entries": [
+        {
+          "name": "space-model-package.v1.json",
+          "sha256": "41ba1767a6e4edd10142f370e4fbfa76d8307f6ba4ce89cf3d09dd5c203f545d",
+          "byteLength": 2500
+        },
+        {
+          "name": "A_5F.glb",
+          "sha256": "0e688f893750bcf30e2e388f835f0b0c62da9e6e64c86c3186220a5545b97e51",
+          "byteLength": 3700
+        },
+        {
+          "name": "A_T.glb",
+          "sha256": "813b3c9ef7619e8af30fd03424ffd2f89e9ffb02aab86408de5ccefb8cf50a63",
+          "byteLength": 3700
+        },
+        {
+          "name": "A_6F.glb",
+          "sha256": "fe7b745a4d40c04235c5b50f306f19fb8211c77f332782cc49d63403b3b8bd44",
+          "byteLength": 3700
+        },
+        {
+          "name": "A_RF.glb",
+          "sha256": "edfecbcf88f6b8a07239ad0d5e4f68aad98a49a86ceadb3ba73cad2b3b30a2b7",
+          "byteLength": 3712
+        },
+        {
+          "name": "topology.v1.json",
+          "sha256": "6727ec7a473ebdb9d7157137c745e0c741666592be44a1fbff05945f2e61195e",
+          "byteLength": 10354
+        },
+        {
+          "name": "producer-validation.json",
+          "sha256": "19ce0b9ac33daf8f4257f0e5c41b16db69cb150c81c4c346e068d6aeb2104766",
+          "byteLength": 9702
+        }
+      ]
+    },
+    {
+      "schemaVersion": 2,
+      "file": "A-standard-model-package-v2.zip",
+      "sha256": "a07fe215f0c878d407378d033328f8ad7d3602b94c89701c2266896ac41ef77c",
+      "byteLength": 16419,
+      "entries": [
+        {
+          "name": "space-model-package.v2.json",
+          "sha256": "1d6d4d5d354d93d20ebbcb538cab09fa7efd8d1fe5455fbc1242863cf50ede18",
+          "byteLength": 2455
+        },
+        {
+          "name": "A_5F.glb",
+          "sha256": "062151e435c14021358fa430646797ecadb0e32cbecb3ad498e1c76edb847466",
+          "byteLength": 2064
+        },
+        {
+          "name": "A_T.glb",
+          "sha256": "245805f464b1463a1b3df1d408cf09d7966c3b2ff19effde989ad7c8d9cf5d58",
+          "byteLength": 2064
+        },
+        {
+          "name": "A_6F.glb",
+          "sha256": "ccfed88d7fdd4c844e8ac2ced781e91b4cba9bbc1e9ebcd6a194d77333dd26bc",
+          "byteLength": 2064
+        },
+        {
+          "name": "A_RF.glb",
+          "sha256": "d4a44d88fc1e336a239e858c4795100e96b968bb82452f2301b724f95c8bcb66",
+          "byteLength": 2072
+        },
+        {
+          "name": "producer-validation.json",
+          "sha256": "f9cacb16a438423d6b5e2f5f8667ca39738ba7ffd4814b2626266a9dd0ccf27b",
+          "byteLength": 5058
+        }
+      ]
+    }
+  ],
+  "rejectionVectors": [
+    {
+      "carrierToken": "TF",
+      "expected": "BUILDING_SOURCE_FLOOR_CARRIER_INVALID"
+    },
+    {
+      "carrierToken": "DING",
+      "expected": "BUILDING_SOURCE_FLOOR_CARRIER_INVALID"
+    },
+    {
+      "carrierToken": "T_LEVEL_18",
+      "expected": "BUILDING_SOURCE_FLOOR_CARRIER_INVALID"
+    },
+    {
+      "carrierToken": "RF_LEVEL_55",
+      "expected": "BUILDING_SOURCE_FLOOR_CARRIER_INVALID"
+    }
+  ]
+}

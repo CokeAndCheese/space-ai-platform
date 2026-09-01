@@ -99,6 +99,14 @@ const GOLDEN_FILES = unzipSync(GOLDEN)
 const GOLDEN_MANIFEST = JSON.parse(
   new TextDecoder().decode(GOLDEN_FILES['space-model-package.v1.json']!),
 ) as MutableManifest
+const BUILDING_SOURCE_V1 = new Uint8Array(readFileSync(fileURLToPath(new URL(
+  './fixtures/building-source-profile-v1.1/A-standard-model-package-v1.zip',
+  import.meta.url,
+)))).slice()
+const BUILDING_SOURCE_V1_FILES = unzipSync(BUILDING_SOURCE_V1)
+const BUILDING_SOURCE_V1_MANIFEST = JSON.parse(new TextDecoder().decode(
+  BUILDING_SOURCE_V1_FILES['space-model-package.v1.json']!,
+)) as MutableManifest
 const APP_ORIGIN = 'https://space.test'
 const CLEANUP_ORDER = ['routes', 'graphs', 'legacy', 'models'] as const
 
@@ -546,6 +554,57 @@ function assertStrictCleanup(harness: ReturnType<typeof createHarness>, message:
 }
 
 const tests: Test[] = [
+  {
+    name: 'authority four-floor v1 ZIP publishes exact nullable identities proofs and graph then cleans up',
+    run: async () => {
+      const sessionId = 'building_source_v1_session'
+      const harness = createHarness({
+        sessionIds: [sessionId],
+        floorIdentitiesBySession: new Map([[
+          sessionId,
+          BUILDING_SOURCE_V1_MANIFEST.assets.map((asset) => asset.floor),
+        ]]),
+      })
+      const result = await harness.lifecycle.selectPackage(BUILDING_SOURCE_V1.slice())
+      equal(result.kind, 'loaded', 'authority v1 selection')
+      equal(harness.lifecycle.snapshot.status, 'ready', 'authority v1 graph state')
+      equal(
+        harness.lifecycle.snapshot.graphId,
+        '00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-000000000002/topology',
+        'authority v1 graph identity',
+      )
+      equal(harness.topology.listGraphs().length, 1, 'authority v1 graph count')
+
+      const packageSession = harness.lifecycle.snapshot.packageSession
+      assert(packageSession !== null && !('schemaVersion' in packageSession), 'authority v1 package session')
+      equal(packageSession.assets.length, 4, 'authority v1 session asset count')
+      deepEqual(packageSession.assets.map((asset) => ({
+        floorName: asset.floorName,
+        building: asset.building,
+        level: asset.level,
+        floorType: asset.floorType,
+      })), BUILDING_SOURCE_V1_MANIFEST.assets.map((asset) => asset.floor), 'authority v1 floor identity order')
+      for (const asset of packageSession.assets) {
+        equal(harness.lifecycle.getPackageAssetById(asset.assetId), asset, `${asset.floorName} asset lookup`)
+        equal(harness.lifecycle.getPackageAssetsByFloorName(asset.floorName)[0], asset, `${asset.floorName} floor lookup`)
+      }
+
+      const context = harness.compileContexts[0]!
+      equal(context.assetProofs.length, 4, 'authority v1 proof count')
+      for (const [index, proof] of context.assetProofs.entries()) {
+        const manifestAsset = BUILDING_SOURCE_V1_MANIFEST.assets[index]!
+        const sessionAsset = packageSession.assets[index]!
+        equal(proof.provenance, 'SAME_RESPONSE_BYTES', `authority v1 proof ${index} provenance`)
+        equal(proof.digest?.value, manifestAsset.digest.value, `authority v1 proof ${index} digest`)
+        equal(proof.canonicalUri, sessionAsset.canonicalUri, `authority v1 proof ${index} canonical URI`)
+        equal(proof.selectionGeneration, result.generation, `authority v1 proof ${index} generation`)
+        equal(proof.root, sessionAsset.root, `authority v1 proof ${index} root`)
+      }
+
+      harness.lifecycle.invalidateAndCleanup()
+      assertStrictCleanup(harness, 'authority v1 cleanup')
+    },
+  },
   {
     name: 'null TOWER and ROOF identities publish exact v1 session proofs and a ready graph',
     run: async () => {

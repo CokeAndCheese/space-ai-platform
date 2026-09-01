@@ -1,14 +1,65 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { zipSync, strToU8, unzipSync } from 'fflate'
 import { parseMetadata33Glb } from '../../adapters/package/metadata33'
 import { parsePackageManifestV1 } from '../../adapters/package/manifestV1'
 import { packageJsonDepth } from '../../adapters/package/manifestV1'
 import { parsePackageZipV1, crc32 } from '../../adapters/package/zipV1'
-import { assertPackageIdentityUniqueness, sha256Hex, validatePackageArchive } from '../../adapters/package'
+import {
+  assertPackageIdentityUniqueness,
+  prebindPackageTopologyV1,
+  sha256Hex,
+  validatePackageArchive,
+} from '../../adapters/package'
 
 type Test = { name: string; run: () => void | Promise<void> }
 type FloorFixture = { floorName: string; building: string | null; level: number | null; floorType: string }
 const URI = 'https://space-model-package.invalid/demo/space-model-package.v1.json'
 const FLOOR = { floorName: 'A_1F', building: 'A', level: 1, floorType: 'FLOOR' } as const
+const BUILDING_SOURCE_FIXTURE_URI =
+  'https://space-model-package.invalid/building-source/space-model-package.v1.json'
+const BUILDING_SOURCE_FIXTURE_DIR = new URL('./fixtures/building-source-profile-v1.1/', import.meta.url)
+const BUILDING_SOURCE_INDEX_BYTES = new Uint8Array(readFileSync(fileURLToPath(
+  new URL('sha256.json', BUILDING_SOURCE_FIXTURE_DIR),
+))).slice()
+const BUILDING_SOURCE_V1 = new Uint8Array(readFileSync(fileURLToPath(
+  new URL('A-standard-model-package-v1.zip', BUILDING_SOURCE_FIXTURE_DIR),
+))).slice()
+const BUILDING_SOURCE_FLOORS = Object.freeze([
+  { floorName: 'A_5F', building: 'A', level: 5, floorType: 'FLOOR' },
+  { floorName: 'A_T', building: 'A', level: null, floorType: 'TOWER' },
+  { floorName: 'A_6F', building: 'A', level: 6, floorType: 'FLOOR' },
+  { floorName: 'A_RF', building: 'A', level: null, floorType: 'ROOF' },
+] as const)
+interface BuildingSourceFixtureIndex {
+  readonly schema: string
+  readonly schemaVersion: number
+  readonly authority: {
+    readonly sha256: string
+    readonly profile: string
+    readonly profileVersion: string
+    readonly derivationVersion: number
+  }
+  readonly source: {
+    readonly floors: readonly {
+      readonly floorName: string
+      readonly floorType: string
+      readonly level: number | null
+      readonly elevation: number
+    }[]
+  }
+  readonly packageVectors: readonly {
+    readonly schemaVersion: number
+    readonly file: string
+    readonly sha256: string
+    readonly byteLength: number
+    readonly entries: readonly { readonly name: string; readonly sha256: string; readonly byteLength: number }[]
+  }[]
+  readonly rejectionVectors: readonly { readonly carrierToken: string; readonly expected: string }[]
+}
+const BUILDING_SOURCE_INDEX = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(
+  BUILDING_SOURCE_INDEX_BYTES,
+)) as BuildingSourceFixtureIndex
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message) }
 function equal(actual: unknown, expected: unknown, message: string): void { if (!Object.is(actual, expected)) throw new Error(`${message}: expected ${String(expected)}, got ${String(actual)}`) }
 function jsonChunk(document: unknown): Uint8Array {
@@ -48,6 +99,62 @@ function fail(result: { ok: boolean; diagnostic?: { code: string; phase?: string
 
 export async function runPackageSuite(): Promise<{ passed: number; names: readonly string[]; durationMs: number }> {
   const tests: Test[] = [
+    { name: 'authority building-source v1 mirror authenticates every entry and strict sidecar binding', run: async () => {
+      equal(await sha256Hex(BUILDING_SOURCE_INDEX_BYTES), 'f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1', 'authority index SHA-256')
+      equal(BUILDING_SOURCE_INDEX.schema, 'space-model-studio/ai-building-source-profile-v1.1-fixture-sha256-index', 'authority index schema')
+      equal(BUILDING_SOURCE_INDEX.schemaVersion, 1, 'authority index schema version')
+      equal(BUILDING_SOURCE_INDEX.authority.sha256, '7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f', 'authority document SHA-256')
+      equal(BUILDING_SOURCE_INDEX.authority.profile, 'space-model-studio/ai-building-source-glb', 'authority profile')
+      equal(BUILDING_SOURCE_INDEX.authority.profileVersion, '1.1', 'authority profile version')
+      equal(BUILDING_SOURCE_INDEX.authority.derivationVersion, 2, 'authority derivation version')
+      equal(JSON.stringify(BUILDING_SOURCE_INDEX.source.floors), JSON.stringify([
+        { floorName: 'A_5F', floorType: 'FLOOR', level: 5, elevation: 14.45 },
+        { floorName: 'A_T', floorType: 'TOWER', level: null, elevation: 18.05 },
+        { floorName: 'A_6F', floorType: 'FLOOR', level: 6, elevation: 20.25 },
+        { floorName: 'A_RF', floorType: 'ROOF', level: null, elevation: 55.1 },
+      ]), 'authority source floor vector')
+      equal(JSON.stringify(BUILDING_SOURCE_INDEX.rejectionVectors), JSON.stringify([
+        { carrierToken: 'TF', expected: 'BUILDING_SOURCE_FLOOR_CARRIER_INVALID' },
+        { carrierToken: 'DING', expected: 'BUILDING_SOURCE_FLOOR_CARRIER_INVALID' },
+        { carrierToken: 'T_LEVEL_18', expected: 'BUILDING_SOURCE_FLOOR_CARRIER_INVALID' },
+        { carrierToken: 'RF_LEVEL_55', expected: 'BUILDING_SOURCE_FLOOR_CARRIER_INVALID' },
+      ]), 'authority rejection vectors')
+
+      const vector = BUILDING_SOURCE_INDEX.packageVectors.find((candidate) => candidate.schemaVersion === 1)
+      assert(vector !== undefined, 'authority v1 package vector')
+      equal(vector.file, 'A-standard-model-package-v1.zip', 'authority v1 filename')
+      equal(await sha256Hex(BUILDING_SOURCE_V1), vector.sha256, 'authority v1 ZIP SHA-256')
+      equal(BUILDING_SOURCE_V1.byteLength, vector.byteLength, 'authority v1 ZIP length')
+      const files = unzipSync(BUILDING_SOURCE_V1)
+      equal(JSON.stringify(Object.keys(files).sort()), JSON.stringify(vector.entries.map((entry) => entry.name).sort()), 'authority v1 entry set')
+      for (const entry of vector.entries) {
+        const bytes = files[entry.name]
+        assert(bytes !== undefined, `authority v1 entry ${entry.name}`)
+        equal(bytes.byteLength, entry.byteLength, `${entry.name} length`)
+        equal(await sha256Hex(bytes), entry.sha256, `${entry.name} SHA-256`)
+      }
+
+      const archive = parsePackageZipV1(BUILDING_SOURCE_V1.slice(), BUILDING_SOURCE_FIXTURE_URI)
+      assert(archive.ok, `authority v1 parses ${JSON.stringify(archive)}`)
+      equal(JSON.stringify(archive.value.manifestDocument.assets.map((asset) => asset.floor)), JSON.stringify(BUILDING_SOURCE_FLOORS), 'authority v1 manifest floor order')
+      const validated = await validatePackageArchive(archive.value)
+      assert(validated.ok, `authority v1 validates ${JSON.stringify(validated)}`)
+      equal(JSON.stringify(validated.value.map((projection) => ({
+        floorName: projection.scene.floorName,
+        building: projection.scene.building,
+        level: projection.scene.level,
+        floorType: projection.scene.floorType,
+      }))), JSON.stringify(BUILDING_SOURCE_FLOORS), 'authority v1 Metadata floor order')
+      const binding = prebindPackageTopologyV1(archive.value, validated.value)
+      assert(binding.ok, `authority v1 sidecar binds ${JSON.stringify(binding)}`)
+      equal(binding.value.assets.length, BUILDING_SOURCE_FLOORS.length, 'authority v1 bound asset count')
+      equal(binding.value.topologyDocument.revision, archive.value.manifestDocument.revision, 'authority v1 sidecar revision')
+      for (const [index, prepared] of binding.value.assets.entries()) {
+        equal(prepared.sidecarAsset.assetId, prepared.manifestAsset.assetId, `authority v1 asset ${index} id`)
+        equal(prepared.sidecarAsset.digest?.value, prepared.manifestAsset.digest.value, `authority v1 asset ${index} digest`)
+        equal(prepared.metadata.scene.floorName, BUILDING_SOURCE_FLOORS[index]!.floorName, `authority v1 asset ${index} Metadata`)
+      }
+    } },
     { name: 'manifest accepts canonical minimum', run: async () => { const p = await validPackage(); const m = parsePackageManifestV1(new TextEncoder().encode(JSON.stringify({ schema: 'space-model-package', schemaVersion: 1, packageId: 'p', revision: 'r', metadata: { schema: 'space-model-metadata', version: '3.3-semantic', carrier: 'GLB_SCENE_NODE_EXTRAS' }, assets: [{ assetId: 'a', uri: './a.glb', digest: { algorithm: 'SHA-256', value: 'a'.repeat(64) }, floor: FLOOR }], topology: { uri: './t.json', digest: { algorithm: 'SHA-256', value: 'b'.repeat(64) }, schema: 'space-ai-platform/topology-sidecar', schemaVersion: 1, revision: 'r' } })), URI); assert(m.ok, `manifest should parse ${JSON.stringify(m)}`); equal(m.value.assets[0]!.canonicalUri, 'https://space-model-package.invalid/demo/a.glb', 'canonical uri'); void p } },
     { name: 'v1 special floor identity accepts null for TOWER and ROOF while existing integer values remain valid', run: () => {
       const tower: FloorFixture = { floorName: 'A_T', building: 'A', level: null, floorType: 'TOWER' }

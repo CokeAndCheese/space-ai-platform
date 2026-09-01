@@ -2,7 +2,7 @@
 
 > 日期：2026-08-28
 >
-> 状态：用户已批准能力声明型 Standard Model Package v2 的 P0 精确机器值、补充决策及 2026-09-01 TOWER/ROOF nullable-level 兼容修正；Platform 实现、权威 fixture 同字节镜像与独立验签已完成，新的联合真实浏览器验收和用户兼容里程碑仍待完成
+> 状态：用户已批准能力声明型 Standard Model Package v2 的 P0 精确机器值、补充决策及 2026-09-01 TOWER/ROOF nullable-level 兼容修正；order 推测 P0、修订权威 fixture 镜像和自动矩阵已完成，新的联合真实浏览器验收和用户兼容里程碑仍待完成
 >
 > 当前门禁：候选尚未合入 Platform local `main`、尚未发布，也未获得临时兼容里程碑批准；不得把任务分支候选表述为已交付能力
 >
@@ -19,7 +19,7 @@
 这不是对 Standard Model Package v1 的放宽，也不是把中间产物改名为标准包：
 
 - v1 继续要求 manifest 指向严格 Platform topology sidecar v1，并完成摘要、预绑定、AssetProof、编译和 graph 原子提交；
-- 除 2026-09-01 经用户批准、在 v1/v2 同步应用的 TOWER/ROOF nullable-level 显式接受值域外，v1 topology/identity、既有 fixture 结果和旧 Platform Metadata v3.1 reader 的接受/拒绝结果保持不变；修正后的共同 fixture 已由 Studio 提供，并在 Platform `35161cc` 完成同字节镜像与独立验签；
+- 除 2026-09-01 经用户批准、在 v1/v2 同步应用的 TOWER/ROOF nullable-level 显式接受值域外，v1 topology/identity、既有 fixture 结果和旧 Platform Metadata v3.1 reader 的接受/拒绝结果保持不变；修订共同 fixture 已由 Studio `f653264` 提供，并在 Platform `acbf1f4`/`135be84` 完成镜像和专项验证；
 - v2 必须是完成严格生产校验和发布回读的标准包，不能承载 Studio `*-unvalidated` 中间产物；
 - v2 只能通过新的显式版本身份与能力声明被选择，不能由 v1 缺字段、sidecar 失败、basename、目录扫描或内容形状猜测得到；
 - v2 的 topology 能力明确为 `ABSENT` 语义，不允许缺省、不允许空或伪 sidecar，也不读取 GLB embedded topology 作为 fallback。
@@ -89,8 +89,8 @@ v2 仅免除 topology 数据本身，不免除标准模型质量或资源安全�
 |---|---|---|---|
 | 合法 v1 manifest + strict sidecar v1 | v1 | 按冻结 v1 完整校验、建图并 Graph ready | 已有候选实现，不变 |
 | 合法 v2 身份 + topology 明确 `ABSENT` + 全部几何/Metadata/资源门禁通过 | v2 | Scene/Metadata ready；Topology 结构化不可用 | Platform 消费候选已实现并验收 |
-| 合法 v2 + TOWER/ROOF 非空 building + 显式 `level: null` 或有限整数 | v2 | 按声明值发布 Scene/Metadata ready；不补算 level | Platform 本地修正候选已实现；共同 fixture 待验签 |
-| TOWER/ROOF 缺失 level、building 为 null，或其他非景观类型 level 为 null | v2 | fail closed | Platform 本地专项已覆盖；共同 fixture 待验签 |
+| 合法 v2 + TOWER/ROOF 非空 building + 显式 `level: null` 或有限整数 | v2 | 按声明值发布 Scene/Metadata ready；不补算 level | 修订共同 fixture 与真实 validated v2 查询已通过 |
+| TOWER/ROOF 缺失 level、building 为 null，或其他非景观类型 level 为 null | v2 | fail closed | 修订共同 fixture 与专项拒绝已通过 |
 | v2 缺少 topology 能力声明或声明未知值 | v2 | fail closed，不加载或发布部分会话 | 已实现专项拒绝 |
 | v2 使用空、伪造或占位 sidecar 表示“无 topology” | v2 | 拒绝 | 已实现封闭 ZIP allowlist 拒绝 |
 | v2 GLB 携带 `scene.extras.sspTopology` | v2 | 拒绝整个包；不得忽略、fallback 或产生 graph | 已实现 `PACKAGE_EMBEDDED_TOPOLOGY_FORBIDDEN` |
@@ -254,9 +254,10 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 - UI 与 Template Runtime 稳定区分“能力不可用”“无路”“包加载失败”；
 - Platform fixture 的 ZIP SHA-256 为 `be0b7734ebbb3effb1f220f601d047d69dcf849c5d16bf7fdc1cd54f4f90e0c7`，SHA index 为 `c559d47222f6d7d61160d74676885e61ea0c0a462f0f67d6c7e5cdd2cc78a91c`，canonical revision 为 `96fee045700e5bbe18c4b196ae96821a84508860460c3cd2e59455594bc61b22`；Studio 与 Platform 已核对同字节 fixture。
 - 自动验收已通过 v2 parser 16、v2 lifecycle 5、home 13、capability 9、Quick Action 22、v1 parser 33、v1 lifecycle 10、legacy 27、sidecar 18、templates 18，以及 typecheck/build/`verify:r1`/审计。真实浏览器显式导入 v2 后为 2 floors、Scene/Metadata ready、无 graph、Topology 稳定 unavailable；权威最小 GLB 仅有两条 Three loader min/max warning，无 error。
-- 上述 ZIP/index/revision 与自动验收是 nullable 特殊层修正前的历史候选证据。Platform 已在 `30e1b4e` 完成 validator/Metadata/lifecycle 修正，在 `d4475ba` 增加 Template 查询专项，并在 `35161cc` 完成权威 v1/v2 fixture/index 的同字节镜像与独立验签。
-- `35161cc` 中三个镜像文件与 Studio 原件 `cmp=0`；authority document/index/v1 ZIP/v2 ZIP SHA-256 依次为 `7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f`、`f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1`、`b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4`、`a07fe215f0c878d407378d033328f8ad7d3602b94c89701c2266896ac41ef77c`。index、两个 ZIP、全部 entry SHA/length 已自动独立校验。
-- v1 revision `dddc3c9f5c3ee48d3e8123d8ae1d9b5ea591d1eced7ebf3bfcda8ce6e4b4c147` 与 strict sidecar revision 一致；v2 canonical revision `b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4` 重新计算一致。v1/v2 parser 35/18、lifecycle 12/7、Template 19、`verify:r1` 10/10 均 PASS；独立 Reviewer P0/P1=0。
+- 上述 ZIP/index/revision 与自动验收是 nullable 特殊层修正前的历史候选证据。Studio `f653264` 提供修订权威；Platform `acbf1f4` 完成重新镜像、v1 order P0 与加载后 identity fail-closed，`135be84` 完成真实 validated v2 查询专项。
+- 修订 authority document/index/source `Building.glb`/v1 ZIP/v2 ZIP SHA-256 依次为 `c41dedc540037cfadbae828e82da4f170a97732e7a96d2ff14744ef75e4446ae`、`085a3a08f54fb7f02ee9ef6e16242e47d7741bb5821fdc95869df10ef6cc4485`、`86244b9a40f75e11397cf8ebc65dc0509ffb0337eece3c2a8ba2e1d32a04b864`、`1080cc8717eed98d18eb7a1c8708596ac43c90a7181c28fb55ac5a69df3b3e76`、`a07fe215f0c878d407378d033328f8ad7d3602b94c89701c2266896ac41ef77c`。v1 package/sidecar revision 均为 `482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb`；v2 canonical revision 为 `b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4`。
+- P0 回归证明 v1 embedded/sidecar 的 `A_T`/`A_RF` layer 无 `order`，`A_5F`/`A_6F` 为整数 `5`/`6`；v2 继续无 topology。最终矩阵 PASS：v1/v2 parser 35/18、v1/v2 lifecycle 13/8、Template 20、sidecar 18、capability 9、Quick Action 22、home 13、legacy lifecycle 27、topology 10、typecheck/build/`verify:r1` 10/10。
+- 旧 `35161cc`/`dbceba4` 与旧 authority/index/v1 ZIP/revision SHA `7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f`、`f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1`、`b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4`、`dddc3c9f5c3ee48d3e8123d8ae1d9b5ea591d1eced7ebf3bfcda8ce6e4b4c147` 已 superseded，仅作历史证据，不得作为最终兼容证据。
 - fixture 验签不替代 nullable 特殊层新的联合真实浏览器验收或用户兼容里程碑批准；完成前不得宣称 Studio/Forge/Platform 三端兼容。
 
 ## 11. 分阶段工作包
@@ -283,7 +284,7 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 - 保持既有 v1 fixture 结果、旧 v3.1 reader、`src/ssp/**` 和除获批 nullable 特殊层显式接受值域外的接受/拒绝结果不变；新增共同 fixture 必须单独同步验签。
 - 完成 package/Metadata/lifecycle/capability/非污染专项测试。
 
-状态：原任务分支候选检查点依次为 parser `e5b6462`、lifecycle `2033525`、capability gate `7733284`、UI `c498452`、fixture `f499da8`；nullable 特殊层的 Platform checkpoints 为 `30e1b4e`、`d4475ba` 与 fixture 镜像验签 `35161cc`。本地候选仍未合入 local `main`、未发布；新的联合真实浏览器验收和用户兼容里程碑尚未完成。
+状态：原任务分支候选检查点依次为 parser `e5b6462`、lifecycle `2033525`、capability gate `7733284`、UI `c498452`、fixture `f499da8`；nullable 特殊层的修订权威为 Studio `f653264`，Platform checkpoints 为 `30e1b4e`、`d4475ba`、`acbf1f4` 与 `135be84`。本地候选仍未合入 local `main`、未发布；新的联合真实浏览器验收和用户兼容里程碑尚未完成。
 
 ### Phase 3 — 双端联合验收
 
@@ -293,7 +294,7 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 
 停止条件：P0/P1 清零、遗留风险明确，并提交用户临时兼容里程碑确认。
 
-当前技术证据：原候选的同字节 fixture、自动门禁与真实浏览器均已通过；nullable 特殊层也已完成 Platform 实现、权威 v1/v2 fixture/index 同字节镜像、独立验签、自动门禁和独立 Reviewer。尚未执行的是本修正新的联合真实浏览器验收，用户临时兼容里程碑、发布和 local `main` 合入状态均不变；此前不得宣称 Studio/Forge/Platform 三端兼容。
+当前技术证据：原候选的同字节 fixture、自动门禁与真实浏览器均已通过；nullable 特殊层也已完成 order 推测 P0 纠正、修订权威 v1/v2 fixture/index 同字节镜像、独立验签和最终自动矩阵。尚未执行的是本修正新的联合真实浏览器验收，用户临时兼容里程碑、发布和 local `main` 合入状态均不变；此前不得宣称 Studio/Forge/Platform 三端兼容。
 
 ### Phase 4 — 临时放行与退出准备
 
@@ -320,8 +321,8 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 
 - 用户已批准 v2 P0 精确机器值及“不做持久 revision registry、回滚靠重新导入”和“Studio 可显式排除并审计 draft topology、不得静默丢弃”两项补充决策。
 - 本文是过程、边界、验证和回滚事实源，不替代 machine-readable schema 或 fixtures。
-- Platform 原消费候选及 nullable 特殊层实现、权威 fixture 镜像验签已在 `codex/r2-standard-model-package` 完成；修正 checkpoints 为 `30e1b4e`、`d4475ba` 与 `35161cc`。候选尚未合入 local `main`、尚未发布，也未获得临时兼容里程碑批准，不得宣称 Platform 已交付 v2。
-- nullable 特殊层权威 v1/v2 同字节 fixture/index 已完成 Platform 镜像与独立验签；新的联合真实浏览器验收尚未执行，完成并获得用户里程碑批准前不得宣称 Studio/Forge/Platform 三端兼容。
+- Platform 原消费候选及 nullable 特殊层实现、P0 纠正、修订权威 fixture 镜像验签已在 `codex/r2-standard-model-package` 完成；修正 checkpoints 为 `30e1b4e`、`d4475ba`、`acbf1f4` 与 `135be84`。候选尚未合入 local `main`、尚未发布，也未获得临时兼容里程碑批准，不得宣称 Platform 已交付 v2。
+- nullable 特殊层修订权威 v1/v2 同字节 fixture/index 已完成 Platform 镜像与自动矩阵；新的联合真实浏览器验收尚未执行，完成并获得用户里程碑批准前不得宣称 Studio/Forge/Platform 三端兼容。
 - v1 strict topology 候选结论、既有 v1 fixture 结果、旧 v3.1 reader 与旧 ZIP 拒绝边界均保持不变；唯一例外是用户明确批准并已由新共同 fixtures 覆盖的 TOWER/ROOF nullable-level 接受值域。
 - `src/ssp/**` 未修改；临时 profile 不得由任一方单方停发、停收、迁移或移除。
 - 本决策无新增、撤销或职责迁移，不改变组织架构。

@@ -2,7 +2,7 @@
 
 > 日期：2026-08-22
 >
-> 状态：方案 B 已获用户批准；原候选已完成双端机器实现与联合技术验收；2026-09-01 获批的 TOWER/ROOF nullable-level 修正已完成 Platform 实现、权威 fixture 同字节镜像与独立验签；新的联合真实浏览器验收和用户兼容里程碑仍待完成，尚未发布、合并或进入 `main` 兼容基线
+> 状态：方案 B 已获用户批准；原候选已完成双端机器实现与联合技术验收；2026-09-01 获批的 TOWER/ROOF nullable-level 修正已完成 order 推测 P0 纠正、修订权威 fixture 同字节镜像与自动矩阵；新的联合真实浏览器验收和用户兼容里程碑仍待完成，尚未发布、合并或进入 `main` 兼容基线
 >
 > 生产方：Space Model Studio
 >
@@ -19,7 +19,7 @@ Standard Model Package v1 是两个独立产品之间的新窄腰。它不替换
 
 新包把 `3.3-semantic` GLB、严格 Platform sidecar v1、不可变资源摘要和版本声明组合成一个可验证交付。Platform 继续保留旧 v3.1 reader；Studio 继续保留 embedded topology 供本端回开。任何 reader 都必须由显式 contract identity 选择，禁止按字段形状猜版本。
 
-原候选的共同 fixtures、producer validator、consumer validator、双端全门禁、真实浏览器端到端验收和最终独立复核均已通过。2026-09-01 获批的 TOWER/ROOF nullable-level 修正已完成权威 v1 fixture/index 的 Platform 同字节镜像与独立验签，但尚未执行本修正新的联合真实浏览器验收。用户确认前仍只能称为“兼容候选”，不得宣称 Studio/Forge/Platform 三端兼容、发布、合并或 `main` 已兼容。
+原候选的共同 fixtures、producer validator、consumer validator、双端全门禁、真实浏览器端到端验收和最终独立复核均已通过。2026-09-01 获批的 TOWER/ROOF nullable-level 修正已完成修订权威 v1 fixture/index 的 Platform 同字节镜像、P0 回归与独立验签，但尚未执行本修正新的联合真实浏览器验收。用户确认前仍只能称为“兼容候选”，不得宣称 Studio/Forge/Platform 三端兼容、发布、合并或 `main` 已兼容。
 
 ## 2. Package identity 与发现
 
@@ -211,9 +211,10 @@ Studio 负责 golden package 的生产与 producer validator；Platform 负责 c
 - 双仓同字节 golden ZIP SHA-256：`d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`；双方 SHA index 已分别验签。
 - Studio 与 Platform 全门禁、真实浏览器联合验收均通过；最终独立 Reviewer P0/P1/P2 均为 0。
 - 这些证据只支持“待用户里程碑确认的兼容候选”，不证明候选已发布、已合并或任一仓库 `main` 已兼容。
-- 2026-09-01 nullable 特殊层修正 checkpoints：validator/Metadata/lifecycle `30e1b4e`，Template 查询专项 `d4475ba`，权威 fixture 镜像验签 `35161cc`。上列原 golden ZIP/SHA index 不覆盖本修正。
-- `35161cc` 中 v1 镜像与 Studio 原件 `cmp=0`；authority document SHA 为 `7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f`，index SHA 为 `f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1`，v1 ZIP SHA 为 `b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4`。index、ZIP 与全部 entry SHA/length 已自动独立校验；v1 revision `dddc3c9f5c3ee48d3e8123d8ae1d9b5ea591d1eced7ebf3bfcda8ce6e4b4c147` 与 strict sidecar revision 一致。
-- v1 parser 35、v1 lifecycle 12、Template 19、`verify:r1` 10/10 均 PASS；独立 Reviewer P0/P1=0。该证据关闭 fixture 镜像验签，不替代 nullable 特殊层新的联合真实浏览器验收或用户兼容里程碑批准。
+- 2026-09-01 nullable 特殊层修订权威为 Studio `f653264`；Platform checkpoints 为 `acbf1f4`（重新镜像、P0 与加载后 identity fail-closed）和 `135be84`（真实 validated v2 查询专项）。上列原 golden ZIP/SHA index 不覆盖本修正。
+- authority document/index/source `Building.glb`/v1 ZIP SHA-256 依次为 `c41dedc540037cfadbae828e82da4f170a97732e7a96d2ff14744ef75e4446ae`、`085a3a08f54fb7f02ee9ef6e16242e47d7741bb5821fdc95869df10ef6cc4485`、`86244b9a40f75e11397cf8ebc65dc0509ffb0337eece3c2a8ba2e1d32a04b864`、`1080cc8717eed98d18eb7a1c8708596ac43c90a7181c28fb55ac5a69df3b3e76`；v1 package revision 与 strict sidecar revision 均为 `482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb`。
+- P0 回归证明 v1 embedded/sidecar 的 `A_T`/`A_RF` layer 不含 `order`，`A_5F`/`A_6F` 保持整数 `5`/`6`，加载后 `floorName/building/level/floorType` 四字段不一致 fail closed。最终矩阵 PASS：v1/v2 parser 35/18、v1/v2 lifecycle 13/8、Template 20、sidecar 18、capability 9、Quick Action 22、home 13、legacy lifecycle 27、topology 10、typecheck/build/`verify:r1` 10/10。
+- 旧 `35161cc`/`dbceba4` 及旧 authority/index/v1 ZIP/revision SHA `7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f`、`f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1`、`b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4`、`dddc3c9f5c3ee48d3e8123d8ae1d9b5ea591d1eced7ebf3bfcda8ce6e4b4c147` 已 superseded，仅作历史证据。修订证据仍不替代新的联合真实浏览器验收或用户兼容里程碑批准。
 
 ### 7.2 共同 diagnostics 基线
 
@@ -243,7 +244,7 @@ Sidecar 解析、绑定和编译失败继续原样使用已冻结的 `SIDECAR_*`
 - 每个 package revision 不可变；回滚是切回上一个完整 revision，而不是局部替换 GLB 或 sidecar。
 - 存量 Studio 模型必须经当前 exporter 重新发布并通过双端 fixtures/validator，不能只补一个 manifest 宣称升级。
 - Studio 可额外输出 `producer-validation.json` 作为非规范审计附件；它不进入 package v1 manifest，也不影响 Platform 对 package 的接受或拒绝。
-- 原候选的双端实现、共享 fixture、自动验证、浏览器加载和独立 QA 已通过；2026-09-01 nullable 特殊层修正也已完成权威 v1 fixture 同字节镜像与独立验签。仍须执行本修正新的联合真实浏览器验收并获得用户兼容里程碑批准；此前不得申请三端兼容、发布、合入或备份结论。
+- 原候选的双端实现、共享 fixture、自动验证、浏览器加载和独立 QA 已通过；2026-09-01 nullable 特殊层修正也已完成 P0 纠正、修订权威 v1 fixture 同字节镜像与自动矩阵。仍须执行本修正新的联合真实浏览器验收并获得用户兼容里程碑批准；此前不得申请三端兼容、发布、合入或备份结论。
 
 ## 9. 工作包与所有权
 
@@ -269,7 +270,8 @@ Platform 的实现边界位于 SSP 外的 adapter/integration 层；`src/ssp/**`
 2. **已完成**：冻结共同 JSON Schema/TypeScript contract、fixture index 与 diagnostics 预期。
 3. **已完成**：Studio 实现 exporter/producer validator；Platform 实现 package/3.3 consumer reader。
 4. **已完成**：双端交换同字节 fixtures、分别验签 SHA index 并交叉运行 validators。
-5. **已完成**：真实浏览器联合链路、独立架构/QA 复核及最终 Reviewer 通过，P0/P1/P2 均为 0。
-6. **当前门禁**：向用户提交兼容里程碑确认；确认后再执行获准的本地合入与手动备份流程。
+5. **已完成（原候选）**：真实浏览器联合链路、独立架构/QA 复核及最终 Reviewer 通过，P0/P1/P2 均为 0。
+6. **当前门禁**：执行 nullable 特殊层修订权威的新联合真实浏览器验收。
+7. **后续门禁**：向用户提交兼容里程碑确认；确认后再执行获准的本地合入与手动备份流程。
 
 当前两端成果仍位于各自任务分支。本文不表示已发布、已合并或 `main` 已兼容；用户里程碑确认是下一必经门禁。

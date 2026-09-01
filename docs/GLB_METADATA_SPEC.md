@@ -6,6 +6,8 @@
 > **Blender 操作员看这份**: [BLENDER_METADATA_GUIDE.md](./BLENDER_METADATA_GUIDE.md) — 简化版,只讲 Blender 怎么填。
 >
 > **跨项目状态**：本文件是 Space AI Platform 当前 v3.1 消费基线；Space Model Studio 当前生产基线是不同的 `3.3-semantic`。两者尚未通过共同 fixture/validator 证明兼容，不得把 3.3 静默标成 v3.1，也不得单方改变本文件语义；差异与待决方案见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)。
+>
+> **Package 3.3 特殊层说明（2026-09-01）**：用户已批准 Standard Model Package v1/v2 当前候选的 TOWER/ROOF nullable-level 兼容修正。该独立 Package 3.3 reader 要求 `building` 为非空字符串、`level` 键存在，且允许 `level: null` 或既有有限整数；不从 elevation、文件名或顺序猜 level。本说明不修改本文件所记录的 legacy v3.1 reader 接受/拒绝结果。
 
 ## v3.1 变更(2026-07,在 v3 基础上)
 
@@ -954,6 +956,8 @@ ssp.objectsTool.setHighlight(mr[0], '#29ccff')
 | `BASEMENT_B1.glb` | - | -1 | BASEMENT | 地下室B1层 |
 | `LANDSCAPE_TERRAIN.glb` | - | null | LANDSCAPE_TERRAIN | 地形 |
 | `LANDSCAPE_FACADE.glb` | - | null | LANDSCAPE_FACADE | 外立面 |
+
+`A_T.glb → 25` 与 `A_DING.glb → max+1` 只保留为 legacy v3.1 注入工具的 integer-compatible 历史示例，不是 Standard Model Package v1/v2 的唯一规范，也不建立 elevation、楼层顺序或自动推导语义。Package 3.3 当前 canonical 特殊层可以显式声明 `A_T`/TOWER/`null` 或 `A_RF`/ROOF/`null`；既有显式整数仍兼容。无论选择 `null` 还是整数，manifest、默认 scene 与所有 mesh node 必须使用完全相同的声明值。
 
 ### 14.2 node.extras 注入 (每个 mesh 必须)
 

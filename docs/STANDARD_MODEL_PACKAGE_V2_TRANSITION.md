@@ -2,7 +2,7 @@
 
 > 日期：2026-08-28
 >
-> 状态：用户已批准能力声明型 Standard Model Package v2 的 P0 精确机器值与补充决策；Platform 消费候选已在任务分支完成
+> 状态：用户已批准能力声明型 Standard Model Package v2 的 P0 精确机器值、补充决策及 2026-09-01 TOWER/ROOF nullable-level 兼容修正；Platform 本地消费候选已完成，修正后的 Studio 权威同字节 fixture/index 仍待镜像验签
 >
 > 当前门禁：候选尚未合入 Platform local `main`、尚未发布，也未获得临时兼容里程碑批准；不得把任务分支候选表述为已交付能力
 >
@@ -19,7 +19,7 @@
 这不是对 Standard Model Package v1 的放宽，也不是把中间产物改名为标准包：
 
 - v1 继续要求 manifest 指向严格 Platform topology sidecar v1，并完成摘要、预绑定、AssetProof、编译和 graph 原子提交；
-- v1 reader、共同 fixtures、旧 Platform Metadata v3.1 reader 及其接受/拒绝结果保持不变；
+- 除 2026-09-01 经用户批准、在 v1/v2 同步应用的 TOWER/ROOF nullable-level 显式接受值域外，v1 topology/identity、既有 fixture 结果和旧 Platform Metadata v3.1 reader 的接受/拒绝结果保持不变；修正后的共同 fixture 另行补齐；
 - v2 必须是完成严格生产校验和发布回读的标准包，不能承载 Studio `*-unvalidated` 中间产物；
 - v2 只能通过新的显式版本身份与能力声明被选择，不能由 v1 缺字段、sidecar 失败、basename、目录扫描或内容形状猜测得到；
 - v2 的 topology 能力明确为 `ABSENT` 语义，不允许缺省、不允许空或伪 sidecar，也不读取 GLB embedded topology 作为 fallback。
@@ -30,7 +30,7 @@ P0 机器表达已经冻结：`schema = "space-model-package"`、`schemaVersion 
 
 ### 2.1 保持不变
 
-- Standard Model Package v1 仍是 `3.3-semantic GLB + strict sidecar v1 + graph` 的完整 topology package；v2 不修改 v1 manifest、sidecar、fixtures 或 diagnostics。
+- Standard Model Package v1 仍是 `3.3-semantic GLB + strict sidecar v1 + graph` 的完整 topology package；除用户批准并由 v1/v2 共同采用的 nullable 特殊层条件矩阵外，v2 不修改 v1 manifest、sidecar、既有 fixture 结果或 diagnostics。
 - Platform 旧 v3.1 + 外置 sidecar v1 链路保持原样。
 - Studio legacy embedded topology 与 Platform external sidecar 仍是不同 schema；Platform 不消费 embedded topology fallback。
 - `src/ssp/**`、SSP–Template–AI 窄腰、Topology core 和已有注册模板契约不因 v2 改写。
@@ -46,6 +46,16 @@ v2 仅免除 topology 数据本身，不免除标准模型质量或资源安全�
 - manifest/package identity、显式 URI、canonical URI、SHA-256、不可变 revision、asset identity、楼层身份、唯一性和资源预算；
 - ZIP 路径、条目、压缩、大小、重复/碰撞、同源和去敏诊断门禁；
 - Platform 对实际消费字节的独立摘要与 Metadata 校验，不信任 basename 或非规范审计附件代替验证。
+
+2026-09-01 获批的 floor identity 条件矩阵只修正特殊层的可空值域，不降低 requiredness：
+
+| `floorType` | `building` | `level` |
+|---|---|---|
+| `TOWER` / `ROOF` | 键必须存在且为非空字符串 | 键必须存在；允许 `null` 或既有有限整数 |
+| `FLOOR` / `BASEMENT` / `FACILITY` | 键必须存在且为非空字符串 | 必须为有限整数 |
+| `LANDSCAPE_TERRAIN` / `LANDSCAPE_FACADE` | 必须为 `null` | 必须为 `null` |
+
+`A_T` / `TOWER` / `null` 与 `A_RF` / `ROOF` / `null` 是当前特殊层候选。既有整数 TOWER/ROOF 继续兼容，但其整数不得被解释为 Platform 从 elevation、文件名或楼层顺序推导的值。Manifest、默认 scene 与所有 mesh node 必须对 `floorName/building/level/floorType` 完全一致；不新增 schema/version/elevation/order/topology 字段，也不定义隐式排序。
 
 ### 2.3 非目标
 
@@ -79,6 +89,8 @@ v2 仅免除 topology 数据本身，不免除标准模型质量或资源安全�
 |---|---|---|---|
 | 合法 v1 manifest + strict sidecar v1 | v1 | 按冻结 v1 完整校验、建图并 Graph ready | 已有候选实现，不变 |
 | 合法 v2 身份 + topology 明确 `ABSENT` + 全部几何/Metadata/资源门禁通过 | v2 | Scene/Metadata ready；Topology 结构化不可用 | Platform 消费候选已实现并验收 |
+| 合法 v2 + TOWER/ROOF 非空 building + 显式 `level: null` 或有限整数 | v2 | 按声明值发布 Scene/Metadata ready；不补算 level | Platform 本地修正候选已实现；共同 fixture 待验签 |
+| TOWER/ROOF 缺失 level、building 为 null，或其他非景观类型 level 为 null | v2 | fail closed | Platform 本地专项已覆盖；共同 fixture 待验签 |
 | v2 缺少 topology 能力声明或声明未知值 | v2 | fail closed，不加载或发布部分会话 | 已实现专项拒绝 |
 | v2 使用空、伪造或占位 sidecar 表示“无 topology” | v2 | 拒绝 | 已实现封闭 ZIP allowlist 拒绝 |
 | v2 GLB 携带 `scene.extras.sspTopology` | v2 | 拒绝整个包；不得忽略、fallback 或产生 graph | 已实现 `PACKAGE_EMBEDDED_TOPOLOGY_FORBIDDEN` |
@@ -221,6 +233,7 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 - 真实整栋多楼层 v2：多 GLB、唯一 asset/floor identity、全部 SHA-256 和最终回读通过。
 - 与 v1 同一合法 GLB 资源的对照 fixture：证明 v2 只改变声明能力，不放宽几何/Metadata validator。
 - Scene/Metadata ready 的浏览器 fixture：模型可见、无 graph、所有 topology 入口稳定返回不可用。
+- TOWER 与 ROOF 的 nullable-level 成功 fixture：至少覆盖 `A_T`/TOWER/`null`、`A_RF`/ROOF/`null`，并保留显式整数 TOWER/ROOF 成功对照；manifest、scene 与 mesh node 值完全一致。
 
 ### 10.2 必需失败 fixtures
 
@@ -232,6 +245,7 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 - 旧 building-release ZIP、无 manifest ZIP 和 Studio producer 未通过验证的中间产物；
 - 多资产中途失败、A→B 迟到、清理失败和部分场景污染；
 - v2 会话错误发布 graphId、nodes、Graph ready 或启用 topology Quick Action/AI。
+- TOWER/ROOF 缺失 `level`、`building: null`、manifest/GLB floor identity 不一致；FLOOR/BASEMENT/FACILITY 使用 `level: null`；LANDSCAPE 使用非 null building/level。
 
 ### 10.3 已冻结 diagnostics 边界
 
@@ -240,6 +254,7 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 - UI 与 Template Runtime 稳定区分“能力不可用”“无路”“包加载失败”；
 - Platform fixture 的 ZIP SHA-256 为 `be0b7734ebbb3effb1f220f601d047d69dcf849c5d16bf7fdc1cd54f4f90e0c7`，SHA index 为 `c559d47222f6d7d61160d74676885e61ea0c0a462f0f67d6c7e5cdd2cc78a91c`，canonical revision 为 `96fee045700e5bbe18c4b196ae96821a84508860460c3cd2e59455594bc61b22`；Studio 与 Platform 已核对同字节 fixture。
 - 自动验收已通过 v2 parser 16、v2 lifecycle 5、home 13、capability 9、Quick Action 22、v1 parser 33、v1 lifecycle 10、legacy 27、sidecar 18、templates 18，以及 typecheck/build/`verify:r1`/审计。真实浏览器显式导入 v2 后为 2 floors、Scene/Metadata ready、无 graph、Topology 稳定 unavailable；权威最小 GLB 仅有两条 Three loader min/max warning，无 error。
+- 上述 ZIP/index/revision 与自动验收是 nullable 特殊层修正前的历史候选证据。Platform 已在 `30e1b4e` 完成 validator/Metadata/lifecycle 修正，并在 `d4475ba` 增加 Template 查询专项；Studio 权威 v2 同字节 fixture/index 已提供但尚待 Platform 镜像验签，因此不得据本地 checkpoints 或未验签上游证据宣称 Studio/Forge/Platform 三端兼容。
 
 ## 11. 分阶段工作包
 
@@ -262,10 +277,10 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 ### Phase 2 — Platform consumer
 
 - 新增 SSP 外 v2 reader、资源证明、asset session、能力投影和 UI/Template/AI 门禁。
-- 保持 v1 fixtures、旧 v3.1 reader、`src/ssp/**` 和既有接受/拒绝结果不变。
+- 保持既有 v1 fixture 结果、旧 v3.1 reader、`src/ssp/**` 和除获批 nullable 特殊层显式接受值域外的接受/拒绝结果不变；新增共同 fixture 必须单独同步验签。
 - 完成 package/Metadata/lifecycle/capability/非污染专项测试。
 
-状态：任务分支候选已完成。检查点依次为 parser `e5b6462`、lifecycle `2033525`、capability gate `7733284`、UI `c498452`、fixture `f499da8`；consumer gates 与 v1/legacy 回归通过，但未合入 local `main`、未发布。
+状态：原任务分支候选检查点依次为 parser `e5b6462`、lifecycle `2033525`、capability gate `7733284`、UI `c498452`、fixture `f499da8`；nullable 特殊层的 Platform 修正 checkpoints 为 `30e1b4e` 与 `d4475ba`。本地候选仍未合入 local `main`、未发布；修正后的 Studio 权威同字节 fixture/index 尚待镜像验签。
 
 ### Phase 3 — 双端联合验收
 
@@ -275,7 +290,7 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 
 停止条件：P0/P1 清零、遗留风险明确，并提交用户临时兼容里程碑确认。
 
-当前技术证据：同字节 fixture、自动门禁与真实浏览器均已通过，本轮 Platform 架构终审 P0/P1 为 0；仍须用户临时兼容里程碑批准，不能据此发布或合入 local `main`。
+当前技术证据：原候选的同字节 fixture、自动门禁与真实浏览器均已通过；nullable 特殊层已有 Platform 本地 checkpoints，新的 Studio 权威 v1/v2 同字节 fixture/index 也已提供，但尚未完成 Platform 镜像验签。联合通过前不得宣称 Studio/Forge/Platform 三端兼容；用户临时兼容里程碑、发布和 local `main` 合入状态均不变。
 
 ### Phase 4 — 临时放行与退出准备
 
@@ -296,12 +311,14 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 7. 消费顺序：ZIP/URI/revision/全部摘要/Metadata 3.3/identity 在任何 loader 调用前完成；全部资产成功才原子发布 `scene-ready`，资源证明为 `SAME_RESPONSE_BYTES`，不调用 sidecar compiler 或 `createGraph`。
 8. 正常能力缺席：`TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT`；routing/rendering/connector/blocker/topology AI/Quick Action 关闭，非 topology 能力继续经过 SSP–Template–AI 窄腰。
 9. 补充回滚：不做持久 revision registry，用户通过重新导入回滚运行时选择；临时 profile 的停发、停收、存量迁移与 reader 最终移除仍由第 9 节共同门禁和用户批准控制。
+10. floor identity 兼容修正：TOWER/ROOF 的 `building` 必须为非空字符串，`level` 键必须存在并允许 `null` 或有限整数；其他 floorType 继续遵循第 2.2 节矩阵。`level` 的原始声明值属于 canonical manifest facts，`null` 与整数产生不同 revision；不得在计算 revision 前补算或归一化。
 
 ## 13. 当前结论
 
 - 用户已批准 v2 P0 精确机器值及“不做持久 revision registry、回滚靠重新导入”和“Studio 可显式排除并审计 draft topology、不得静默丢弃”两项补充决策。
 - 本文是过程、边界、验证和回滚事实源，不替代 machine-readable schema 或 fixtures。
-- Platform 消费候选已在 `codex/r2-standard-model-package` 完成；尚未合入 local `main`、尚未发布，也未获得临时兼容里程碑批准，不得宣称 Platform 已交付 v2。
-- v1 strict topology 候选结论、v1 fixtures、旧 v3.1 reader 与旧 ZIP 拒绝边界均保持不变。
+- Platform 原消费候选及 nullable 特殊层本地修正已在 `codex/r2-standard-model-package` 完成；修正 checkpoints 为 `30e1b4e` 与 `d4475ba`。候选尚未合入 local `main`、尚未发布，也未获得临时兼容里程碑批准，不得宣称 Platform 已交付 v2。
+- Studio 权威 v1/v2 nullable 特殊层同字节 fixture/index 已提供，尚待 Platform 镜像验签；联合完成前不得宣称 Studio/Forge/Platform 三端兼容。
+- v1 strict topology 候选结论、既有 v1 fixture 结果、旧 v3.1 reader 与旧 ZIP 拒绝边界均保持不变；唯一例外是用户明确批准的 TOWER/ROOF nullable-level 接受值域及其待补共同 fixtures。
 - `src/ssp/**` 未修改；临时 profile 不得由任一方单方停发、停收、迁移或移除。
 - 本决策无新增、撤销或职责迁移，不改变组织架构。

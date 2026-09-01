@@ -2,7 +2,7 @@
 
 > 日期：2026-08-22
 >
-> 状态：方案 B 已获用户批准；双端任务分支机器实现与联合技术验收完成，形成待用户里程碑确认的兼容候选；尚未发布、合并或进入 `main` 兼容基线
+> 状态：方案 B 已获用户批准；原候选已完成双端机器实现与联合技术验收；2026-09-01 获批的 TOWER/ROOF nullable-level 兼容修正已完成 Platform 本地实现，Studio 权威同字节 fixture/index 已提供但仍待 Platform 镜像验签；尚未发布、合并或进入 `main` 兼容基线
 >
 > 生产方：Space Model Studio
 >
@@ -19,7 +19,7 @@ Standard Model Package v1 是两个独立产品之间的新窄腰。它不替换
 
 新包把 `3.3-semantic` GLB、严格 Platform sidecar v1、不可变资源摘要和版本声明组合成一个可验证交付。Platform 继续保留旧 v3.1 reader；Studio 继续保留 embedded topology 供本端回开。任何 reader 都必须由显式 contract identity 选择，禁止按字段形状猜版本。
 
-共同 fixtures、producer validator、consumer validator、双端全门禁、真实浏览器端到端验收和最终独立复核现已全部通过，因此可提交用户兼容里程碑确认；用户确认前仍只能称为“兼容候选”，不得声明已发布、已合并或 `main` 已兼容。
+原候选的共同 fixtures、producer validator、consumer validator、双端全门禁、真实浏览器端到端验收和最终独立复核均已通过。2026-09-01 获批的 TOWER/ROOF nullable-level 修正重新打开了这一局部联合证据门禁；Studio 权威 v1 fixture/index 已提供但尚未完成 Platform 镜像验签，在此之前不得用原证据宣称修正后的 Studio/Forge/Platform 三端兼容。用户确认前仍只能称为“兼容候选”，不得声明已发布、已合并或 `main` 已兼容。
 
 ## 2. Package identity 与发现
 
@@ -88,7 +88,7 @@ Standard Model Package v1 是两个独立产品之间的新窄腰。它不替换
 | `assets` | 1–128 项；`assetId` 唯一且最长 160 字符 |
 | `assets[].uri` | manifest 相对或根相对 URI；最长 4,096 字符 |
 | `assets[].digest` | 必填；仅 `SHA-256` 与 64 位小写十六进制 |
-| `assets[].floor` | 必填；`floorName/floorType` 必须符合并等于 3.3 scene metadata；`building` 为非空字符串或 `null`，`level` 为有限整数或 `null`，两者不得省略 |
+| `assets[].floor` | 必填；`floorName/floorType` 必须符合并等于 3.3 scene metadata；`building` 和 `level` 键均不得省略，值按下表由 `floorType` 约束 |
 | `topology.uri` | 必填；与 assets 使用相同 URI 安全规则 |
 | `topology.digest` | 必填；覆盖 sidecar 的精确 UTF-8 字节 |
 | `topology.schema` | 固定 `space-ai-platform/topology-sidecar` |
@@ -96,6 +96,16 @@ Standard Model Package v1 是两个独立产品之间的新窄腰。它不替换
 | `topology.revision` | 必须与 package `revision` 相同 |
 
 Manifest 必须是 UTF-8 JSON，最大 1 MiB，最大容器深度 16。除 URI 外的字符串最长 160 字符。v1 对象均为封闭结构，不提供可改变核心语义的自由扩展字段。
+
+`assets[].floor` 的条件约束固定为：
+
+| `floorType` | `building` | `level` |
+|---|---|---|
+| `TOWER` / `ROOF` | 必须存在且为 trim 后非空字符串 | 键必须存在；值为 `null` 或既有有限整数 |
+| `FLOOR` / `BASEMENT` / `FACILITY` | 必须存在且为 trim 后非空字符串 | 必须为有限整数，不接受 `null` |
+| `LANDSCAPE_TERRAIN` / `LANDSCAPE_FACADE` | 必须为 `null` | 必须为 `null` |
+
+`A_T` / `TOWER` / `null` 与 `A_RF` / `ROOF` / `null` 是当前特殊层候选；既有整数 TOWER/ROOF 继续合法。整数或 `null` 都必须由 producer 显式写入，Platform 不从 elevation、文件名、楼层顺序或 `floorType` 猜测、生成或归一化 `level`。本修正不新增 schema/version/elevation/order/topology 字段。
 
 ### 3.3 URI 与摘要规则
 
@@ -125,7 +135,9 @@ Platform 新增独立 package v1 reader 与 `3.3-semantic` validator/adapter，�
 → SSP 外适配并一次性提交 graph
 ```
 
-3.3 适配层只负责验证和投影 Studio 已声明的字段；`sid` 作为不透明稳定标识使用，不把 v3.1 的无方向 SID 规则套到 3.3，也不从名称、包围盒、行业词汇或缺失字段推断语义。
+3.3 适配层只负责验证和投影 Studio 已声明的字段；manifest floor、默认 scene extras 与所有 mesh node extras 的 `floorName/building/level/floorType` 必须逐字段完全相等。`sid` 作为不透明稳定标识使用，不把 v3.1 的无方向 SID 规则套到 3.3，也不从名称、包围盒、行业词汇或缺失字段推断语义。
+
+对于显式 `level: null` 的 TOWER/ROOF，精确 `floorName` 或 `floorType` 查询仍可使用；数字 level 查询、`getFloorNameByLevel` 及 explode 等依赖数字 level 的能力明确不适用。适配层不得为使这些能力可用而补算 level，也不定义隐式排序或 elevation。
 
 禁止触碰范围：
 
@@ -177,6 +189,9 @@ Producer validator 必须把 embedded graph 和生成的 sidecar 反向投影到
 | 单楼层最小 package | 双端 PASS，Platform 成功建图 |
 | 单楼层 polyline + active blocker | 双端 PASS，路由行为一致 |
 | Metadata 3.3 必填字段/方向 SID | 合法 PASS；缺失或非法 FAIL |
+| `A_T`/TOWER 与 `A_RF`/ROOF 的显式 `level: null`，以及既有整数 TOWER/ROOF | manifest、scene、mesh node 完全一致时双端 PASS |
+| TOWER/ROOF 缺失 `level`、`building: null` 或 manifest/GLB floor identity 漂移 | FAIL CLOSED |
+| FLOOR/BASEMENT/FACILITY 使用 `level: null`，或 LANDSCAPE 使用非 null building/level | FAIL CLOSED |
 | package/GLB/sidecar 摘要任一不匹配 | FAIL CLOSED |
 | manifest 未知字段、未知版本或重复 assetId | FAIL CLOSED |
 | URI 跨源、带凭据、fragment、反斜杠或重复 canonical URI | FAIL CLOSED |
@@ -196,6 +211,8 @@ Studio 负责 golden package 的生产与 producer validator；Platform 负责 c
 - 双仓同字节 golden ZIP SHA-256：`d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`；双方 SHA index 已分别验签。
 - Studio 与 Platform 全门禁、真实浏览器联合验收均通过；最终独立 Reviewer P0/P1/P2 均为 0。
 - 这些证据只支持“待用户里程碑确认的兼容候选”，不证明候选已发布、已合并或任一仓库 `main` 已兼容。
+- 2026-09-01 nullable 特殊层修正的 Platform checkpoints：validator/Metadata/lifecycle `30e1b4e`，Template 查询专项 `d4475ba`。它们只证明 Platform 本地候选；上列原 golden ZIP/SHA index 不覆盖本修正。
+- Studio 权威 v1 同字节 fixture/index 已提供，尚待 Platform 镜像验签。完成前不得宣称修正后的 Studio/Forge/Platform 三端兼容，也不得把本地 checkpoint 或未验签上游证据表述为发布、合并或用户里程碑批准。
 
 ### 7.2 共同 diagnostics 基线
 
@@ -225,7 +242,7 @@ Sidecar 解析、绑定和编译失败继续原样使用已冻结的 `SIDECAR_*`
 - 每个 package revision 不可变；回滚是切回上一个完整 revision，而不是局部替换 GLB 或 sidecar。
 - 存量 Studio 模型必须经当前 exporter 重新发布并通过双端 fixtures/validator，不能只补一个 manifest 宣称升级。
 - Studio 可额外输出 `producer-validation.json` 作为非规范审计附件；它不进入 package v1 manifest，也不影响 Platform 对 package 的接受或拒绝。
-- 双端实现、共享 fixture、自动验证、浏览器加载和独立 QA 已全部通过，当前可申请“跨项目兼容”里程碑验收；只有用户确认后才能进入后续发布、合入和备份流程。
+- 原候选的双端实现、共享 fixture、自动验证、浏览器加载和独立 QA 已通过；2026-09-01 nullable 特殊层修正的 Studio 权威 v1 同字节 fixture/index 已提供，仍须完成 Platform 镜像验签和相应联合验证。完成前不得据原证据申请修正后的三端兼容结论；只有证据闭环且用户确认后，才能进入后续发布、合入和备份流程。
 
 ## 9. 工作包与所有权
 

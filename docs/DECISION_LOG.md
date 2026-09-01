@@ -170,6 +170,18 @@
 - **人员影响**：不新增、撤销或迁移人员、职责和汇报关系，不触发组织架构变更。
 - **替换关系**：不替换 Standard Model Package v1、Metadata v3.1/`3.3-semantic`、Studio embedded topology v1 或 Platform sidecar v1；只新增临时、显式隔离的 v2 路径。
 
+## 2026-09-01 — 批准 Standard Model Package v1/v2 nullable 特殊层兼容修正
+
+- **状态**：有效；当前候选兼容修正，Platform 本地实现完成，权威联合 fixture/index 待同步验签。
+- **背景**：Studio 的 TOWER/ROOF 特殊层需要在没有可信数字楼层时显式表达 `level: null`，而原 Platform v1/v2 manifest 与 Metadata 3.3 validator 对所有非景观类型要求整数 level，造成已批准候选的局部生产/消费冲突。
+- **精确规则**：v1/v2 manifest、默认 scene 与所有 mesh node 的 `building`、`level` 键继续必填。TOWER/ROOF 的 `building` 必须为非空字符串，`level` 允许 `null` 或既有有限整数；FLOOR/BASEMENT/FACILITY 继续要求非空 building + 有限整数 level；LANDSCAPE_TERRAIN/LANDSCAPE_FACADE 继续要求 building/level 均为 `null`。各载体的 `floorName/building/level/floorType` 必须逐字段完全一致。
+- **当前候选**：`A_T`/TOWER/`null` 与 `A_RF`/ROOF/`null` 是当前特殊层候选；既有 integer TOWER/ROOF 继续兼容。任何一端不得从 elevation、文件名、楼层顺序或 floorType 猜测、补算、归一化 level，也不得新增 elevation/order、schema/version 或 topology 字段。
+- **能力边界**：精确 `floorName`/`floorType` 查询继续可用；数字 level 查询、`getFloorNameByLevel` 与 explode 等依赖数字 level 的能力对 `null` 明确不适用。v1 继续依赖显式 sidecar graph；v2 继续只发布 Scene/Metadata ready，并保持 `TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT`。
+- **Platform 证据**：本地 checkpoints 为 `30e1b4e`（validator/Metadata/lifecycle）与 `d4475ba`（Template 查询专项）。Studio 权威 v1/v2 同字节 fixture/index 已提供，尚待 Platform 镜像验签；联合通过前不得宣称 Studio/Forge/Platform 三端兼容，原 golden SHA 不作为本修正证据。
+- **保留边界**：除上述显式接受值域外，v1/v2 identity、URI、digest、revision、资源限制、lifecycle、sidecar、embedded fallback、v2 topology unavailable、legacy v3.1 reader及发布/合并/里程碑状态全部不变。
+- **人员影响**：不新增、撤销或迁移人员、职责、权限和汇报关系，不触发 `ORG_CHART.md` 或 `PRODUCT_MANAGER_CHARTER.md` 变更。
+- **替换关系**：细化 2026-08-22 Package v1 与 2026-08-28 Package v2 决策中的 Package Metadata 3.3 floor identity 条件；不替换其余冻结语义。
+
 ## 新决策模板
 
 ```markdown

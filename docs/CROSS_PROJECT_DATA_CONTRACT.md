@@ -3,15 +3,15 @@
 ## 决策记录
 
 - 生效日期：`2026-08-22`
-- 状态：产品分离、契约治理和方案 B 已批准；双端任务分支机器实现与联合技术验收完成，形成待用户里程碑确认的兼容候选
+- 状态：产品分离、契约治理和方案 B 已批准；原候选已完成双端机器实现与联合技术验收；2026-09-01 获批的 TOWER/ROOF nullable-level 修正已完成 Platform 本地实现，修正后的权威联合 fixture/index 仍待同步验签
 - 生产方：Space Model Studio
 - 消费方：Space AI Platform
 - Studio 当前实现基线：Metadata `3.3-semantic`；GLB 内嵌 `scene.extras.sspTopology` schema v1
 - Platform 当前实现基线：GLB Metadata v3.1；外置 `space-ai-platform/topology-sidecar` schema v1
-- 当前兼容结论：**双端技术候选已通过共同验证，但尚未获得用户里程碑确认、尚未发布或合并，不得提前声明 `main` 已兼容**
-- v2 过渡状态：用户已批准 P0 精确机器值与两项补充决策；Platform 消费候选已在任务分支完成，但尚未合入 local `main`、发布或获得临时兼容里程碑批准
+- 当前兼容结论：**原候选已通过共同验证；Studio 已提供 nullable 特殊层权威 v1/v2 同字节 fixture/index，但尚待 Platform 镜像验签，联合完成前不得宣称 Studio/Forge/Platform 三端兼容、发布、合并或 `main` 已兼容**
+- v2 过渡状态：用户已批准 P0 精确机器值、两项补充决策及 nullable 特殊层修正；Platform 本地消费候选已在任务分支完成，但尚未合入 local `main`、发布或获得临时兼容里程碑批准
 
-本记录只固化长期产品边界、当前事实和变更门禁，不修改任何现有字段、枚举、坐标、ID、发现或绑定语义。
+本记录只固化长期产品边界、当前事实、变更门禁和用户明确批准的 nullable 特殊层候选修正；除该修正外，不修改任何既有字段、枚举、坐标、ID、发现或绑定语义。
 
 ## 1. 产品事实
 
@@ -29,8 +29,9 @@ Space AI Platform
 - Studio 的 Domain Model、编辑器状态和 Three.js 投影不是 Platform API。
 - Platform 的 SSP、Template、AI、数据库和 UI 状态不是 Studio 的生产依赖。
 - 双方应共享版本化机器契约、兼容承诺、golden fixture 和 validator 预期，而不是源代码。
-- Standard Model Package v1 已在双方任务分支完成机器实现和联合技术验收，满足提交用户里程碑确认的技术条件；在用户确认前，它仍是候选而不是已发布兼容承诺。
+- Standard Model Package v1 原候选已在双方任务分支完成机器实现和联合技术验收；2026-09-01 nullable 特殊层修正重新打开了局部联合证据门禁。在修正后的权威 fixture/index 联合通过且用户确认前，它仍是候选而不是已发布兼容承诺。
 - 用户已批准以独立 v2 身份临时承载“严格几何与 Metadata 已验证、topology 明确缺席”的标准包，并冻结 P0 精确值。Platform 任务分支已有消费候选，但这不表示 local `main`、发布版或用户里程碑已接受 v2；过程与回滚基线见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。
+- 用户于 2026-09-01 批准当前 v1/v2 候选的 TOWER/ROOF nullable-level 兼容修正：`building` 必须为非空字符串，`level` 键必须存在并允许 `null` 或既有有限整数。`A_T`/TOWER/`null` 与 `A_RF`/ROOF/`null` 是当前特殊层候选；该修正不新增 schema/version/elevation/order/topology，也不允许从 elevation、文件名或楼层顺序猜 level。
 - 任一方不得为快速对齐，在已发布版本名下静默改变字段、枚举、必填性、坐标、单位、ID、发现、资产绑定、connector、blocker 或摘要语义。
 
 ### Studio 内部 authoring 输入不进入共享契约
@@ -48,7 +49,7 @@ Space AI Platform
 |---|---|---|---|
 | 版本身份 | Project 固定 `metadataSpecVersion = 3.3-semantic`；最终 GLB 未携带独立 metadata version 字段 | 消费基线名为 v3.1，当前规范未与 3.3 建立显式协商 | GLB 本身不能安全协商版本，阻断 |
 | 枚举集合 | 8 renderType、7 floorType、13 spaceType、11 fireType | 文档枚举集合相同 | 表面对齐，仍需共同 validator/golden |
-| scene requiredness | `floorName/floorType/name` 严格；普通楼层 `building/level` 严格，景观必须为 null | `floorName/floorType` 必填；`building/level/name` 多数为推荐 | Studio 更严格，但不是同一声明 |
+| scene requiredness | `floorName/floorType/name/building/level` 键严格存在；TOWER/ROOF 要求非空 building，level 可为 `null` 或有限整数；FLOOR/BASEMENT/FACILITY 要求非空 building + 有限整数 level；LANDSCAPE 要求 building/level 均为 `null` | `floorName/floorType` 必填；`building/level/name` 多数为推荐 | Package 3.3 使用左侧条件矩阵；不把它静默套入 legacy v3.1 |
 | node requiredness | `sid/findId/floorName/building/level/floorType/name/renderType/renderTypeConfidence` 严格；SPACE/FACILITY 有条件字段 | `sid/findId/renderType` 与条件字段为核心；冗余楼层字段、name、confidence 多为推荐，node 表未定义 floorType | 更严格超集的可能性尚未由共同 reader 证明 |
 | confidence | 必须为 `high` 或 `low` | 同值域，但为推荐 | 值域一致、必填性不同 |
 | findId | `<floorName>_mesh_<实际 node index>` | 同格式 | 字符串格式一致；不能作为 topology 稳定 ID |
@@ -73,7 +74,7 @@ Space AI Platform
 
 ## 4. 兼容候选确认前的发布冻结
 
-Standard Model Package v1 已完成双端技术验收，但在用户确认兼容里程碑前：
+Standard Model Package v1 原候选已完成双端技术验收；nullable 特殊层修正仍待权威联合 fixture/index 闭环。在用户确认兼容里程碑前：
 
 1. Studio legacy 路径继续按 `3.3-semantic + embedded sspTopology v1` 工作；Package v1 只由显式 package identity 选择。
 2. Platform 旧入口继续按 `v3.1 + topology sidecar v1` fail closed，旧 reader 的接受/拒绝结果不变。
@@ -106,9 +107,9 @@ Standard Model Package v1 已完成双端技术验收，但在用户确认兼容
 - Studio 保留 embedded topology 供本端回开，并从同一 Domain topology 额外编译严格符合 Platform sidecar v1 的正式 sidecar。
 - Platform 保留旧 v3.1 reader，并新增 package v1 + 3.3 的显式 reader/validator；Platform 仍只消费 sidecar，不读取 embedded topology 作为 fallback。
 - 已冻结的四个既有契约均不就地修改；若 sidecar v1 无法承载未来语义，则另发 v2。
-- 两端共同 fixture/validator、exporter/reader、交叉验证与浏览器验收均已完成；用户里程碑确认前不宣布兼容发布。
+- 原候选的两端共同 fixture/validator、exporter/reader、交叉验证与浏览器验收均已完成；nullable 特殊层修正仍待权威共同 fixture/index 联合通过，用户里程碑确认前不宣布兼容发布。
 
-2026-08-22，两个项目总控已逐项确认 package identity、manifest 字段、URI/摘要、版本与资源限制、Metadata dual-read、embedded→sidecar 映射、diagnostics、fixture 权威索引和非规范审计附件，没有遗留设计分歧。2026-08-28，双方任务分支已完成机器实现、共同 fixture/validator、交叉验证、真实浏览器联合验收与独立复核；下一门禁是用户兼容里程碑确认。
+2026-08-22，两个项目总控已逐项确认 package identity、manifest 字段、URI/摘要、版本与资源限制、Metadata dual-read、embedded→sidecar 映射、diagnostics、fixture 权威索引和非规范审计附件，当时没有遗留设计分歧。2026-08-28，原候选完成机器实现、共同 fixture/validator、交叉验证、真实浏览器联合验收与独立复核。2026-09-01 用户批准 nullable 特殊层兼容修正；Platform checkpoints 为 `30e1b4e`（validator/Metadata/lifecycle）与 `d4475ba`（Template 查询专项），Studio 权威 v1/v2 同字节 fixture/index 已提供，下一门禁是 Platform 镜像验签与联合通过。
 
 ### 6.1 当前候选证据
 
@@ -122,7 +123,7 @@ Standard Model Package v1 已完成双端技术验收，但在用户确认兼容
 
 用户于 2026-08-28 批准 v2 临时方向及 P0 精确机器值，详细过程与冻结值见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。长期边界为：
 
-- v1 继续强制 strict sidecar topology；v1 reader/fixtures 与旧 v3.1 reader 不变。
+- v1 继续强制 strict sidecar topology；除用户批准并由 v1/v2 同步采用的 TOWER/ROOF nullable-level 显式接受值域外，v1 identity/topology、既有 fixture 结果与旧 v3.1 reader 不变；修正后的共同 fixture 另行补齐。
 - v2 以新版本身份显式声明 topology `ABSENT` 语义；不得缺省猜测、使用空/伪 sidecar或读取 embedded topology fallback。
 - v2 不是 unvalidated package。GLB 几何、Metadata `3.3-semantic`、SPACE/语义、最终发布物回读、URI、SHA-256、revision、identity 与资源限制仍须由 Studio 和 Platform 分别严格验证。
 - Platform 只开放 scene、Metadata 和其他不依赖 topology 的能力；routing/rendering/connector/blocker/topology AI/Quick Action 以结构化 `TOPOLOGY_UNAVAILABLE` 产品语义关闭，不得误报包加载失败或 Graph ready。
@@ -131,6 +132,8 @@ Standard Model Package v1 已完成双端技术验收，但在用户确认兼容
 - Studio/Platform 同字节 v2 fixture 的 ZIP SHA-256 为 `be0b7734ebbb3effb1f220f601d047d69dcf849c5d16bf7fdc1cd54f4f90e0c7`，SHA index 为 `c559d47222f6d7d61160d74676885e61ea0c0a462f0f67d6c7e5cdd2cc78a91c`，canonical revision 为 `96fee045700e5bbe18c4b196ae96821a84508860460c3cd2e59455594bc61b22`。
 - 不建立持久 v2 revision registry，运行时回滚通过重新导入；Studio 可显式排除并审计 authoring 中的 draft topology，但不得静默丢弃，且标准包仍禁止 topology entry 与 embedded `sspTopology`。
 - v2 退出必须由完整 topology 的 Studio authoring、Platform consumer、共同 fixtures、真实整栋验收和用户里程碑批准共同触发。双方同步停止新生产/新接收，存量只读迁移回 Studio 补 topology 后重发 v1；最终删除 v2 reader 仍需用户批准，不得单方回滚。
+- nullable 特殊层只扩展 v1/v2 Package 3.3 floor identity 的显式接受值域：TOWER/ROOF 为非空 building，level 键必填且允许 `null` 或有限整数；其他 floorType 规则不变。精确 floorName/floorType 查询可用，数字 level 查询与 level 派生动作对 `null` 不适用；v1 仍依赖显式 sidecar graph，v2 仍为 Scene/Metadata ready + `TOPOLOGY_UNAVAILABLE`。
+- 原 v1/v2 golden SHA 只证明修正前候选。Studio 权威 nullable 特殊层 v1/v2 同字节 fixture/index 已提供，尚待 Platform 镜像验签；联合完成前不得宣称 Studio/Forge/Platform 三端兼容。
 
 ### 未采用方案
 
@@ -155,3 +158,4 @@ Standard Model Package v1 已完成双端技术验收，但在用户确认兼容
 | 2026-08-26 | Studio V1「整体建筑导入」属于 Studio 内部 authoring input profile；raw `Building.glb` 不进入 Platform 或共享发布契约 | 已批准 | Platform 无研发动作、无人员变动 |
 | 2026-08-28 | 双端任务分支机器实现和联合技术验收完成，形成待用户里程碑确认的 Standard Model Package v1 兼容候选 | 技术候选；未发布、未合并 | 无人员变动 |
 | 2026-08-28 | 冻结能力声明型 Standard Model Package v2 P0 精确值与补充决策；Platform 形成未合入、未发布的消费候选 | P0 已批准；Platform 任务分支候选完成，待里程碑批准 | 无人员变动 |
+| 2026-09-01 | 批准 v1/v2 Package 3.3 TOWER/ROOF nullable-level 兼容修正；不新增 schema/version/elevation/order/topology，不推导 level | Platform 本地 checkpoints 完成；权威联合 fixture/index 待同步验签 | 无人员变动 |

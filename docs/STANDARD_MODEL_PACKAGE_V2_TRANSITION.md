@@ -2,7 +2,7 @@
 
 > 日期：2026-08-28
 >
-> 状态：用户已批准能力声明型 Standard Model Package v2 的 P0 精确机器值、补充决策及 2026-09-01 TOWER/ROOF nullable-level 兼容修正；order 推测 P0、修订权威 fixture 镜像和自动矩阵已完成，新的联合真实浏览器验收和用户兼容里程碑仍待完成
+> 状态：用户已批准能力声明型 Standard Model Package v2 的 P0 精确机器值、补充决策及 2026-09-01 TOWER/ROOF nullable-level 兼容修正；order 推测 P0、修订权威 fixture 镜像、自动矩阵和 Platform 消费端真实浏览器验收已完成，用户兼容里程碑、其他产品证据与各仓 local `main` 集成仍待完成
 >
 > 当前门禁：候选尚未合入 Platform local `main`、尚未发布，也未获得临时兼容里程碑批准；不得把任务分支候选表述为已交付能力
 >
@@ -257,8 +257,9 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 - 上述 ZIP/index/revision 与自动验收是 nullable 特殊层修正前的历史候选证据。Studio `f653264` 提供修订权威；Platform `acbf1f4` 完成重新镜像、v1 order P0 与加载后 identity fail-closed，`135be84` 完成真实 validated v2 查询专项。
 - 修订 authority document/index/source `Building.glb`/v1 ZIP/v2 ZIP SHA-256 依次为 `c41dedc540037cfadbae828e82da4f170a97732e7a96d2ff14744ef75e4446ae`、`085a3a08f54fb7f02ee9ef6e16242e47d7741bb5821fdc95869df10ef6cc4485`、`86244b9a40f75e11397cf8ebc65dc0509ffb0337eece3c2a8ba2e1d32a04b864`、`1080cc8717eed98d18eb7a1c8708596ac43c90a7181c28fb55ac5a69df3b3e76`、`a07fe215f0c878d407378d033328f8ad7d3602b94c89701c2266896ac41ef77c`。v1 package/sidecar revision 均为 `482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb`；v2 canonical revision 为 `b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4`。
 - P0 回归证明 v1 embedded/sidecar 的 `A_T`/`A_RF` layer 无 `order`，`A_5F`/`A_6F` 为整数 `5`/`6`；v2 继续无 topology。最终矩阵 PASS：v1/v2 parser 35/18、v1/v2 lifecycle 13/8、Template 20、sidecar 18、capability 9、Quick Action 22、home 13、legacy lifecycle 27、topology 10、typecheck/build/`verify:r1` 10/10。
+- Platform 在验证基线 `4ca8645bffc524d78e606eed6abfe24da608dda2` 从 Studio 权威仓库路径直接导入修订 v2 ZIP：4 floors、revision `b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4`、Scene/Metadata ready、无 graph、`TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT` 与 Quick Action unavailable；同会话 v1→v2 切换和精确 T/RF 查询通过，控制台 error 为 0。完整记录见 [`STANDARD_MODEL_PACKAGE_TRRF_PLATFORM_ACCEPTANCE.md`](./STANDARD_MODEL_PACKAGE_TRRF_PLATFORM_ACCEPTANCE.md)。
 - 旧 `35161cc`/`dbceba4` 与旧 authority/index/v1 ZIP/revision SHA `7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f`、`f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1`、`b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4`、`dddc3c9f5c3ee48d3e8123d8ae1d9b5ea591d1eced7ebf3bfcda8ce6e4b4c147` 已 superseded，仅作历史证据，不得作为最终兼容证据。
-- fixture 验签不替代 nullable 特殊层新的联合真实浏览器验收或用户兼容里程碑批准；完成前不得宣称 Studio/Forge/Platform 三端兼容。
+- Platform fixture、自动矩阵和修订 v1/v2 真实浏览器验收不替代其他产品证据、用户兼容里程碑、各仓 local `main` 集成或三端联合收口；完成前不得宣称 Studio/Forge/Platform 三端兼容。
 
 ## 11. 分阶段工作包
 
@@ -284,7 +285,7 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 - 保持既有 v1 fixture 结果、旧 v3.1 reader、`src/ssp/**` 和除获批 nullable 特殊层显式接受值域外的接受/拒绝结果不变；新增共同 fixture 必须单独同步验签。
 - 完成 package/Metadata/lifecycle/capability/非污染专项测试。
 
-状态：原任务分支候选检查点依次为 parser `e5b6462`、lifecycle `2033525`、capability gate `7733284`、UI `c498452`、fixture `f499da8`；nullable 特殊层的修订权威为 Studio `f653264`，Platform checkpoints 为 `30e1b4e`、`d4475ba`、`acbf1f4` 与 `135be84`。本地候选仍未合入 local `main`、未发布；新的联合真实浏览器验收和用户兼容里程碑尚未完成。
+状态：原任务分支候选检查点依次为 parser `e5b6462`、lifecycle `2033525`、capability gate `7733284`、UI `c498452`、fixture `f499da8`；nullable 特殊层的修订权威为 Studio `f653264`，Platform checkpoints 为 `30e1b4e`、`d4475ba`、`acbf1f4` 与 `135be84`。Platform 已在 `4ca8645bffc524d78e606eed6abfe24da608dda2` 验证基线完成修订 v1/v2 浏览器消费端验收；本地候选仍未合入 local `main`、未发布，用户兼容里程碑和三端联合收口尚未完成。
 
 ### Phase 3 — 双端联合验收
 
@@ -294,7 +295,7 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 
 停止条件：P0/P1 清零、遗留风险明确，并提交用户临时兼容里程碑确认。
 
-当前技术证据：原候选的同字节 fixture、自动门禁与真实浏览器均已通过；nullable 特殊层也已完成 order 推测 P0 纠正、修订权威 v1/v2 fixture/index 同字节镜像、独立验签和最终自动矩阵。尚未执行的是本修正新的联合真实浏览器验收，用户临时兼容里程碑、发布和 local `main` 合入状态均不变；此前不得宣称 Studio/Forge/Platform 三端兼容。
+当前技术证据：原候选的同字节 fixture、自动门禁与真实浏览器均已通过；nullable 特殊层也已完成 order 推测 P0 纠正、修订权威 v1/v2 fixture/index 同字节镜像、独立验签、最终自动矩阵及 Platform Studio-ZIP 直导真实浏览器验收。用户临时兼容里程碑、其他产品证据、发布和 local `main` 合入状态均不变；此前不得宣称 Studio/Forge/Platform 三端兼容。
 
 ### Phase 4 — 临时放行与退出准备
 
@@ -322,7 +323,7 @@ Platform 候选使用独立 `scene-ready` 状态与 v2 package-session discrimin
 - 用户已批准 v2 P0 精确机器值及“不做持久 revision registry、回滚靠重新导入”和“Studio 可显式排除并审计 draft topology、不得静默丢弃”两项补充决策。
 - 本文是过程、边界、验证和回滚事实源，不替代 machine-readable schema 或 fixtures。
 - Platform 原消费候选及 nullable 特殊层实现、P0 纠正、修订权威 fixture 镜像验签已在 `codex/r2-standard-model-package` 完成；修正 checkpoints 为 `30e1b4e`、`d4475ba`、`acbf1f4` 与 `135be84`。候选尚未合入 local `main`、尚未发布，也未获得临时兼容里程碑批准，不得宣称 Platform 已交付 v2。
-- nullable 特殊层修订权威 v1/v2 同字节 fixture/index 已完成 Platform 镜像与自动矩阵；新的联合真实浏览器验收尚未执行，完成并获得用户里程碑批准前不得宣称 Studio/Forge/Platform 三端兼容。
+- nullable 特殊层修订权威 v1/v2 同字节 fixture/index 已完成 Platform 镜像、自动矩阵与真实浏览器消费端验收；其他产品证据、用户里程碑和各仓 local `main` 集成完成前不得宣称 Studio/Forge/Platform 三端兼容。
 - v1 strict topology 候选结论、既有 v1 fixture 结果、旧 v3.1 reader 与旧 ZIP 拒绝边界均保持不变；唯一例外是用户明确批准并已由新共同 fixtures 覆盖的 TOWER/ROOF nullable-level 接受值域。
 - `src/ssp/**` 未修改；临时 profile 不得由任一方单方停发、停收、迁移或移除。
 - 本决策无新增、撤销或职责迁移，不改变组织架构。

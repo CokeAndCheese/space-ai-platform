@@ -172,7 +172,7 @@
 
 ## 2026-09-01 — 批准 Standard Model Package v1/v2 nullable 特殊层兼容修正
 
-- **状态**：有效；当前候选兼容修正，P0 order 推测已修复，修订权威 fixture 同字节镜像与自动矩阵完成，新的联合真实浏览器验收和用户兼容里程碑待完成。
+- **状态**：有效；当前候选兼容修正，P0 order 推测、修订权威 fixture 同字节镜像、自动矩阵与 Platform 消费端真实浏览器验收完成，用户兼容里程碑、其他产品证据和各仓 local `main` 集成待完成。
 - **背景**：Studio 的 TOWER/ROOF 特殊层需要在没有可信数字楼层时显式表达 `level: null`，而原 Platform v1/v2 manifest 与 Metadata 3.3 validator 对所有非景观类型要求整数 level，造成已批准候选的局部生产/消费冲突。
 - **精确规则**：v1/v2 manifest、默认 scene 与所有 mesh node 的 `building`、`level` 键继续必填。TOWER/ROOF 的 `building` 必须为非空字符串，`level` 允许 `null` 或既有有限整数；FLOOR/BASEMENT/FACILITY 继续要求非空 building + 有限整数 level；LANDSCAPE_TERRAIN/LANDSCAPE_FACADE 继续要求 building/level 均为 `null`。各载体的 `floorName/building/level/floorType` 必须逐字段完全一致。
 - **当前候选**：`A_T`/TOWER/`null` 与 `A_RF`/ROOF/`null` 是当前特殊层候选；既有 integer TOWER/ROOF 继续兼容。任何一端不得从 elevation、文件名、楼层顺序或 floorType 猜测、补算、归一化 level，也不得新增 elevation/order、schema/version 或 topology 字段。
@@ -180,9 +180,9 @@
 - **P0 纠正**：Studio Reviewer 发现旧 authority 在 nullable T/RF 上通过默认值写入 `layer.order: 0`，违反“不猜数字顺序”。Studio `f653264` 已修订生产权威；Platform `acbf1f4` 重新镜像并证明 v1 embedded/sidecar 的 `A_T`/`A_RF` layer 无 `order`、`A_5F`/`A_6F` 为整数 `5`/`6`，同时对加载后 `floorName/building/level/floorType` 四字段不一致 fail closed；`135be84` 以真实 validated v2 package 覆盖 TOWER/ROOF 查询及整数查询不匹配 `null`。
 - **修订权威证据**：authority document/index/source `Building.glb`/v1 ZIP/v2 ZIP SHA-256 依次为 `c41dedc540037cfadbae828e82da4f170a97732e7a96d2ff14744ef75e4446ae`、`085a3a08f54fb7f02ee9ef6e16242e47d7741bb5821fdc95869df10ef6cc4485`、`86244b9a40f75e11397cf8ebc65dc0509ffb0337eece3c2a8ba2e1d32a04b864`、`1080cc8717eed98d18eb7a1c8708596ac43c90a7181c28fb55ac5a69df3b3e76`、`a07fe215f0c878d407378d033328f8ad7d3602b94c89701c2266896ac41ef77c`。v1 revision 与 strict sidecar revision 均为 `482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb`；v2 canonical revision 为 `b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4`。
 - **最终自动矩阵**：v1/v2 parser 35/18、v1/v2 lifecycle 13/8、Template 20、sidecar 18、capability 9、Quick Action 22、home 13、legacy lifecycle 27、topology 10、typecheck/build/`verify:r1` 10/10 均 PASS。
-- **独立 Reviewer**：代码/fixture HEAD `135be84` 机器验收结论为 GO，P0/P1/P2=`0/0/0`；此前 P0=1、P1=2 已全部关闭，剩余门禁仅为本修订的联合真实浏览器验收和用户兼容里程碑批准。
+- **独立 Reviewer**：代码/fixture HEAD `135be84` 机器验收结论为 GO，P0/P1/P2=`0/0/0`；此前 P0=1、P1=2 已全部关闭。Platform 又在验证基线 `4ca8645bffc524d78e606eed6abfe24da608dda2` 完成 Studio 修订 v1/v2 ZIP 直导浏览器验收：v1 Graph ready，v2 Scene/Metadata ready 且 topology 明确 unavailable，精确 T/RF 查询与同会话切换通过，控制台 error 为 0。完整记录见 [`STANDARD_MODEL_PACKAGE_TRRF_PLATFORM_ACCEPTANCE.md`](./STANDARD_MODEL_PACKAGE_TRRF_PLATFORM_ACCEPTANCE.md)。
 - **Superseded 证据**：旧 `35161cc` 镜像与 `dbceba4` 文档 checkpoint，以及旧 authority/index/v1 ZIP/revision SHA `7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f`、`f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1`、`b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4`、`dddc3c9f5c3ee48d3e8123d8ae1d9b5ea591d1eced7ebf3bfcda8ce6e4b4c147`，仅作历史证据，不得作为最终兼容证据。
-- **剩余门禁**：尚未执行 nullable 特殊层新的联合真实浏览器验收，也未获得用户兼容里程碑批准。完成前不得宣称 Studio/Forge/Platform 三端兼容、发布、合并或 `main` 已兼容；原 golden SHA 也不替代本修正证据。
+- **剩余门禁**：Platform 只完成任务分支消费端机器技术封版；其他产品联合证据、各产品用户兼容里程碑、各仓 local `main` 集成与集成后门禁尚未完成。完成前不得宣称 Studio/Forge/Platform 三端兼容、发布、合并或 `main` 已兼容；原 golden SHA 也不替代本修正证据。
 - **保留边界**：除上述显式接受值域外，v1/v2 identity、URI、digest、revision、资源限制、lifecycle、sidecar、embedded fallback、v2 topology unavailable、legacy v3.1 reader及发布/合并/里程碑状态全部不变。
 - **人员影响**：不新增、撤销或迁移人员、职责、权限和汇报关系，不触发 `ORG_CHART.md` 或 `PRODUCT_MANAGER_CHARTER.md` 变更。
 - **替换关系**：细化 2026-08-22 Package v1 与 2026-08-28 Package v2 决策中的 Package Metadata 3.3 floor identity 条件；不替换其余冻结语义。

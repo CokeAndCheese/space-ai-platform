@@ -8,7 +8,7 @@
 
 Space AI Platform 是一个 AI 友好的 Three.js 空间能力平台：浏览器加载 GLB/BIM 场景，SSP 将场景能力封装成稳定的 controller，Template Registry 再把受控能力提供给 AI 和业务代码。
 
-Space Model Studio 与 Space AI Platform 是两个独立产品：前者负责生产和校验标准模型，后者负责上层空间应用。两者不共享内部实现，只通过共同的版本化数据契约连接。用户已批准新增 Standard Model Package v1：Studio dual-write `3.3-semantic + embedded topology v1 + sidecar v1`，Platform dual-read 旧 v3.1 路径和新 package + 3.3 路径。原候选的双端机器实现和联合技术验收已完成；用户于 2026-09-01 进一步批准 v1/v2 TOWER/ROOF nullable-level 兼容修正，Studio `f653264` 与 Platform `acbf1f4`/`135be84` 已关闭 order 推测 P0 并完成修订 fixture 与自动矩阵。当前候选尚未执行本修正新的联合真实浏览器验收、尚未获得用户兼容里程碑批准、尚未发布或合并，也不表示 Platform 本地 `main` 或 Studio/Forge/Platform 三端已兼容。v2 的既有 P0 精确机器值、补充决策、发布和临时兼容里程碑状态不变。边界见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)，v1 联合设计见 [`STANDARD_MODEL_PACKAGE_V1.md`](./STANDARD_MODEL_PACKAGE_V1.md)，v2 过渡计划见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)。
+Space Model Studio 与 Space AI Platform 是两个独立产品：前者负责生产和校验标准模型，后者负责上层空间应用。两者不共享内部实现，只通过共同的版本化数据契约连接。用户已批准新增 Standard Model Package v1：Studio dual-write `3.3-semantic + embedded topology v1 + sidecar v1`，Platform dual-read 旧 v3.1 路径和新 package + 3.3 路径。原候选的双端机器实现和联合技术验收已完成；用户于 2026-09-01 进一步批准 v1/v2 TOWER/ROOF nullable-level 兼容修正，Studio `f653264` 与 Platform `acbf1f4`/`135be84` 已关闭 order 推测 P0 并完成修订 fixture 与自动矩阵，Platform 又在 `4ca8645bffc524d78e606eed6abfe24da608dda2` 验证基线完成 Studio 修订 v1/v2 ZIP 直导真实浏览器验收。当前只可称 Platform 任务分支机器技术封版；尚未获得用户兼容里程碑批准、尚未发布或合并，也不表示 Platform 本地 `main` 或 Studio/Forge/Platform 三端已兼容。v2 的既有 P0 精确机器值、补充决策、发布和临时兼容里程碑状态不变。边界见 [`CROSS_PROJECT_DATA_CONTRACT.md`](./CROSS_PROJECT_DATA_CONTRACT.md)，v1 联合设计见 [`STANDARD_MODEL_PACKAGE_V1.md`](./STANDARD_MODEL_PACKAGE_V1.md)，v2 过渡计划见 [`STANDARD_MODEL_PACKAGE_V2_TRANSITION.md`](./STANDARD_MODEL_PACKAGE_V2_TRANSITION.md)，Platform 独立验收见 [`STANDARD_MODEL_PACKAGE_TRRF_PLATFORM_ACCEPTANCE.md`](./STANDARD_MODEL_PACKAGE_TRRF_PLATFORM_ACCEPTANCE.md)。
 
 当前目标用户首先是空间应用开发者和方案实施人员，而不是已经具备账户、权限、项目管理和多人协作的终端 SaaS 用户。
 
@@ -28,7 +28,7 @@ Space Model Studio 产出符合共享契约的标准模型包
 → 场景动作、查询结果与本地审计记录
 ```
 
-Standard Model Package v1 原候选已经在双方任务分支和真实浏览器联合链路中通过技术验收；nullable 特殊层修订权威 fixture/index 已完成 Platform 同字节镜像、P0 回归与独立验签，但本修正新的联合真实浏览器验收和用户兼容里程碑仍未完成，因此尚不能宣称修正后的三端兼容交付。普通 Studio 产物、旧 building-release ZIP 和没有显式 v1 manifest identity 的 ZIP 仍不能进入该链路。
+Standard Model Package v1 原候选已经在双方任务分支和真实浏览器联合链路中通过技术验收；nullable 特殊层修订权威 fixture/index 已完成 Platform 同字节镜像、P0 回归、独立验签和 Studio 修订 ZIP → Platform v1/v2 真实浏览器验收。Platform 消费端技术门禁已关闭，但用户兼容里程碑、其他产品证据和各仓 local `main` 集成仍未完成，因此尚不能宣称修正后的三端兼容交付。普通 Studio 产物、旧 building-release ZIP 和没有显式 v1 manifest identity 的 ZIP 仍不能进入该链路。
 
 能力声明型 v2 已冻结 P0 精确值，Platform 任务分支已有显式 v2 reader/lifecycle/capability/UI 消费候选。v2 必须是严格验证并最终回读的显式标准包，不接收 `*-unvalidated` 或旧 batch；候选未合入 local `main`、未发布，不能表述为已经放行的运行能力。
 
@@ -44,9 +44,9 @@ Standard Model Package v1 原候选已经在双方任务分支和真实浏览器
 - R1 已具备版本化外置 topology sidecar v1 适配、可信资产证明、world-space graph 编译和 Three.js 场景生命周期；正式 A_1F/A_2F sidecar 分别提供可达与显式 blocker 无路 fixture。
 - ChatPanel 已具备受控路径 Quick Action：仅从当前会话显式选择端点，并经注册模板完成查路、渲染与精确清除；不经过 LLM，也不直连 SSP。
 - R1 已具备非污染本地验收入口：开发与构建不再隐式生成模型清单，固定 gate 在 dirty 基线上校验 manifest 原始字节与完整 Git porcelain 前后不变。
-- R2 Standard Model Package v1 原候选已在 Platform checkpoint `786e3f3` 与 Studio producer checkpoint `02b560a` 完成机器实现和联合技术验收；双仓同字节 golden ZIP SHA-256 为 `d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`，SHA index 已分别验签，双方全门禁、真实浏览器联合验收及最终独立 Reviewer 均通过且 P0/P1/P2 为 0。该证据早于 nullable 特殊层修正；当前仍是待补联合证据、待用户里程碑确认的兼容候选，不是发布或 `main` 合并结论。
+- R2 Standard Model Package v1 原候选已在 Platform checkpoint `786e3f3` 与 Studio producer checkpoint `02b560a` 完成机器实现和联合技术验收；双仓同字节 golden ZIP SHA-256 为 `d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`，SHA index 已分别验签，双方全门禁、真实浏览器联合验收及最终独立 Reviewer 均通过且 P0/P1/P2 为 0。该证据早于 nullable 特殊层修正；修订后的 Platform 消费端浏览器证据已于 2026-09-04 补齐，但当前仍是待其他产品联合收口、待用户里程碑确认的兼容候选，不是发布或 `main` 合并结论。
 - Standard Model Package v2 P0 精确值已批准：合法 v2 显式声明 topology `ABSENT`，仅发布 Scene/Metadata ready，并对 topology 功能投影 `TOPOLOGY_UNAVAILABLE / PACKAGE_DECLARED_ABSENT`。Platform 消费候选检查点为 parser `e5b6462`、lifecycle `2033525`、capability gate `7733284`、UI `c498452`、fixture `f499da8`；未合入 local `main`、未发布。
-- 2026-09-01 nullable 特殊层修正已在 Platform checkpoints `30e1b4e`（validator/Metadata/lifecycle）、`d4475ba`（Template 查询专项）、`acbf1f4`（修订 fixture/P0/fail-closed）和 `135be84`（真实 validated v2 查询）完成。TOWER/ROOF 要求非空 building，level 键必填且允许 `null` 或有限整数；其他 floorType 条件不变。v1 的 `A_T`/`A_RF` layer 无 `order`，`A_5F`/`A_6F` order 为 `5`/`6`；精确 floorName/floorType 查询可用，数字 level 与 level 派生能力对 `null` 不适用，不增加推导、排序、elevation、schema/version 或 topology。
+- 2026-09-01 nullable 特殊层修正已在 Platform checkpoints `30e1b4e`（validator/Metadata/lifecycle）、`d4475ba`（Template 查询专项）、`acbf1f4`（修订 fixture/P0/fail-closed）和 `135be84`（真实 validated v2 查询）完成，并在 `4ca8645bffc524d78e606eed6abfe24da608dda2` 验证基线通过修订 v1/v2 真实浏览器消费端验收。TOWER/ROOF 要求非空 building，level 键必填且允许 `null` 或有限整数；其他 floorType 条件不变。v1 的 `A_T`/`A_RF` layer 无 `order`，`A_5F`/`A_6F` order 为 `5`/`6`；精确 floorName/floorType 查询可用，数字 level 与 level 派生能力对 `null` 不适用，不增加推导、排序、elevation、schema/version 或 topology。
 - AI 只能选择 Registry 明确开放的模板，不能直接调用 SSP。
 - 2026-08-27 用户批准的 R1 可见性 UX 修正已完成：`query-scene` hide 不再弹原生确认；hide/show/isolate 仅保留最新一步精确撤回；“全部显示”继续作为非撤回的全局恢复；模型切换或重载使旧撤回失效。随后发现的自然语言“撤回”缺陷也已闭环：聊天“撤回”现由确定性 host-only 路由处理，按钮与聊天共用同一 helper，不进入 Intent/Planner/AI catalog；host UI turns `llmVisible=false` 并与 context ring 解耦，审计语义保持一致。18 项 Template Runtime、A_1F/A_2F 真实浏览器路径、三轮 QA 和 `verify:r1` 10/10 均通过，最终无 P0/P1/P2，证据见 [`R1_VISIBILITY_UNDO_REPORT.md`](./R1_VISIBILITY_UNDO_REPORT.md)。
 - 当前模型清单包含医院等测试场景；医院数据只能作为 fixture，不能成为通用产品契约。
@@ -63,6 +63,7 @@ Standard Model Package v1 原候选已经在双方任务分支和真实浏览器
 - 用户已批准 Standard Model Package v1：package manifest 显式声明 `3.3-semantic`、GLB/sidecar SHA-256、不可变 revision、资产与楼层身份；Studio 额外输出严格 sidecar v1，Platform 新增显式 3.3 reader 并保留 v3.1 reader。
 - Platform 不读取 embedded topology 作为 fallback；新 reader、摘要核验和 AssetProof 集成都位于 `src/ssp/**` 之外。技术门禁已经通过，但用户里程碑确认前不得宣布跨项目兼容、发布或 `main` 已合并。
 - 用户已批准 Studio V1「整体建筑导入」，但它仅是 Studio 的内部 authoring input profile：单个 raw `Building.glb` 在 Studio 内识别楼层并形成逐层只读源视图，再复用 Studio 既有 Metadata/SPACE/Topology 能力。raw `Building.glb` 不是 Standard Model Package、不是 Metadata/Topology 发布契约，也不是 Platform 输入；Platform 不扫描、不猜测、不直接读取该文件，不产生研发动作或人员变动。
+- Studio SHA-256 `33150f24fae21f7c2e15a9f804bb9067c9b75200cd089dce4703355c493fe679` 的 metadata-free 单层 Source GLB naming authority、Building Source GLB 与 Building Source Bundle 都是 authoring 边界，Platform 均非消费者。该 Studio naming authority 只供 Forge 在限定 Studio 交付场景引用/镜像，不替换、迁移或重定义 Forge 自身 SHA 前缀 `8bdf440a` 的产品 authority。
 - 「整体建筑导入」不得借内部拆层静默扩展跨层 connector/路由，也不改变 Package v1、Metadata v3.1/`3.3-semantic`、embedded topology v1 或 sidecar v1。Studio 仍须经过既有发布门禁输出标准模型；Standard Model Package v1 候选不提供跨层 routing，旧 building-release ZIP 也继续由 Platform 拒绝。
 - 用户已批准独立 v2 临时路径及 P0 精确值。v2 不改变 v1 requiredness，不接收 `*-unvalidated` 或旧 batch，不使用空/伪 sidecar或 embedded fallback；Platform 只开放无 topology 能力。Platform 候选与同字节 fixture 证据已完成，但 local `main`/发布/里程碑门禁未完成，不能提前声明兼容。
 - 用户已批准 v1/v2 Package 3.3 的 nullable 特殊层候选修正：`A_T`/TOWER/`null` 与 `A_RF`/ROOF/`null` 合法，既有整数 TOWER/ROOF 继续兼容；manifest、默认 scene 与所有 mesh node 的 floor identity 必须完全一致。FLOOR/BASEMENT/FACILITY 与 LANDSCAPE 条件不变，Platform 不猜 level。该修正不改变 legacy v3.1 reader、sidecar、embedded fallback 或 v2 topology unavailable 边界。
@@ -114,7 +115,7 @@ Standard Model Package v1 原候选已经在双方任务分支和真实浏览器
 - R2 Platform consumer 实现检查点为 `786e3f3123d24dde264aca0536ef04f6e4fe8e07`，Studio producer 实现检查点为 `02b560a`；两端分别完成全门禁，且没有修改 Platform 旧 v3.1 reader、embedded fallback 或 `src/ssp/**`。
 - 双仓同字节 golden ZIP 与 SHA index 已验签；ZIP SHA-256 为 `d0662cdfb95656def2d553a727ddeb88a3b946c9f2ecbefe2558fd83723423b0`。真实浏览器完成 Studio ZIP → Platform 直接解析导入、复用现有场景和 topology 功能的联合验收；最终独立 Reviewer P0/P1/P2 均为 0。
 - v2 同字节 fixture ZIP SHA-256 为 `be0b7734ebbb3effb1f220f601d047d69dcf849c5d16bf7fdc1cd54f4f90e0c7`，SHA index 为 `c559d47222f6d7d61160d74676885e61ea0c0a462f0f67d6c7e5cdd2cc78a91c`，canonical revision 为 `96fee045700e5bbe18c4b196ae96821a84508860460c3cd2e59455594bc61b22`。自动验收通过 v2 parser 16、v2 lifecycle 5、home 13、capability 9、Quick Action 22、v1 parser 33、v1 lifecycle 10、legacy 27、sidecar 18、templates 18、typecheck/build/`verify:r1`/审计；真实浏览器显式导入 v2 后 2 floors、Scene/Metadata ready、无 graph、Topology 稳定 unavailable，仅有两条权威最小 GLB 的 Three loader min/max warning、无 error。
-- nullable 特殊层修订权威来自 Studio `f653264`，Platform checkpoints 为 `acbf1f4` 与 `135be84`。authority document/index/source `Building.glb`/v1 ZIP/v2 ZIP SHA-256 依次为 `c41dedc540037cfadbae828e82da4f170a97732e7a96d2ff14744ef75e4446ae`、`085a3a08f54fb7f02ee9ef6e16242e47d7741bb5821fdc95869df10ef6cc4485`、`86244b9a40f75e11397cf8ebc65dc0509ffb0337eece3c2a8ba2e1d32a04b864`、`1080cc8717eed98d18eb7a1c8708596ac43c90a7181c28fb55ac5a69df3b3e76`、`a07fe215f0c878d407378d033328f8ad7d3602b94c89701c2266896ac41ef77c`；v1 package/sidecar revision 为 `482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb`，v2 canonical revision 为 `b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4`。最终矩阵 v1/v2 parser 35/18、v1/v2 lifecycle 13/8、Template 20、sidecar 18、capability 9、Quick Action 22、home 13、legacy lifecycle 27、topology 10、typecheck/build/`verify:r1` 10/10 均 PASS。
+- nullable 特殊层修订权威来自 Studio `f653264`，Platform checkpoints 为 `acbf1f4` 与 `135be84`。authority document/index/source `Building.glb`/v1 ZIP/v2 ZIP SHA-256 依次为 `c41dedc540037cfadbae828e82da4f170a97732e7a96d2ff14744ef75e4446ae`、`085a3a08f54fb7f02ee9ef6e16242e47d7741bb5821fdc95869df10ef6cc4485`、`86244b9a40f75e11397cf8ebc65dc0509ffb0337eece3c2a8ba2e1d32a04b864`、`1080cc8717eed98d18eb7a1c8708596ac43c90a7181c28fb55ac5a69df3b3e76`、`a07fe215f0c878d407378d033328f8ad7d3602b94c89701c2266896ac41ef77c`；v1 package/sidecar revision 为 `482a129ffeef87de842d86ecb62e9e2d2f693ebcc0ae194543ab6e82c7f142bb`，v2 canonical revision 为 `b89bdf4c02f7c99182483a3f5119a4ed10141c11889108108bc47cf260f7c8d4`。最终矩阵 v1/v2 parser 35/18、v1/v2 lifecycle 13/8、Template 20、sidecar 18、capability 9、Quick Action 22、home 13、legacy lifecycle 27、topology 10、typecheck/build/`verify:r1` 10/10 均 PASS；`4ca8645bffc524d78e606eed6abfe24da608dda2` 基线的 v1/v2 修订浏览器直导、同会话切换及精确 T/RF 查询也 PASS，控制台 error 为 0。报告见 [`STANDARD_MODEL_PACKAGE_TRRF_PLATFORM_ACCEPTANCE.md`](./STANDARD_MODEL_PACKAGE_TRRF_PLATFORM_ACCEPTANCE.md)。
 - 旧 `35161cc`/`dbceba4` 及其 authority/index/v1 ZIP/revision SHA `7df85d3992559ba299b08ce8e55917c732291a519175de6c71c4b422eb128f0f`、`f72befd8dc538095fdca43d5979c968b57b87d1c8650a81ecb8a337405a80ef1`、`b2cc39d73504f2f8ed2535305785f9a32e3b93493eebbb52737ce90b404b2be4`、`dddc3c9f5c3ee48d3e8123d8ae1d9b5ea591d1eced7ebf3bfcda8ce6e4b4c147` 因 nullable T/RF 的 `order: 0` 推测缺陷已 superseded，仅作历史证据，不得用于最终兼容声明。
 
 未作为本轮证据：目标部署环境中的 LLM 通路、CI/CD、浏览器堆/GPU 指标和生产性能。生产构建已通过，但 Vite 仍报告大于 500 kB 的 chunk 警告，尚未设定发布性能预算。
@@ -129,7 +130,7 @@ Standard Model Package v1 原候选已经在双方任务分支和真实浏览器
 4. **本地备份纪律**：暂停 GitHub 后，里程碑外部手动备份成为磁盘或目录级故障的主要恢复保障，必须在进入下一里程碑前确认完成。
 5. **跨项目兼容候选尚待用户确认**：Standard Model Package v1 的双端任务分支实现、共同 fixtures/validators、真实浏览器联合验收和独立 Reviewer 已通过，但尚未获得用户里程碑确认、尚未发布或合并到 `main`。确认前继续阻断兼容发布声明，并保持 legacy reader 不猜版本。
 6. **v2 候选尚未成为交付基线**：P0 精确值与 Platform 消费候选已经完成，但尚未合入 local `main`、发布或获得临时兼容里程碑批准。继续阻断未批准的运行放行，并保持 v1/legacy、unvalidated 拒绝、显式入口和无 Graph-ready 误报。
-7. **nullable 特殊层浏览器与里程碑门禁未闭环**：order 推测 P0 已修复，修订权威 fixture 同字节镜像、独立验签和最终自动矩阵均已完成，但尚未执行本修正新的联合真实浏览器验收，也未获得用户兼容里程碑批准。完成前不得宣称 Studio/Forge/Platform 三端兼容、发布、合并或 `main` 已兼容。
+7. **nullable 特殊层三端里程碑门禁未闭环**：order 推测 P0、修订权威 fixture 同字节镜像、独立验签、最终自动矩阵和 Platform 消费端真实浏览器验收均已完成，但其他产品联合证据、用户兼容里程碑和各仓 local `main` 集成尚未完成。完成前不得宣称 Studio/Forge/Platform 三端兼容、发布、合并或 `main` 已兼容。
 
 ### P1 — 形成可用产品
 
@@ -180,8 +181,8 @@ Standard Model Package v1 原候选已经在双方任务分支和真实浏览器
 ## 8. 建议近期里程碑
 
 1. **R1 通用空间链路可验收版（研发完成，待用户验收）**：采用版本化外置 topology sidecar v1，在不修改 SSP 核心的前提下完成“GLB 基础 metadata + sidecar”→ world-space graph 适配、Three.js 路线显示、受控触发链路、非污染本地构建、浏览器 P0、独立 QA 和架构验收。合同见 [`R1_MILESTONE.md`](./R1_MILESTONE.md)，终验结论见 [`R1_FINAL_ACCEPTANCE.md`](./R1_FINAL_ACCEPTANCE.md)。
-2. **R2 Standard Model Package v1（修订 nullable fixture 已验签，待新联合浏览器与用户里程碑）**：原联合技术验收、Platform nullable 实现、P0 order 纠正和 `acbf1f4` 修订权威 v1 fixture 验签均已完成；本修正新的联合真实浏览器验收尚未执行。候选尚未发布、合并或进入 `main` 兼容基线。
-3. **Standard Model Package v2 临时过渡（修订 nullable fixture 已验签，待新联合浏览器与用户里程碑）**：显式 topology `ABSENT`、严格 reader/lifecycle/capability/UI 门禁、修订权威 v2 fixture 验签及 `135be84` 真实 validated 查询覆盖均已完成；本修正新的联合真实浏览器验收尚未执行。候选尚未合入 local `main`、发布或获用户临时兼容里程碑批准；停发/停收、存量迁移和最终 reader 移除仍须双方共同门禁与用户批准。
+2. **R2 Standard Model Package v1（Platform 任务分支机器技术封版，待用户里程碑与三端收口）**：原联合技术验收、Platform nullable 实现、P0 order 纠正、`acbf1f4` 修订权威 v1 fixture 验签及 `4ca8645bffc524d78e606eed6abfe24da608dda2` 基线真实浏览器消费端验收均已完成。候选尚未发布、合并或进入 `main` 兼容基线。
+3. **Standard Model Package v2 临时过渡（Platform 任务分支机器技术封版，待用户里程碑与三端收口）**：显式 topology `ABSENT`、严格 reader/lifecycle/capability/UI 门禁、修订权威 v2 fixture 验签、`135be84` 真实 validated 查询覆盖及 `4ca8645bffc524d78e606eed6abfe24da608dda2` 基线真实浏览器消费端验收均已完成。候选尚未合入 local `main`、发布或获用户临时兼容里程碑批准；停发/停收、存量迁移和最终 reader 移除仍须双方共同门禁与用户批准。
 4. **后续发布基础（未批准）**：生产 LLM gateway、凭据治理、CI/CD、生产构建制品和发布级 E2E。
 5. **后续 AI Runtime 收敛（未批准）**：完成 Phase 2，迁移关键 combo/query，降低 v2 动态执行面。
 6. **后续产品化（未批准）**：项目/场景管理、权限、服务端审计、远端模型库、多人协作和产品级可观测性。

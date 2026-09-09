@@ -1,5 +1,11 @@
 # Space AI Platform — 产品与团队上下文
 
+## 2026-09-09 当前发布阶段（优先于下文旧的本地-only / token 转发描述）
+
+用户已批准把 GitHub main 的代码内容替换为本地审查版本，保留远端 `61cdaebebad4a9754239384fcc40114fb0c8206f` 的历史回滚点，由用户自行普通推送。当前是静态首发的上传准备，服务器尚无本项目容器/路由；不表示 local main 已合入或三平台契约里程碑完成。
+
+默认 Docker runtime 使用独立 `deploy/nginx.static.conf` 拒绝 `/api` 与 `/api/*`，Compose 固定 AI=false、只启动 web、不注入凭据；原 proxy/token 配置仅保留为未启用材料。模型清单用户修改继续排除，独立资产清单仍为 59 文件 / 327332352 字节。用户上传确认后再执行服务器/网关/资产验收及 CI/Secrets 的首次配置。详细操作、证据边界与回滚见 `TENCENT_LIGHTHOUSE_DEPLOYMENT.md`。
+
 > 产品经理基线：2026-09-01。本文整合当前代码、权威项目文档及历史项目任务中的有效结论，作为后续各角色任务的共同产品上下文。代码契约仍以源码和 API catalog 为准。
 
 治理入口：产品经理的长期角色、权限和汇报机制见 [`PRODUCT_MANAGER_CHARTER.md`](./PRODUCT_MANAGER_CHARTER.md)；最新组织架构见 [`ORG_CHART.md`](./ORG_CHART.md)；研发与备份流程见 [`DEVELOPMENT_WORKFLOW.md`](./DEVELOPMENT_WORKFLOW.md)；用户批准的长期决策见 [`DECISION_LOG.md`](./DECISION_LOG.md)。仓库任务的强制入口规则见根目录 [`AGENTS.md`](../AGENTS.md)。

@@ -7,6 +7,7 @@
 
 const LLM_TIMEOUT_MS = 15_000
 const SETTINGS_KEY = 'ai_settings_v1'
+const LLM_RUNTIME_ENABLED = import.meta.env.DEV || import.meta.env.VITE_LLM_ENABLED === 'true'
 
 interface AiSettings {
   model?: string
@@ -54,6 +55,9 @@ async function requestCompletion(
   body: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<Response> {
+  if (!LLM_RUNTIME_ENABLED) {
+    throw new Error('在线 AI 尚未在安全入口启用')
+  }
   const response = await fetch('/api/llm/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -136,6 +140,7 @@ export async function* streamLLM(
 
 /** 测试用：检查同源代理是否可达。 */
 export async function pingLLM(): Promise<{ ok: boolean; error?: string }> {
+  if (!LLM_RUNTIME_ENABLED) return { ok: false, error: '在线 AI 尚未在安全入口启用' }
   if (isMockEnabled()) return { ok: false, error: 'Mock 模式已开启' }
   try {
     await callLLM('You are a helpful assistant.', 'Reply with only the JSON {"ok": true}', { temperature: 0 })
@@ -149,6 +154,6 @@ export const llmConfig = {
   get model() { return getEffectiveModel() },
   get isMock() { return isMockEnabled() },
   // 浏览器无法安全探测服务端密钥；实际可用性由 pingLLM/requestCompletion 返回。
-  get isConfigured() { return true },
+  get isConfigured() { return LLM_RUNTIME_ENABLED },
   reload: reloadLLMClient,
 }

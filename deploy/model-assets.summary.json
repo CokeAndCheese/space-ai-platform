@@ -1,0 +1,10 @@
+{
+  "schema": "space-ai-platform-model-assets",
+  "schemaVersion": 1,
+  "sourceDirectory": "public/models",
+  "publishedExtensions": [".glb", ".json"],
+  "fileCount": 59,
+  "totalBytes": 327332352,
+  "indexSha256": "35972091e31db031f1ccf60f4c34940156f3236afef178d644cb41eec0186212",
+  "sourceManifestSha256": "8c9d1b468e4e943225a40cbcff7ec77ae8470410d5f415b6d3bae2e636493818"
+}

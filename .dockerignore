@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.*.example
+node_modules
+dist
+dist-ssr
+public/models
+docs/reusable-project-team-template
+儋州赛题三demo源码
+*.log
+.DS_Store

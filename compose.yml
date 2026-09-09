@@ -1,0 +1,55 @@
+name: space-ai-platform
+
+services:
+  web:
+    build:
+      context: .
+      target: static-runtime
+      args:
+        VITE_LLM_ENABLED: "false"
+        VITE_APP_BASE: ${SPACE_AI_APP_BASE:-/space-ai-platform/}
+    image: space-ai-platform:${SPACE_AI_RELEASE:-manual}
+    container_name: space-ai-platform
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - type: bind
+        source: ${SPACE_AI_MODEL_DIR:-/srv/apps/space-ai-platform-assets/models}
+        target: /usr/share/nginx/html/models
+        read_only: true
+        bind:
+          create_host_path: false
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - web
+      - llm-internal
+
+  llm-proxy:
+    profiles:
+      - llm
+    build:
+      context: .
+      target: llm-runtime
+    image: space-ai-platform-llm:${SPACE_AI_RELEASE:-manual}
+    container_name: space-ai-platform-llm
+    restart: unless-stopped
+    env_file:
+      - path: .env.runtime
+        required: true
+    expose:
+      - "8787"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - llm-internal
+
+networks:
+  web:
+    external: true
+  llm-internal:
+    internal: true

@@ -4,11 +4,12 @@ import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  // Demo 兼容旧 VITE_LLM_* 本地配置；这些变量只在 Vite server 配置中读取，
-  // 客户端代码不再引用它们，因此不会进入浏览器 bundle。
-  const llmBaseUrl = env.LLM_BASE_URL || env.VITE_LLM_BASE_URL || 'https://api.minimax.chat/v1'
-  const llmApiKey = env.LLM_API_KEY || env.VITE_LLM_API_KEY
+  // 开发代理只读取服务端命名的变量，禁止把密钥放入 VITE_* 客户端命名空间。
+  const llmBaseUrl = env.LLM_BASE_URL || 'https://api.minimax.chat/v1'
+  const llmApiKey = env.LLM_API_KEY
+  const appBase = env.APP_BASE || env.VITE_APP_BASE || (mode === 'production' ? '/space-ai-platform/' : '/')
   return {
+    base: appBase,
     plugins: [vue()],
     resolve: {
       alias: {

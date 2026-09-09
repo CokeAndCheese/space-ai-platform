@@ -9,6 +9,8 @@
     "build": "vue-tsc --noEmit && vite build",
     "verify:r1": "node scripts/verify-r1-local.mjs",
     "test:r1-local-gate": "node scripts/test-r1-local-gate.mjs",
+    "test:llm-proxy": "node scripts/test-llm-proxy.mjs",
+    "test:deployment": "node scripts/test-deployment.mjs",
     "preview": "vite preview",
     "compress": "node scripts/compress-model.mjs",
     "validate-metadata": "node scripts/validate-metadata.mjs",

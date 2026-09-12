@@ -1,5 +1,13 @@
 # Space AI Platform — 产品与团队上下文
 
+## 2026-09-12 在线 AI 源码候选收口，等待用户推送与运行验收
+
+18 文件最终源码摘要为 `38f229d06024de7e4e7bdc8222326985f603879b42638301a6a05ef741b07337`。架构与独立 QA 对前一摘要 12b678ec… 已给 SOURCE GO；最终只校正手册 Caddy 计数 11→13，其余 17 文件与配置片段不变，static 20/Caddy 13 再通过。完整主控验证为 proxy 28、quota 17、client 8、ZIP64 4、static 20、container 17，以及应用测试 193、3 审计、typecheck/build 和 R1 十步骤通过。独立结论与执行身份边界见 `ONLINE_AI_RELEASE_CANDIDATE_20260912.md`。
+
+用户已批准内部 edge/proxy 双令牌及必要的共享网关短暂重建，保留 MiniMax 密钥；匿名 MiniMax-M3 全站 100 次/天（Asia/Shanghai），耗尽仅暂停 AI。GitHub 由用户手动普通 push，未配置或证明自动部署。当前仅准备本地发布检查点，不快进 local main，不纳入用户 model-manifest、src/ssp 或其他治理/模板改动。
+
+公网 AI 仍未启用/验收：需用户推送后核验精确 SHA、重新协调共享网关并 CAS/备份，完成真实令牌分配、持久配额、生产镜像/路由/TLS、受控真实调用、浏览器完整功能、既有站点回归及回滚。06:42 UTC 服务器仍为 8967057 静态基线，checkout 干净、容器 healthy；不等于公网应用正常。历史开发工具风险继续单列，不自动接受；本轮不是 Studio/Forge/Platform 三端兼容里程碑。
+
 ## 2026-09-09 当前发布阶段（优先于下文旧的本地-only / token 转发描述）
 
 用户已批准把 GitHub main 的代码内容替换为本地审查版本，保留远端 `61cdaebebad4a9754239384fcc40114fb0c8206f` 的历史回滚点，由用户自行普通推送。当前是静态首发的上传准备，服务器尚无本项目容器/路由；不表示 local main 已合入或三平台契约里程碑完成。

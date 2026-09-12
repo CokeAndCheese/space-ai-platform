@@ -22,10 +22,15 @@ EXPOSE 80
 HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=5 \
   CMD wget -qO- http://127.0.0.1/health >/dev/null || exit 1
 
+FROM static-runtime AS ai-runtime
+COPY deploy/nginx.ai.conf.template /etc/nginx/templates/default.conf.template
+ENV NGINX_ENVSUBST_FILTER="^LLM_PROXY_TOKEN$"
+
 FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32 AS llm-runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY server/llm-proxy.mjs ./server/llm-proxy.mjs
+COPY server/llm-quota.mjs ./server/llm-quota.mjs
 USER node
 
 EXPOSE 8787

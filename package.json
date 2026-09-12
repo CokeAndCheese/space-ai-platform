@@ -9,8 +9,12 @@
     "build": "vue-tsc --noEmit && vite build",
     "verify:r1": "node scripts/verify-r1-local.mjs",
     "test:r1-local-gate": "node scripts/test-r1-local-gate.mjs",
+    "test:llm-client": "node scripts/test-llm-client.mjs",
+    "test:llm-quota": "node scripts/test-llm-quota.mjs",
     "test:llm-proxy": "node scripts/test-llm-proxy.mjs",
     "test:deployment": "node scripts/test-deployment.mjs",
+    "test:online-deployment": "node scripts/test-online-deployment.mjs",
+    "test:package-zip64-security": "node scripts/test-package-zip64-security.mjs",
     "preview": "vite preview",
     "compress": "node scripts/compress-model.mjs",
     "validate-metadata": "node scripts/validate-metadata.mjs",
@@ -39,7 +43,7 @@
     "audit:topology-boundary": "node scripts/audit-topology-boundary.mjs"
   },
   "dependencies": {
-    "fflate": "0.8.2",
+    "fflate": "0.8.3",
     "pinia": "^4.0.2",
     "three": "^0.165.0",
     "vue": "^3.4.27",
@@ -56,5 +60,9 @@
     "typescript": "^5.4.5",
     "vite": "^5.2.13",
     "vue-tsc": "^2.0.21"
+  },
+  "overrides": {
+    "nanoid": "3.3.18",
+    "postcss": "8.5.23"
   }
 }

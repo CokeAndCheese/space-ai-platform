@@ -243,7 +243,7 @@ async function rewriteGoldenTopology(
     new TextDecoder().decode(files['topology.v1.json']!),
   ) as MutableSidecar
   const replacement = mutate(manifest, sidecar)
-  files['topology.v1.json'] = replacement ?? strToU8(JSON.stringify(sidecar))
+  files['topology.v1.json'] = replacement === undefined ? strToU8(JSON.stringify(sidecar)) : new Uint8Array(replacement)
   manifest.topology.digest.value = await sha256Hex(files['topology.v1.json']!)
   files['space-model-package.v1.json'] = strToU8(JSON.stringify(manifest))
   return normalizeZip(zipSync(files))

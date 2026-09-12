@@ -1,13 +1,17 @@
 /**
  * llmClient —— 浏览器侧 LLM client
  *
- * 浏览器只向同源 /api/llm 发请求；模型供应商 URL 与 API Key 只存在于代理服务器。
+ * 浏览器只向当前 Vite BASE_URL 下的同源 API 发请求；模型供应商 URL 与 API Key 只存在于代理服务器。
  * 因此不能在这里读取 VITE_LLM_API_KEY，也不能把 key 写入 localStorage。
  */
 
-const LLM_TIMEOUT_MS = 15_000
+const LLM_TIMEOUT_MS = 28_000
+const MAX_ERROR_DETAIL_BYTES = 512
+const MAX_ERROR_DETAIL_CHARS = 500
+const PRODUCTION_MODEL = 'MiniMax-M3'
 const SETTINGS_KEY = 'ai_settings_v1'
 const LLM_RUNTIME_ENABLED = import.meta.env.DEV || import.meta.env.VITE_LLM_ENABLED === 'true'
+const LLM_API_PATH = resolveLlmApiPath(import.meta.env.BASE_URL)
 
 interface AiSettings {
   model?: string
@@ -15,11 +19,17 @@ interface AiSettings {
 }
 
 interface ChatCompletionResponse {
-  choices?: Array<{ message?: { content?: string | null } }>
+  choices?: Array<{
+    finish_reason?: string | null
+    message?: { content?: string | null }
+  }>
 }
 
 interface StreamChunk {
-  choices?: Array<{ delta?: { content?: string | null } }>
+  choices?: Array<{
+    delta?: { content?: string | null }
+    finish_reason?: string | null
+  }>
 }
 
 function loadSettings(): AiSettings {
@@ -31,6 +41,7 @@ function loadSettings(): AiSettings {
 }
 
 function getEffectiveModel(): string {
+  if (import.meta.env.PROD) return PRODUCTION_MODEL
   return loadSettings().model || import.meta.env.VITE_LLM_MODEL || 'MiniMax-M3'
 }
 
@@ -40,7 +51,7 @@ function isMockEnabled(): boolean {
 
 function makePayload(systemPrompt: string, userPrompt: string, opts: { model?: string; temperature?: number; stream?: boolean }) {
   return {
-    model: opts.model ?? getEffectiveModel(),
+    model: import.meta.env.PROD ? PRODUCTION_MODEL : (opts.model ?? getEffectiveModel()),
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -51,6 +62,47 @@ function makePayload(systemPrompt: string, userPrompt: string, opts: { model?: s
   }
 }
 
+export function resolveLlmApiPath(baseUrl: string): string {
+  if (!baseUrl.startsWith('/')
+    || baseUrl.startsWith('//')
+    || /[?#%\\]/.test(baseUrl)
+    || !/^\/[A-Za-z0-9._~/-]*$/.test(baseUrl)) {
+    throw new Error('Vite BASE_URL 必须是同源绝对路径')
+  }
+  const normalized = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
+  const segments = normalized.split('/').filter(Boolean)
+  if (segments.some((segment) => segment === '.' || segment === '..')) {
+    throw new Error('Vite BASE_URL 不得包含路径穿越')
+  }
+  return `${normalized}api/llm/chat/completions`
+}
+
+async function readErrorDetail(response: Response): Promise<string> {
+  if (!response.body) return ''
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  while (size < MAX_ERROR_DETAIL_BYTES) {
+    const { done, value } = await reader.read()
+    if (done) break
+    const remaining = MAX_ERROR_DETAIL_BYTES - size
+    const accepted = value.byteLength > remaining ? value.subarray(0, remaining) : value
+    chunks.push(accepted)
+    size += accepted.byteLength
+    if (accepted.byteLength < value.byteLength || size >= MAX_ERROR_DETAIL_BYTES) {
+      await reader.cancel().catch(() => {})
+      break
+    }
+  }
+  const bytes = new Uint8Array(size)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return new TextDecoder().decode(bytes).slice(0, MAX_ERROR_DETAIL_CHARS)
+}
+
 async function requestCompletion(
   body: Record<string, unknown>,
   signal?: AbortSignal,
@@ -58,14 +110,14 @@ async function requestCompletion(
   if (!LLM_RUNTIME_ENABLED) {
     throw new Error('在线 AI 尚未在安全入口启用')
   }
-  const response = await fetch('/api/llm/chat/completions', {
+  const response = await fetch(LLM_API_PATH, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
     signal,
   })
   if (!response.ok) {
-    const detail = (await response.text()).slice(0, 500)
+    const detail = await readErrorDetail(response)
     throw new Error(`LLM 请求失败 (${response.status}): ${detail || response.statusText}`)
   }
   return response
@@ -86,7 +138,9 @@ export async function callLLM(
   const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout
   const response = await requestCompletion(makePayload(systemPrompt, userPrompt, opts), signal)
   const data = await response.json() as ChatCompletionResponse
-  const content = data.choices?.[0]?.message?.content
+  const choice = data.choices?.[0]
+  if (choice?.finish_reason === 'length') throw new Error('LLM 输出达到长度上限，结果不完整')
+  const content = choice?.message?.content
   if (typeof content !== 'string' || !content) throw new Error('LLM 返回内容为空')
   return content
 }
@@ -102,13 +156,15 @@ export async function* streamLLM(
     return
   }
 
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+  let completed = false
   try {
     const timeout = AbortSignal.timeout(LLM_TIMEOUT_MS)
     const signal = opts.signal ? AbortSignal.any([opts.signal, timeout]) : timeout
     const response = await requestCompletion(makePayload(systemPrompt, userPrompt, { ...opts, stream: true }), signal)
     if (!response.body) throw new Error('LLM streaming 响应没有 body')
 
-    const reader = response.body.getReader()
+    reader = response.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
     while (true) {
@@ -123,18 +179,24 @@ export async function* streamLLM(
           .join('\n')
         if (!data) continue
         if (data === '[DONE]') {
+          completed = true
           yield { type: 'done', content: '' }
           return
         }
         const chunk = JSON.parse(data) as StreamChunk
-        const content = chunk.choices?.[0]?.delta?.content
+        const choice = chunk.choices?.[0]
+        if (choice?.finish_reason === 'length') {
+          throw new Error('LLM 输出达到长度上限，结果不完整')
+        }
+        const content = choice?.delta?.content
         if (content) yield { type: 'delta', content }
       }
-      if (done) break
+      if (done) throw new Error('LLM streaming 响应未正常结束')
     }
-    yield { type: 'done', content: '' }
   } catch (err) {
     yield { type: 'error', content: err instanceof Error ? err.message : String(err) }
+  } finally {
+    if (reader && !completed) await reader.cancel().catch(() => {})
   }
 }
 

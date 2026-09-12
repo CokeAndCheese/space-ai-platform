@@ -1,0 +1,44 @@
+# Explicit online-AI override. The default compose.yml remains static and AI-off.
+services:
+  web:
+    build:
+      target: ai-runtime
+      args:
+        VITE_LLM_ENABLED: "true"
+    environment:
+      LLM_PROXY_TOKEN: ${LLM_PROXY_TOKEN:?LLM_PROXY_TOKEN is required}
+    depends_on:
+      llm-proxy:
+        condition: service_healthy
+    networks: !override
+      - space-ai-platform-edge
+      - llm-internal
+
+  llm-proxy:
+    environment:
+      LLM_BASE_URL: https://api.minimax.cn/v1
+      LLM_MODEL: MiniMax-M3
+      LLM_PROXY_TOKEN: ${LLM_PROXY_TOKEN:?LLM_PROXY_TOKEN is required}
+      LLM_EDGE_TOKEN: ${LLM_EDGE_TOKEN:?LLM_EDGE_TOKEN is required}
+      LLM_ALLOWED_ORIGIN: ${LLM_ALLOWED_ORIGIN:?LLM_ALLOWED_ORIGIN is required}
+      LLM_MAX_COMPLETION_TOKENS: "2048"
+      LLM_DAILY_LIMIT: "100"
+      LLM_QUOTA_TIME_ZONE: Asia/Shanghai
+      LLM_QUOTA_STATE_FILE: /var/lib/space-ai-platform/quota/daily.json
+    volumes:
+      - type: bind
+        source: ${SPACE_AI_QUOTA_DIR:-/srv/apps/space-ai-platform-data/llm-quota}
+        target: /var/lib/space-ai-platform/quota
+        read_only: false
+        bind:
+          create_host_path: false
+    networks:
+      - llm-internal
+      - llm-egress
+
+networks:
+  space-ai-platform-edge:
+    external: true
+    name: ${SPACE_AI_EDGE_NETWORK:-space-ai-platform-edge}
+  llm-egress:
+    driver: bridge

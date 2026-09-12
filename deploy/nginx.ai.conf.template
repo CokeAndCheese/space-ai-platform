@@ -1,0 +1,79 @@
+# Explicit online-AI runtime. Caddy must overwrite X-Space-Client-IP with
+# remote.host and X-Space-Edge-Token with its runtime secret before forwarding
+# the exact chat-completions request to this container.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name _;
+    root /usr/share/nginx/html;
+    index index.html;
+    charset utf-8;
+    resolver 127.0.0.11 valid=30s ipv6=off;
+    client_max_body_size 64k;
+
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "same-origin" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+
+    location = /health {
+        access_log off;
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "same-origin" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        return 200 '{"status":"ok","service":"space-ai-platform"}\n';
+    }
+
+    location = /api { return 404; }
+    location = /api/llm/chat/completions {
+        set $llm_backend llm-proxy:8787;
+        rewrite ^/api/llm/chat/completions$ /chat/completions break;
+        proxy_pass http://$llm_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_set_header X-Forwarded-For "";
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_set_header X-Space-Client-IP $http_x_space_client_ip;
+        proxy_set_header X-Space-Edge-Token $http_x_space_edge_token;
+        proxy_set_header X-Space-Proxy-Token "${LLM_PROXY_TOKEN}";
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_connect_timeout 3s;
+        proxy_send_timeout 15s;
+        proxy_read_timeout 25s;
+        add_header Cache-Control "no-store" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "same-origin" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+    }
+    location ^~ /api/ { return 404; }
+    location ~ /\. { return 404; }
+
+    location /assets/ {
+        try_files $uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "same-origin" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+    }
+    location /draco/ {
+        try_files $uri =404;
+        expires 30d;
+    }
+    location /models/ {
+        try_files $uri =404;
+        expires 1h;
+        add_header Accept-Ranges "bytes" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "same-origin" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+    }
+    location / {
+        try_files $uri $uri/ /index.html;
+        expires -1;
+    }
+}

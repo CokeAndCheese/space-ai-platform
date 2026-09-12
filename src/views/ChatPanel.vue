@@ -180,6 +180,9 @@ async function quickAction(action: typeof QUICK_ACTIONS[number]) {
 }
 
 const showSettings = ref(false)
+const isProductionBuild = import.meta.env.PROD
+const productionAiEnabled = isProductionBuild && import.meta.env.VITE_LLM_ENABLED === 'true'
+const aiApiPath = `${import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`}api/llm`
 
 // 设置: 从 localStorage 读, 默认从 .env.local
 const SETTINGS_KEY = 'ai_settings_v1'
@@ -206,9 +209,9 @@ function saveSettings(s: AiSettings) {
   } catch { /* ignore */ }
 }
 
-// API Key / Base URL 仅由开发代理读取，不进入浏览器或 localStorage。
+// 生产模型由服务端固定；开发模式仍保留本地模型/Mock 调试设置。
 const effectiveModel = computed(() =>
-  settings.value.model || import.meta.env.VITE_LLM_MODEL || 'MiniMax-M3'
+  isProductionBuild ? 'MiniMax-M3' : (settings.value.model || import.meta.env.VITE_LLM_MODEL || 'MiniMax-M3')
 )
 const useMock = computed(() => !!settings.value.useMock)
 
@@ -216,7 +219,7 @@ const modelName = computed(() => effectiveModel.value)
 
 function applySettings() {
   saveSettings({
-    model: settings.value.model,
+    model: isProductionBuild ? undefined : settings.value.model,
     useMock: settings.value.useMock,
   })
   // 通知 store 重置 client
@@ -565,7 +568,7 @@ function onKeydown(e: KeyboardEvent) {
         <h3>⚙️ AI 设置</h3>
         <button class="close-btn" @click="closeSettings">×</button>
 
-        <div class="settings-section">
+        <div v-if="!isProductionBuild" class="settings-section">
           <label class="settings-label">模型名</label>
           <input
             type="text"
@@ -573,6 +576,11 @@ function onKeydown(e: KeyboardEvent) {
             v-model="settings.model"
             :placeholder="modelName"
           />
+        </div>
+
+        <div v-else class="settings-section">
+          <label class="settings-label">服务器固定模型</label>
+          <p class="settings-hint"><code>MiniMax-M3</code>；浏览器设置不能更换供应商、模型或输出预算。</p>
         </div>
 
         <div class="settings-section">
@@ -587,9 +595,11 @@ function onKeydown(e: KeyboardEvent) {
 
         <div class="settings-current">
           <p><strong>当前生效:</strong></p>
-          <p>代理: <code>/api/llm（凭据仅由开发代理读取）</code></p>
+          <p>代理: <code>{{ aiApiPath }}（同源项目子路径）</code></p>
           <p>Model: <code>{{ modelName }}</code></p>
           <p>Mock: <code>{{ useMock ? '✅ 开启' : '关闭' }}</code></p>
+          <p v-if="productionAiEnabled">额度: <code>全站匿名访客共享 100 次/天（Asia/Shanghai 日界）</code></p>
+          <p v-else-if="isProductionBuild">在线 AI: <code>此生产构建未启用</code></p>
         </div>
 
         <div class="settings-actions">
